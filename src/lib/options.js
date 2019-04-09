@@ -3,6 +3,11 @@ import {MDCRipple} from '@material/ripple/index';
 import {MDCTextField} from '@material/textfield/index';
 document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 
+import {MDCSnackbar} from '@material/snackbar';
+const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
+
+import {getConfig} from './storage';
+
 const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
 const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
@@ -13,10 +18,10 @@ function updateSaveButton() {
     saveButton.disabled = !urlInput.valid || !usernameInput.valid;
 }
 
-chrome.storage.local.get(['vault-url', 'vault-user'], (result) => {
-    if (result['vault-url']) urlInput.value = result['vault-url'];
+getConfig().then(config => {
+    if (config.vaultUrl) urlInput.value = config.vaultUrl;
     else urlInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
-    if (result['vault-user']) usernameInput.value = result['vault-user'];
+    if (config.vaultUser) usernameInput.value = config.vaultUser;
     else usernameInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
     updateSaveButton();
 });
@@ -28,10 +33,13 @@ saveButton.addEventListener('click', async () => {
     try {
         const {body} = await agent.post(`${urlInput.value}/v1/auth/userpass/login/${usernameInput.value}`,
             {password: passwordInput.value});
-        chrome.storage.session.set({'vault-token': body.auth.client_token});
+        snackbar.labelText = 'Got a token'
+        // todo where to store token?
+        // chrome.storage.session.set({'vault-token': body.auth.client_token});
         chrome.storage.local.set({'vault-url': urlInput.value});
         chrome.storage.local.set({'vault-user': usernameInput.value});
     } catch (err) {
-
+        snackbar.labelText = 'Token error: ' + err.message;
     }
+    snackbar.open();
 });
