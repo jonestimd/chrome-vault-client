@@ -1,0 +1,37 @@
+@import "@material/typography/mdc-typography";
+@import "@material/elevation/mdc-elevation";
+@import "@material/button/mdc-button";
+@import "@material/floating-label/mdc-floating-label";
+@import "@material/textfield/mdc-text-field";
+
+div.section {
+    margin: 0 5px;
+    padding: 10px;
+
+    div.options {
+        display: flex;
+
+        @media screen and (max-width: 500px) {
+            flex-direction: column;
+            flex-wrap: nowrap;
+        }
+
+        @media screen and (min-width: 500px) {
+            flex-direction: row;
+            flex-wrap: wrap;
+
+            .mdc-text-field.wide {
+                min-width: calc(100% - 20px);
+            }
+        }
+
+        .mdc-text-field {
+            flex: 1 0;
+            margin: 10px 5px;
+        }
+    }
+
+    div.buttons {
+        margin: 10px 5px;
+    }
+}
