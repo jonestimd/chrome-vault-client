@@ -1,7 +1,7 @@
 const vaultUrl = 'vault-url';
 const vaultUser = 'vault-user';
 
-export function getConfig() {
+export function load() {
     if (chrome.storage) {
         return new Promise((resolve) => {
             chrome.storage.local.get([vaultUrl, vaultUser], (result) => {
@@ -10,4 +10,8 @@ export function getConfig() {
         });
     }
     else return Promise.resolve({});
+}
+
+export function save(baseUrl, username) {
+    chrome.storage.local.set({[vaultUrl]: baseUrl, [vaultUser]: username});
 }
