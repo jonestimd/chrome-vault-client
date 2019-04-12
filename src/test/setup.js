@@ -8,6 +8,10 @@ module.exports = {
                     get: sinon.stub(),
                     set: sinon.stub()
                 }
+            },
+            permissions: {
+                getAll: sinon.stub(),
+                request: sinon.stub()
             }
         }
     }

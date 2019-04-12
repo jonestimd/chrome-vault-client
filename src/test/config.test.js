@@ -1,6 +1,5 @@
 import * as config from '../lib/config';
 import chai, {expect} from 'chai';
-import { chmod } from 'fs';
 chai.use(require('sinon-chai'));
 
 const baseUrl = 'https://my.vault.host';

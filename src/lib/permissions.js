@@ -1,4 +1,4 @@
-const normalizeUrl = (url) => url.replace(/\/*$/, '') + '/';
+const normalizeUrl = (url) => url.replace(/\/$/, '') + '/';
 
 async function isUrlAllowed(url) {
     const normalizedUrl = normalizeUrl(url);
