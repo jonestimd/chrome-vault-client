@@ -32,6 +32,7 @@ usernameInput.listen('input', updateSaveButton);
 
 saveButton.addEventListener('click', async () => {
     try {
+        // TODO show progress or spinner?
         if (await permissions.requestOrigin(urlInput.value)) {
             const {body} = await agent.post(`${urlInput.value}/v1/auth/userpass/login/${usernameInput.value}`,
                 {password: passwordInput.value});
@@ -39,7 +40,7 @@ saveButton.addEventListener('click', async () => {
             else snackbar.labelText = 'Did not get a token, please verify the base URL';
             // todo where to store token?
             // chrome.storage.session.set({'vault-token': body.auth.client_token});
-            config.save(urlInput.value, usernameInput.value);
+            await config.save(urlInput.value, usernameInput.value);
         }
         else {
             snackbar.labelText = 'Need permission to access ' + urlInput.value;
