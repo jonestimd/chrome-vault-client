@@ -4,8 +4,9 @@
     "description": "Chrome extension to store passwords in a Hashicorp Vault",
     "license": "MIT",
     "scripts": {
-        "prebuild": "mkdir -p build; webpack -p",
-        "build": "cp -r src/manifest.json src/views/* src/images/ src/lib/background.js build",
+        "prebuild": "rm -r build; mkdir -p build; webpack -p",
+        "build": "cp -r src/manifest.json src/views/* src/images/ build",
+        "postbuild": "rm build/styles.js",
         "test": "mocha src/test"
     },
     "mocha": {

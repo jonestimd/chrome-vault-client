@@ -2,10 +2,14 @@ const path = require('path');
 const autoprefixer = require('autoprefixer');
 
 module.exports = [{
-    entry: ['./src/styles/app.scss', './src/lib/options.js'],
+    entry: {
+      styles: './src/styles/app.scss',
+      options: './src/lib/options.js',
+      background: './src/lib/background.js'
+    },
     output: {
       path: path.resolve(__dirname, 'build'),
-      filename: 'options.js',
+      filename: '[name].js'
     },
     module: {
       rules: [
