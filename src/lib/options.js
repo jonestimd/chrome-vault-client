@@ -5,11 +5,11 @@ document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 import { MDCSnackbar } from '@material/snackbar';
 const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
 
-import {newListItem} from './components/ListItem';
-
 import * as settings from './settings';
 import * as permissions from './permissions';
 import * as vaultApi from './vaultApi';
+
+import List from './components/List';
 
 const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
 const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
@@ -18,7 +18,7 @@ const statusArea = document.getElementById('status');
 const loginButton = document.getElementById('login');
 const logoutButton = document.getElementById('logout');
 const reloadButton = document.getElementById('reload');
-const urlList = document.getElementById('saved-urls');
+const urlList = new List(document.getElementById('saved-urls'));
 
 function updateLoginButton() {
     loginButton.disabled = !urlInput.valid || !usernameInput.valid || !passwordInput.valid;
@@ -30,8 +30,8 @@ function setStatus(token) {
 }
 
 function showUrlPaths(urlPaths) {
-    urlList.innerHTML = '';
-    Object.keys(urlPaths).sort().forEach(path => urlList.appendChild(newListItem(path)));
+    urlList.removeAll();
+    Object.keys(urlPaths).sort().forEach(path => urlList.addItem(path));
 }
 
 settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
