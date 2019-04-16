@@ -26,7 +26,13 @@ export async function getUrlPaths(vaultUrl, token) {
         }
         else {
             const data = await getSecret(vaultUrl, token, names[i]);
-            if (data.url) urlPaths[data.url] = path;
+            if (data.url) {
+                urlPaths[data.url] = {
+                    path,
+                    username: Boolean(data.username),
+                    password: Boolean(data.password)
+                };
+            }
             i++;
         }
     }
