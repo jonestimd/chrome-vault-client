@@ -4,10 +4,16 @@
 @import "@material/floating-label/mdc-floating-label";
 @import "@material/textfield/mdc-text-field";
 @import "@material/snackbar/mdc-snackbar";
+@import "@material/list/mdc-list";
+
+h2 {
+    margin: 5px;
+}
 
 div.section {
     margin: 0 5px;
     padding: 10px;
+    position: relative;
 
     div.options {
         display: flex;
@@ -22,17 +28,42 @@ div.section {
             flex-wrap: wrap;
 
             .mdc-text-field.wide {
-                min-width: calc(100% - 20px);
+                min-width: calc(100% - 10px);
             }
         }
 
         .mdc-text-field {
             flex: 1 0;
-            margin: 10px 5px;
+            margin: 5px;
         }
     }
 
     div.buttons {
         margin: 10px 5px;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+
+        #status {
+            flex: 1 0;
+            margin: 0 5px;
+            font-size: larger;
+            color: $mdc-theme-primary;
+        }
+
+        h2 {
+            flex: 1 0;
+        }
+
+        button:not(:last-child) {
+            margin-right: 5px;
+        }
     }
+
+    // button#reload {
+    //     position: absolute;
+    //     top: 13px;
+    //     right: 15px;
+    // }
 }

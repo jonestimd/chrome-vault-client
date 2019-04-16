@@ -1,52 +1,84 @@
-import agent from 'superagent';
-import {MDCRipple} from '@material/ripple/index';
-import {MDCTextField} from '@material/textfield/index';
+import { MDCRipple } from '@material/ripple/index';
+import { MDCTextField } from '@material/textfield/index';
 document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 
-import {MDCSnackbar} from '@material/snackbar';
+import { MDCSnackbar } from '@material/snackbar';
 const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
 
-import * as config from './config';
+import {newListItem} from './components/ListItem';
+
+import * as settings from './settings';
 import * as permissions from './permissions';
+import * as vaultApi from './vaultApi';
 
 const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
 const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
+const statusArea = document.getElementById('status');
+const loginButton = document.getElementById('login');
+const logoutButton = document.getElementById('logout');
+const reloadButton = document.getElementById('reload');
+const urlList = document.getElementById('saved-urls');
 
-const saveButton = document.getElementById('save');
-
-function updateSaveButton() {
-    saveButton.disabled = !urlInput.valid || !usernameInput.valid;
+function updateLoginButton() {
+    loginButton.disabled = !urlInput.valid || !usernameInput.valid || !passwordInput.valid;
 }
 
-config.load().then(config => {
-    if (config.vaultUrl) urlInput.value = config.vaultUrl;
+function setStatus(token) {
+    if (token) statusArea.innerText = 'Logged in';
+    else statusArea.innerText = 'Not logged in';
+}
+
+function showUrlPaths(urlPaths) {
+    urlList.innerHTML = '';
+    Object.keys(urlPaths).sort().forEach(path => urlList.appendChild(newListItem(path)));
+}
+
+settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
+    if (vaultUrl) {
+        urlInput.value = vaultUrl;
+        usernameInput.focus();
+    }
     else urlInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
-    if (config.vaultUser) usernameInput.value = config.vaultUser;
+    if (vaultUser) {
+        usernameInput.value = vaultUser;
+        if (urlInput.valid) passwordInput.focus();
+    }
     else usernameInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
-    updateSaveButton();
+    passwordInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+    updateLoginButton();
+    setStatus(token);
+    showUrlPaths(urlPaths);
 });
 
-urlInput.listen('input', updateSaveButton);
-usernameInput.listen('input', updateSaveButton);
+urlInput.listen('input', updateLoginButton);
+usernameInput.listen('input', updateLoginButton);
+passwordInput.listen('input', updateLoginButton);
 
-saveButton.addEventListener('click', async () => {
-    try {
-        // TODO show progress or spinner?
-        if (await permissions.requestOrigin(urlInput.value)) {
-            const {body} = await agent.post(`${urlInput.value}/v1/auth/userpass/login/${usernameInput.value}`,
-                {password: passwordInput.value});
-            if (body && body.auth.client_token) snackbar.labelText = 'Got a token';
-            else snackbar.labelText = 'Did not get a token, please verify the base URL';
-            // todo where to store token?
-            // chrome.storage.session.set({'vault-token': body.auth.client_token});
-            await config.save(urlInput.value, usernameInput.value);
-        }
-        else {
-            snackbar.labelText = 'Need permission to access ' + urlInput.value;
-        }
-    } catch (err) {
-        snackbar.labelText = 'Error getting token: ' + err.message;
-    }
+function showAlert(message) {
+    snackbar.labelText = message;
     snackbar.open();
+}
+
+loginButton.addEventListener('click', async () => {
+    try {
+        if (await permissions.requestOrigin(urlInput.value)) {
+            const auth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
+            setStatus(auth.client_token);
+            if (!auth) showAlert('Did not get a token, please verify the base URL');
+            await settings.save(urlInput.value, usernameInput.value, auth.client_token);
+        }
+        else showAlert('Need permission to access ' + urlInput.value);
+    } catch (err) {
+        showAlert('Error getting token: ' + err.message);
+    }
+});
+
+logoutButton.addEventListener('click', async () => {
+    await settings.clearToken();
+    setStatus();
+});
+
+reloadButton.addEventListener('click', async () => {
+    showUrlPaths(await settings.cacheUrlPaths());
 });
