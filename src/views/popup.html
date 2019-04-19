@@ -1,16 +1,37 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <style>
-      button {
-        height: 30px;
-        width: 30px;
-        outline: none;
-      }
-    </style>
-  </head>
-  <body>
-    <button id="changeColor"></button>
-    <script src="popup.js"></script>
-  </body>
+<head>
+<link rel="stylesheet" href="bundle.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+div.buttons {
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+}
+div.buttons button:not(:last-child) {
+    margin-bottom: 5px;
+}
+button.hidden {
+    display: none;
+}
+</style>
+</head>
+<body class="mdc-typography">
+    <div class="buttons" style="white-space: nowrap">
+        <button id="fill-both" class="mdc-button">
+            <span class="mdc-button__label">User+Password</span>
+            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
+        </button>
+        <button id="fill-user" class="mdc-button">
+            <span class="mdc-button__label">User</span>
+            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
+        </button>
+        <button id="fill-password" class="mdc-button">
+            <span class="mdc-button__label">Password</span>
+            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
+        </button>
+    </div>
+</body>
+<script src="popup.js"></script>
 </html>
