@@ -5,6 +5,8 @@ module.exports = [{
     entry: {
       styles: './src/styles/app.scss',
       options: './src/lib/options.js',
+      popup: './src/lib/popup.js',
+      contentScript: './src/lib/contentScript.js',
       background: './src/lib/background.js'
     },
     output: {

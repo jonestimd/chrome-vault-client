@@ -10,7 +10,7 @@ async function listSecrets(vaultUrl, token, path) {
     return body.data.keys;
 }
 
-async function getSecret(vaultUrl, token, path) {
+export async function getSecret(vaultUrl, token, path) {
     const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set('X-Vault-Token', token);
     return body.data.data;
 }
