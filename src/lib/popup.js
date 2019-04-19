@@ -27,7 +27,6 @@ function findPath(urlPaths, pageUrlString) {
 chrome.runtime.onMessage.addListener(async function (message, sender) {
     const { vaultUrl, token, urlPaths } = await settings.load();
     const [entryUrlString, config] = findPath(urlPaths, message.url);
-    console.log('config', config);
     if (config) {
         fillUserButton.disabled = !(message.user && config.username);
         fillPasswordButton.disabled = !(message.password && config.password);
@@ -40,7 +39,6 @@ chrome.runtime.onMessage.addListener(async function (message, sender) {
         const message = {};
         if (fillUser) message.username = secret.username;
         if (fillPassword) message.password = secret.password;
-        console.log('sening message');
         chrome.tabs.sendMessage(sender.tab.id, message);
     }
 
