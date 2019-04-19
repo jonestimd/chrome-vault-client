@@ -8,7 +8,8 @@ import * as settings from './settings';
 const cssMatchers = ['input[type="password"]', 'input[type="text"][id*="user" i]'];
 
 function newRule(pageUrl) {
-    return {pageUrl, css: cssMatchers};
+    // return {pageUrl, css: cssMatchers};
+    return {pageUrl};
 }
 
 function getUrlRule(urlPaths) {
