@@ -25,8 +25,8 @@ function updateLoginButton() {
 }
 
 function setStatus(token) {
-    if (token) statusArea.innerText = 'Logged in';
-    else statusArea.innerText = 'Not logged in';
+    statusArea.innerText = token ? 'Logged in' : 'Not logged in';
+    logoutButton.disabled = !token;
 }
 
 function showUrlPaths(urlPaths) {
@@ -37,7 +37,11 @@ function showUrlPaths(urlPaths) {
     });
 }
 
-settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
+let savedUrl, savedToken;
+
+settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }) => {
+    savedUrl = vaultUrl;
+    savedToken = token;
     if (vaultUrl) {
         urlInput.value = vaultUrl;
         usernameInput.focus();
@@ -71,8 +75,10 @@ loginButton.addEventListener('click', async () => {
         if (await permissions.requestOrigin(urlInput.value)) {
             const auth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
             setStatus(auth.client_token);
+            savedUrl = urlInput.value;
+            savedToken = auth.client_token;
             if (!auth) showAlert('Did not get a token, please verify the base URL');
-            await settings.save(urlInput.value, usernameInput.value, auth.client_token);
+            await settings.save(urlInput.value, usernameInput.value, auth.client_token, auth.lease_duration); // seconds
         }
         else showAlert('Need permission to access ' + urlInput.value);
     } catch (err) {
@@ -81,10 +87,26 @@ loginButton.addEventListener('click', async () => {
 });
 
 logoutButton.addEventListener('click', async () => {
+    try {
+        if (savedToken) await vaultApi.logout(savedUrl, savedToken);
+        savedToken = undefined;
+    } catch (err) {
+        if (err.status === 403) savedToken = undefined;
+        else showAlert('Error revoking token: ' + err.message);
+    }
     await settings.clearToken();
-    setStatus();
+    setStatus(savedToken);
 });
 
 reloadButton.addEventListener('click', async () => {
-    showUrlPaths(await settings.cacheUrlPaths());
+    try {
+        showUrlPaths(await settings.cacheUrlPaths());
+    } catch (err) {
+        if (err.status === 403) {
+            savedToken = undefined;
+            setStatus();
+            showAlert('Need a token');
+        }
+        else showAlert(err.message);
+    }
 });

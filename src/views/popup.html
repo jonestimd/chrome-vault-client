@@ -7,8 +7,8 @@
 div.buttons {
     display: flex;
     flex-direction: row;
-    white-space: nowrap;
     align-items: center;
+    justify-content: center;
 }
 div.buttons button:not(:last-child) {
     margin-right: 5px;
@@ -16,16 +16,29 @@ div.buttons button:not(:last-child) {
 button.hidden {
     display: none;
 }
+div.mdc-text-field {
+    min-width: 20em;
+    margin-top: 10px;
+}
+#status {
+    color: red;
+}
 </style>
 </head>
 <body class="mdc-typography">
     <div class="buttons" style="white-space: nowrap">
+        <button id="fill-user" class="mdc-icon-button material-icons">account_circle</button>
+        <button id="fill-password" class="mdc-icon-button material-icons">vpn_key</button>
         <button id="fill-both" class="mdc-fab mdc-fab--mini">
             <span class="mdc-fab__icon material-icons" aria-hidden="true">input</span>
         </button>
-        <button id="fill-user" class="mdc-icon-button material-icons">account_circle</button>
-        <button id="fill-password" class="mdc-icon-button material-icons">vpn_key</button>
     </div>
+    <div class="mdc-text-field">
+        <input type="password" class="mdc-text-field__input" id="password" autofocus/>
+        <div class="mdc-line-ripple"></div>
+        <label class="mdc-floating-label" for="password">Vault Password</label>
+    </div>
+    <p id="status"></p>
 </body>
 <script src="popup.js"></script>
 </html>

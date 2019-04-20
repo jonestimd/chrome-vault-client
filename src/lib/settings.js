@@ -14,6 +14,12 @@ export function save(vaultUrl, vaultUser, token) {
     });
 }
 
+export function saveToken(token) {
+    return new Promise(resolve => {
+        chrome.storage.local.set({ token }, () => resolve());
+    });
+}
+
 export function clearToken() {
     return new Promise(resolve => {
         chrome.storage.local.remove(['token'], () => resolve());
@@ -22,7 +28,7 @@ export function clearToken() {
 
 export async function cacheUrlPaths() {
     const { vaultUrl, token } = await load();
-    if (vaultUrl && token) {
+    if (vaultUrl) {
         const urlPaths = await vaultApi.getUrlPaths(vaultUrl, token);
         return new Promise(resolve => {
             chrome.storage.local.set({urlPaths}, () => resolve(urlPaths));

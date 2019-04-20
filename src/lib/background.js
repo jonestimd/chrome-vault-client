@@ -9,7 +9,7 @@ const cssMatchers = ['input[type="password"]', 'input[type="text"][id*="user" i]
 
 function newRule(pageUrl) {
     // return {pageUrl, css: cssMatchers};
-    return {pageUrl};
+    return { pageUrl };
 }
 
 function getUrlRule(urlPaths) {
@@ -35,8 +35,12 @@ function setPageRules(urlPaths) {
 }
 
 chrome.runtime.onInstalled.addListener(async function () {
-    const urlPaths = await settings.cacheUrlPaths();
-    setPageRules(urlPaths);
+    try {
+        const urlPaths = await settings.cacheUrlPaths();
+        setPageRules(urlPaths);
+    } catch (err) {
+        if (err.status !== 403) console.log(err.message);
+    }
 });
 
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
