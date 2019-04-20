@@ -1,6 +1,10 @@
+$mdc-theme-accent: rgb(84, 110, 122) !default;
+
 @import "@material/typography/mdc-typography";
 @import "@material/elevation/mdc-elevation";
 @import "@material/button/mdc-button";
+@import "@material/icon-button/mdc-icon-button";
+@import "@material/fab/mdc-fab";
 @import "@material/floating-label/mdc-floating-label";
 @import "@material/textfield/mdc-text-field";
 @import "@material/snackbar/mdc-snackbar";
@@ -60,10 +64,11 @@ div.section {
             margin-right: 5px;
         }
     }
+}
 
-    // button#reload {
-    //     position: absolute;
-    //     top: 13px;
-    //     right: 15px;
-    // }
+.mdc-fab:disabled {
+    cursor: default;
+    pointer-events: none;
+    background-color: #819ca9; /* rgba(0,0,0,0.12); */
+    color: rgba(0,0,0,0.51);
 }

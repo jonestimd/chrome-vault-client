@@ -6,11 +6,12 @@
 <style>
 div.buttons {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     white-space: nowrap;
+    align-items: center;
 }
 div.buttons button:not(:last-child) {
-    margin-bottom: 5px;
+    margin-right: 5px;
 }
 button.hidden {
     display: none;
@@ -19,18 +20,11 @@ button.hidden {
 </head>
 <body class="mdc-typography">
     <div class="buttons" style="white-space: nowrap">
-        <button id="fill-both" class="mdc-button">
-            <span class="mdc-button__label">User+Password</span>
-            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
+        <button id="fill-both" class="mdc-fab mdc-fab--mini">
+            <span class="mdc-fab__icon material-icons" aria-hidden="true">input</span>
         </button>
-        <button id="fill-user" class="mdc-button">
-            <span class="mdc-button__label">User</span>
-            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
-        </button>
-        <button id="fill-password" class="mdc-button">
-            <span class="mdc-button__label">Password</span>
-            <i class="material-icons mdc-button__icon" aria-hidden="true">input</i>
-        </button>
+        <button id="fill-user" class="mdc-icon-button material-icons">account_circle</button>
+        <button id="fill-password" class="mdc-icon-button material-icons">vpn_key</button>
     </div>
 </body>
 <script src="popup.js"></script>
