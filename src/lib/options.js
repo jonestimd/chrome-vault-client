@@ -21,7 +21,7 @@ const reloadButton = document.getElementById('reload');
 const urlList = new List(document.getElementById('saved-urls'));
 
 function updateLoginButton() {
-    loginButton.disabled = !urlInput.valid || !usernameInput.valid || !passwordInput.valid;
+    loginButton.disabled = !urlInput.valid || !usernameInput.valid || passwordInput.value.length === 0;
 }
 
 function setStatus(token) {
@@ -42,13 +42,16 @@ settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
         urlInput.value = vaultUrl;
         usernameInput.focus();
     }
-    else urlInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+    else {
+        urlInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+        passwordInput.required = true;
+        passwordInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+    }
     if (vaultUser) {
         usernameInput.value = vaultUser;
         if (urlInput.valid) passwordInput.focus();
     }
     else usernameInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
-    passwordInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
     updateLoginButton();
     setStatus(token);
     showUrlPaths(urlPaths);
