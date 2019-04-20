@@ -13,8 +13,14 @@ div.buttons {
 div.buttons button:not(:last-child) {
     margin-right: 5px;
 }
-button.hidden {
-    display: none;
+h2 {
+    border-bottom: 1px solid;
+}
+.settings-data {
+    font-size: medium;
+}
+label {
+    font-weight: bold;
 }
 div.mdc-text-field {
     min-width: 20em;
@@ -22,6 +28,7 @@ div.mdc-text-field {
 }
 #status {
     color: red;
+    font-size: medium;
 }
 </style>
 </head>
@@ -33,12 +40,18 @@ div.mdc-text-field {
             <span class="mdc-fab__icon material-icons" aria-hidden="true">input</span>
         </button>
     </div>
-    <div class="mdc-text-field">
-        <input type="password" class="mdc-text-field__input" id="password" autofocus/>
-        <div class="mdc-line-ripple"></div>
-        <label class="mdc-floating-label" for="password">Vault Password</label>
+    <div>
+        <h2>Vault credentials</h2>
+        <div class="settings-data">
+            <label>Username:  </label><span id="username"></span>
+        </div>
+        <div class="mdc-text-field">
+            <input type="password" class="mdc-text-field__input" id="password" autofocus/>
+            <div class="mdc-line-ripple"></div>
+            <label class="mdc-floating-label" for="password">Password</label>
+        </div>
+        <p id="status"></p>
     </div>
-    <p id="status"></p>
 </body>
 <script src="popup.js"></script>
 </html>

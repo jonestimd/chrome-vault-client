@@ -30,6 +30,7 @@ function findPath(urlPaths, pageUrlString) {
 
 chrome.runtime.onMessage.addListener(async function (message, sender) {
     const { vaultUrl, vaultUser, token, urlPaths } = await settings.load();
+    document.querySelector('#username').innerText = vaultUser;
     const config = findPath(urlPaths, message.url);
     let vaultToken = token;
 
@@ -68,22 +69,24 @@ chrome.runtime.onMessage.addListener(async function (message, sender) {
         }
     }
 
-    let secret = await getSecret(vaultUrl, config.path);
+    if (message.username || message.password) {
+        let secret = await getSecret(vaultUrl, config.path);
 
-    async function fillForm(fillUser, fillPassword) {
-        if (!secret) secret = await getSecret(vaultUrl, config.path);
-        if (secret) {
-            const message = {};
-            if (fillUser) message.username = secret.username;
-            if (fillPassword) message.password = secret.password;
-            chrome.tabs.sendMessage(sender.tab.id, message);
+        async function fillForm(fillUser, fillPassword) {
+            if (!secret) secret = await getSecret(vaultUrl, config.path);
+            if (secret) {
+                const message = {};
+                if (fillUser) message.username = secret.username;
+                if (fillPassword) message.password = secret.password;
+                chrome.tabs.sendMessage(sender.tab.id, message);
+            }
         }
-    }
 
-    fillUserButton.addEventListener('click', () => fillForm(true, false));
-    fillPasswordButton.addEventListener('click', () => fillForm(false, true));
-    fillBothButton.addEventListener('click', () => fillForm(true, true));
-    passwordInput.listen('input', updateButtons);
+        fillUserButton.addEventListener('click', () => fillForm(true, false));
+        fillPasswordButton.addEventListener('click', () => fillForm(false, true));
+        fillBothButton.addEventListener('click', () => fillForm(true, true));
+        passwordInput.listen('input', updateButtons);
+    }
 });
 
 chrome.tabs.executeScript({ file: 'contentScript.js' });

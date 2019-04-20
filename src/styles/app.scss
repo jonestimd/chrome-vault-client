@@ -10,15 +10,15 @@ $mdc-theme-accent: rgb(84, 110, 122) !default;
 @import "@material/snackbar/mdc-snackbar";
 @import "@material/list/mdc-list";
 
-h2 {
-    margin: 5px;
-}
-
 div.section {
     margin: 10px 5px;
     padding: 5px;
     position: relative;
 
+    h2 {
+        margin: 5px;
+    }
+    
     div.options {
         display: flex;
 
