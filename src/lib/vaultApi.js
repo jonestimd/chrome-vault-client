@@ -1,17 +1,32 @@
 import agent from 'superagent';
 
+const authHeader = 'X-Vault-Token';
+
+export function getErrorMessage(err) {
+    if (err.response && err.response.body && err.response.body.errors) return err.response.body.errors.join();
+    return err.message;
+}
+
 export async function login(vaultUrl, user, password) {
-    const { body } = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, { password });
-    return body && body.auth;
+    try {
+        const { body } = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, { password });
+        return body && body.auth;
+    } catch (err) {
+        throw new Error(getErrorMessage(err));
+    }
+}
+
+export async function logout(vaultUrl, token) {
+    await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
 }
 
 async function listSecrets(vaultUrl, token, path) {
-    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set('X-Vault-Token', token);
+    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
     return body.data.keys;
 }
 
 export async function getSecret(vaultUrl, token, path) {
-    const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set('X-Vault-Token', token);
+    const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
     return body.data.data;
 }
 
