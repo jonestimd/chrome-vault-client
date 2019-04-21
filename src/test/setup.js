@@ -6,7 +6,8 @@ module.exports = {
             storage: {
                 local: {
                     get: sinon.stub(),
-                    set: sinon.stub()
+                    set: sinon.stub(),
+                    remove: sinon.stub()
                 }
             },
             permissions: {
