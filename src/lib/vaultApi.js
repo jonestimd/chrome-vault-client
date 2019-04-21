@@ -20,14 +20,14 @@ export async function logout(vaultUrl, token) {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
 }
 
-async function listSecrets(vaultUrl, token, path) {
-    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
-    return body.data.keys;
-}
-
 export async function getSecret(vaultUrl, token, path) {
     const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
     return body.data.data;
+}
+
+async function listSecrets(vaultUrl, token, path) {
+    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
+    return body.data.keys;
 }
 
 export async function getUrlPaths(vaultUrl, token) {
