@@ -21,7 +21,11 @@ const vaultUrl = 'https://my.vault';
 const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
-const authHeader = 'X-Vault-Token';
+
+const urlPaths = {
+    'https://my.bank.com': {path: '/secret/my-bank', username: true, password: true},
+    'https://my.utility.com': {path: '/secret/my-utility'},
+};
 
 const loadPage = () => {
     global.window = new JSDOM(html).window;
@@ -35,7 +39,7 @@ const loadPage = () => {
 };
 
 module.exports = {
-    '@test options': {
+    'options': {
         beforeEach() {
             sandbox.stub(settings);
             sandbox.stub(permissions);
@@ -88,10 +92,6 @@ module.exports = {
             });
         },
         'displays saved URLs': (done) => {
-            const urlPaths = {
-                'https://my.bank.com': {path: '/secret/my-bank', username: true, password: true},
-                'https://my.utility.com': {path: '/secret/my-utility'},
-            };
             settings.load.resolves({urlPaths});
 
             loadPage();
@@ -205,21 +205,108 @@ module.exports = {
         },
         'logout button': {
             'revokes vault token': (done) => {
-                done();
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                vaultApi.logout.resolves();
+                settings.clearToken.resolves();
+                loadPage();
+                setImmediate(() => {
+
+                    document.getElementById('logout').click();
+
+                    setImmediate(() => {
+                        expect(vaultApi.logout).to.be.calledOnce.calledWithExactly(vaultUrl, token);
+                        expect(settings.clearToken).to.be.calledOnce;
+                        expect(document.getElementById('status').innerText).to.equal('Not logged in');
+                        done();
+                    });
+                });
+            },
+            'clears token when vault returns 403': (done) => {
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                vaultApi.logout.rejects({status: 403});
+                settings.clearToken.resolves();
+                loadPage();
+                setImmediate(() => {
+
+                    document.getElementById('logout').click();
+
+                    setImmediate(() => {
+                        expect(vaultApi.logout).to.be.calledOnce.calledWithExactly(vaultUrl, token);
+                        expect(settings.clearToken).to.be.calledOnce;
+                        expect(MockSnackbar.instance.open).to.not.be.called;
+                        expect(document.getElementById('status').innerText).to.equal('Not logged in');
+                        done();
+                    });
+                });
             },
             'displays error from Vault': (done) => {
-                done();
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                vaultApi.logout.rejects({message: 'bad request'});
+                settings.clearToken.resolves();
+                loadPage();
+                setImmediate(() => {
+
+                    document.getElementById('logout').click();
+
+                    setImmediate(() => {
+                        expect(vaultApi.logout).to.be.calledOnce.calledWithExactly(vaultUrl, token);
+                        expect(settings.clearToken).to.be.calledOnce;
+                        expect(MockSnackbar.instance.labelText).to.equal('Error revoking token: bad request');
+                        expect(MockSnackbar.instance.open).to.be.calledOnce;
+                        expect(document.getElementById('status').innerText).to.equal('Logged in');
+                        done();
+                    });
+                });
             }
         },
         'reload button': {
             'updates saved URL list': (done) => {
-                done();
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                settings.cacheUrlPaths.resolves(urlPaths);
+                loadPage();
+
+                document.getElementById('reload').click();
+
+                setImmediate(() => {
+                    expect(document.getElementById('status').innerText).to.equal('Logged in');
+                    expect(MockList.byId['saved-urls'].removeAll).to.be.calledOnce;
+                    expect(MockList.byId['saved-urls'].addItem).to.be.calledTwice
+                        .calledWithExactly('https://my.bank.com', 'account_circle')
+                        .calledWithExactly('https://my.utility.com', undefined);
+                    done();
+                });
             },
             'displays message for expired token': (done) => {
-                done();
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                settings.cacheUrlPaths.rejects({status: 403});
+                loadPage();
+
+                document.getElementById('reload').click();
+
+                setImmediate(() => {
+                    expect(document.getElementById('status').innerText).to.equal('Not logged in');
+                    expect(MockList.byId['saved-urls'].removeAll).to.not.be.called;
+                    expect(MockList.byId['saved-urls'].addItem).to.not.be.called;
+                    expect(MockSnackbar.instance.labelText).to.equal('Need a token');
+                    expect(MockSnackbar.instance.open).to.be.calledOnce;
+                    done();
+                });
             },
             'displays error from Vault': (done) => {
-                done();
+                settings.load.resolves({vaultUrl, vaultUser, token});
+                settings.cacheUrlPaths.rejects({message: 'bad request'});
+                loadPage();
+
+                document.getElementById('reload').click();
+
+                setImmediate(() => {
+                    expect(document.getElementById('status').innerText).to.equal('Logged in');
+                    expect(MockList.byId['saved-urls'].removeAll).to.not.be.called;
+                    expect(MockList.byId['saved-urls'].addItem).to.not.be.called;
+                    expect(MockSnackbar.instance.labelText).to.equal('bad request');
+                    expect(MockSnackbar.instance.open).to.be.calledOnce;
+                    done();
+                });
             }
         }
     }
