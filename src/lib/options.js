@@ -58,7 +58,7 @@ settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }) => {
     else usernameInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
     updateLoginButton();
     setStatus(token);
-    showUrlPaths(urlPaths);
+    if (urlPaths) showUrlPaths(urlPaths);
 });
 
 urlInput.listen('input', updateLoginButton);
@@ -74,11 +74,13 @@ loginButton.addEventListener('click', async () => {
     try {
         if (await permissions.requestOrigin(urlInput.value)) {
             const auth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
-            setStatus(auth.client_token);
-            savedUrl = urlInput.value;
-            savedToken = auth.client_token;
-            if (!auth) showAlert('Did not get a token, please verify the base URL');
-            await settings.save(urlInput.value, usernameInput.value, auth.client_token, auth.lease_duration); // seconds
+            if (!auth || !auth.client_token) showAlert('Did not get a token, please verify the base URL');
+            else {
+                setStatus(auth.client_token);
+                savedUrl = urlInput.value;
+                savedToken = auth.client_token;
+                await settings.save(urlInput.value, usernameInput.value, auth.client_token, auth.lease_duration); // seconds
+            }
         }
         else showAlert('Need permission to access ' + urlInput.value);
     } catch (err) {
