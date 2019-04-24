@@ -29,7 +29,7 @@ module.exports = [{
         {
           test: /\.js$/,
           loader: 'babel-loader',
-          query: {presets: ['es2015']}
+          query: {presets: [['@babel/preset-env', {targets: {chrome: 60}}]]}
         }
       ]
     },

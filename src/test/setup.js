@@ -14,6 +14,6 @@ module.exports = {
                 getAll: sinon.stub(),
                 request: sinon.stub()
             }
-        }
+        };
     }
 };
