@@ -1,6 +1,6 @@
 const user = Boolean(document.querySelector('input[type="text"][id*="user" i]'));
 const password = Boolean(document.querySelector('input[type="password"]'));
-const result = {user, password, url: window.location.href};
+const result = {username, password, url: window.location.href};
 
 chrome.runtime.onMessage.addListener(function(message) {
     if (message) {

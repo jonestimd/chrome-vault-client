@@ -36,16 +36,20 @@ chrome.runtime.onMessage.addListener(async function (message, sender) {
 
     function updateButtons() {
         if (vaultToken || passwordInput.value.length > 0) {
-            fillUserButton.disabled = !(message.user && config.username);
+            fillUserButton.disabled = !(message.username && config.username);
             fillPasswordButton.disabled = !(message.password && config.password);
             fillBothButton.disabled = fillUserButton.disabled || fillPasswordButton.disabled;
         }
-        else fillBothButton.disabled = fillUserButton.disabled = fillPasswordButton.disabled = true;
+        else {
+            statusArea.innerText = 'Need a Vault token';
+            fillBothButton.disabled = fillUserButton.disabled = fillPasswordButton.disabled = true;
+        }
     }
     updateButtons();
 
     async function getSecret() {
         try {
+            statusArea.innerText = '';
             return await vaultApi.getSecret(vaultUrl, vaultToken, config.path);
         } catch (err) {
             if (err.status === 403) {
@@ -54,6 +58,7 @@ chrome.runtime.onMessage.addListener(async function (message, sender) {
                         vaultToken = (await vaultApi.login(vaultUrl, vaultUser, passwordInput.value)).client_token;
                         await settings.saveToken(vaultToken);
                         statusArea.innerText = '';
+                        return await vaultApi.getSecret(vaultUrl, vaultToken, config.path);
                     } catch (err) {
                         statusArea.innerText = 'Error: ' + err.message;
                         updateButtons();
@@ -70,7 +75,7 @@ chrome.runtime.onMessage.addListener(async function (message, sender) {
     }
 
     if (message.username || message.password) {
-        let secret = await getSecret(vaultUrl, config.path);
+        let secret = vaultToken && await getSecret(vaultUrl, config.path);
 
         async function fillForm(fillUser, fillPassword) {
             if (!secret) secret = await getSecret(vaultUrl, config.path);

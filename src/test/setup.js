@@ -13,6 +13,15 @@ module.exports = {
             permissions: {
                 getAll: sinon.stub(),
                 request: sinon.stub()
+            },
+            runtime: {
+                onMessage: {
+                    addListener: sinon.stub()
+                }
+            },
+            tabs: {
+                sendMessage: sinon.stub(),
+                executeScript: sinon.stub()
             }
         };
     }
