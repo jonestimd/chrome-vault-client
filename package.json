@@ -3,6 +3,10 @@
     "version": "1.0.0-alpha",
     "description": "Chrome extension to store passwords in a Hashicorp Vault",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jonestimd/chrome-vault-client.git"
+    },
     "scripts": {
         "prebuild": "rm -r build; mkdir -p build; webpack -p",
         "build": "cp -r src/manifest.json src/views/* src/images/ build",
