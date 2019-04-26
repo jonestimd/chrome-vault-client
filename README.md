@@ -25,6 +25,7 @@ do the following in Vault you will need to use the `Reload` button on the option
 The `url` property of a Vault secret can use one of the following formats:
 * `hostname` - matches any URL for the host
 * `https://hostname:port/pathPrefix` - only matches URLs with the specified `port` number and `pathPrefix`
+
 The `port` and and `pathPrefix` are both optional in the second format.
 
 ## Using the popup
