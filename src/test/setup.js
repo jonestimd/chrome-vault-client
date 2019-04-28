@@ -9,6 +9,14 @@ module.exports = {
                     addListener: sinon.stub()
                 }
             },
+            declarativeContent: {
+                onPageChanged: {
+                    addRules: sinon.stub(),
+                    removeRules: sinon.stub().yields()
+                },
+                PageStateMatcher: sinon.stub(),
+                ShowPageAction: sinon.stub()
+            },
             storage: {
                 local: {
                     get: sinon.stub(),
