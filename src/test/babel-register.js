@@ -3,5 +3,7 @@ require('@babel/register')({
         ["@babel/preset-env", {targets: {node: true}}]
     ],
     exclude: [],
-    ignore: [/\/node_modules\/(?!@material\/)/]
+    ignore: [/\/node_modules\/(?!@material\/)/],
+    sourceMaps: 'inline',
+    retainLines: true
 });
