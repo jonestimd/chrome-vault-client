@@ -4,8 +4,10 @@
 
 'use strict';
 import * as settings from './settings';
+import * as vaultApi from './vaultApi';
+import {refreshTokenAlarm} from './alarms';
 
-const cssMatchers = ['input[type="password"]', 'input[type="text"][id*="user" i]'];
+// const cssMatchers = ['input[type="password"]', 'input[type="text"][id*="user" i]'];
 
 function newRule(pageUrl) {
     // return {pageUrl, css: cssMatchers};
@@ -46,5 +48,14 @@ chrome.runtime.onInstalled.addListener(async function () {
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'local' && changes.urlPaths) {
         setPageRules(changes.urlPaths.newValue);
+    }
+});
+
+chrome.alarms.onAlarm.addListener(async function(alarm) {
+    if (alarm.name === refreshTokenAlarm) {
+        const {vaultUrl, token} = await settings.load();
+        if (!await vaultApi.refreshToken(vaultUrl, token)) {
+            await settings.clearToken();
+        }
     }
 });

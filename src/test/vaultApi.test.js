@@ -8,6 +8,8 @@ let vaultApi, superagent;
 const vaultUrl = 'https://my.vault';
 const token = 'vault token';
 const authHeader = 'X-Vault-Token';
+const password = 'vault password';
+const username = 'vault user';
 
 function agentRequest(type) {
     const request = {set: sinon.stub().resolves()};
@@ -52,15 +54,34 @@ module.exports = {
         },
         'login': {
             'returns auth object': async () => {
-                const password = 'vault password';
-                const username = 'vault user';
                 const auth = {client_token: 'the token'};
                 superagent.post.resolves({body: {auth}});
 
                 const result = await vaultApi.login(vaultUrl, username, password);
 
                 expect(result).to.equal(auth);
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/userpass/login/${username}`, {password});
+                expect(superagent.post).to.be.calledOnce
+                    .calledWithExactly(`${vaultUrl}/v1/auth/userpass/login/${username}`, {password});
+                expect(chrome.alarms.create, 'token not renewable').to.not.be.called;
+            },
+            'sets alarm to renew the token': async () => {
+                const auth = {renewable: true, lease_duration: 60};
+                superagent.post.resolves({body: {auth}});
+
+                const result = await vaultApi.login(vaultUrl, username, password);
+
+                expect(result).to.equal(auth);
+                expect(chrome.alarms.create).to.be.calledOnce
+                    .calledWithExactly('refresh-token', {delayInMinutes: (auth.lease_duration-30)/60});
+            },
+            'does not set alarm to renew the token if lease duration is less than 60s': async () => {
+                const auth = {renewable: true, lease_duration: 59};
+                superagent.post.resolves({body: {auth}});
+
+                const result = await vaultApi.login(vaultUrl, username, password);
+
+                expect(result).to.equal(auth);
+                expect(chrome.alarms.create).to.not.be.called;
             },
             'returns undefined if response does not contain auth object': async () => {
                 superagent.post.resolves({body: {}});
@@ -77,6 +98,57 @@ module.exports = {
 
                     expect(err.message).to.equal(errors[0]);
                 });
+            }
+        },
+        'refreshToken': {
+            'sets new alarm after renewing the token': async () => {
+                const auth = {renewable: true, lease_duration: 60};
+                const request = agentRequest('post');
+                superagent.post.returns(request);
+                request.set.resolves({body: {auth}});
+
+                expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
+
+                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
+                expect(chrome.alarms.create).to.be.calledOnce
+                    .calledWithExactly('refresh-token', {delayInMinutes: (auth.lease_duration-30)/60});
+            },
+            'does not set new alarm if token is not renewable': async () => {
+                const auth = {renewable: false, lease_duration: 60};
+                const request = agentRequest('post');
+                superagent.post.returns(request);
+                request.set.resolves({body: {auth}});
+
+                expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
+
+                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
+                expect(chrome.alarms.create).to.not.be.called;
+            },
+            'does not set new alarm if lease duration is less than 60s': async () => {
+                const auth = {renewable: false, lease_duration: 59};
+                const request = agentRequest('post');
+                superagent.post.returns(request);
+                request.set.resolves({body: {auth}});
+
+                expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
+
+                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
+                expect(chrome.alarms.create).to.not.be.called;
+            },
+            'returns false if renewal fails': async () => {
+                const auth = {renewable: false, lease_duration: 59};
+                const request = agentRequest('post');
+                superagent.post.returns(request);
+                request.set.rejects({message: 'permission denied'});
+
+                expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.false;
+
+                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
+                expect(chrome.alarms.create).to.not.be.called;
             }
         },
         'logout': {

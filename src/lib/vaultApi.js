@@ -1,4 +1,5 @@
 import agent from 'superagent';
+import {refreshTokenAlarm} from './alarms';
 
 const authHeader = 'X-Vault-Token';
 
@@ -7,12 +8,31 @@ export function getErrorMessage(err) {
     return err.message;
 }
 
+function setRenewAlarm(body) {
+    const auth = body && body.auth;
+    if (auth && auth.renewable && auth.lease_duration >= 60) {
+        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30)/60});
+    }
+    return auth;
+}
+
 export async function login(vaultUrl, user, password) {
     try {
-        const { body } = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, { password });
-        return body && body.auth;
+        const {body} = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, {password});
+        return setRenewAlarm(body);
     } catch (err) {
         throw new Error(getErrorMessage(err));
+    }
+}
+
+export async function refreshToken(vaultUrl, token) {
+    try {
+        const {body} = await agent.post(`${vaultUrl}/v1/auth/token/renew-self`).set(authHeader, token);
+        setRenewAlarm(body);
+        return true;
+    } catch (err) {
+        console.log('error renewing token', err);
+        return false;
     }
 }
 
@@ -21,12 +41,12 @@ export async function logout(vaultUrl, token) {
 }
 
 export async function getSecret(vaultUrl, token, path) {
-    const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
+    const {body} = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
     return body.data.data;
 }
 
 async function listSecrets(vaultUrl, token, path) {
-    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
+    const {body} = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
     return body.data.keys;
 }
 

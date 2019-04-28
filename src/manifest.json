@@ -5,11 +5,13 @@
     "options_page": "options.html",
     "permissions": [
         "activeTab",
+        "alarms",
         "declarativeContent",
         "storage"
     ],
     "optional_permissions": [
-        "https://*/*"
+        "https://*/*",
+        "http://*/*"
     ],
     "background": {
         "scripts": [
