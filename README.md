@@ -31,7 +31,11 @@ The `port` and and `pathPrefix` are both optional in the second format.
 ## Using the popup
 When the URL of the active tab matches the `url` property of a secret the extension's button will be enabled.
 To fill in the login form, click on the extension's button and then click on one of the buttons in the popup.
-The *user* button will only fill in the username.  The *key* button will only fill in the password.  The *input* button
-will fill in both the username and password.  The buttons are only enabled if the corresponding input is found on
-the page.  If your Vault token has expired then you will need to provide your Vault password in the popup to get
-a new token.
+The <img alt="user" align="center" src="https://material.io/tools/icons/static/icons/baseline-account_circle-24px.svg">
+button will only fill in the username.  The
+<img alt="password" align="center" src="https://material.io/tools/icons/static/icons/baseline-vpn_key-24px.svg">
+button will only fill in the password.  The
+<img alt="both" align="center" src="https://material.io/tools/icons/static/icons/baseline-input-24px.svg">
+button will fill in both the username and password.  The buttons are only enabled if the corresponding input
+is found on the page.  If your Vault token has expired then you will need to provide your Vault password in
+the popup to get a new token.
