@@ -45,7 +45,7 @@ module.exports = {
         'executes content script': () => {
             loadPage();
 
-            expect(chrome.tabs.executeScript).to.be.calledOnce.calledWithExactly({file: 'contentScript.js'});
+            expect(chrome.tabs.executeScript).to.be.calledOnce.calledWithExactly({file: 'contentScript.js', allFrames: true});
         },
         'displays Vault username': async () => {
             settings.load.resolves({vaultUser, urlPaths: {[pageUrl]: {}}});

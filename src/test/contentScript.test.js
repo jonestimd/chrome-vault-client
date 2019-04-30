@@ -22,13 +22,12 @@ module.exports = {
             delete global.document;
             delete global.window;
         },
-        'sends message with window URL': () => {
+        'does not send message if no username or password inputs': () => {
             global.document = new JSDOM('<html></html>').window.document;
 
             require('../lib/contentScript');
 
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: false, url: windowUrl});
+            expect(chrome.runtime.sendMessage).to.not.be.called;
         },
         'sends message with username true if input exists': () => {
             global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;

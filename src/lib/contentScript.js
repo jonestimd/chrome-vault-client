@@ -15,4 +15,4 @@ chrome.runtime.onMessage.addListener(function(message) {
     }
 });
 
-chrome.runtime.sendMessage(result);
+if (username || password) chrome.runtime.sendMessage(result);
