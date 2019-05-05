@@ -187,18 +187,39 @@ module.exports = {
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
             },
             'returns secret path, username flag and password flag for each URL': async () => {
-                agentRequest().set.resolves({body: {data: {keys: ['secret1', 'secret2', 'secret3']}}});
+                agentRequest().set.resolves({body: {data: {keys: ['secret1', 'secret2', 'secret3', 'secret4', 'secret5']}}});
                 const getRequest = agentRequest('get');
                 getRequest.set.onCall(0).resolves(secretResponse({url: 'url1', username: 'url1 user'}));
                 getRequest.set.onCall(1).resolves(secretResponse({url: 'url2', password: 'url2 password'}));
-                getRequest.set.onCall(2).resolves(secretResponse({url: 'url3', username: 'url3 user', password: 'url3 password'}));
+                getRequest.set.onCall(2).resolves(secretResponse({url: 'url3', note: 'skipped: no username or password'}));
+                getRequest.set.onCall(3).resolves(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password'}));
+                getRequest.set.onCall(4).resolves(secretResponse({username: 'url3 user', password: 'url3 password', note: 'skipped: no url'}));
 
                 const result = await vaultApi.getUrlPaths(vaultUrl, token);
 
                 expect(result).to.deep.equal({
-                    url1: {path: 'secret1', username: true, password: false},
-                    url2: {path: 'secret2', username: false, password: true},
-                    url3: {path: 'secret3', username: true, password: true},
+                    url1: [{path: 'secret1', username: true, password: false}],
+                    url2: [{path: 'secret2', username: false, password: true}],
+                    url4: [{path: 'secret4', username: true, password: true}],
+                });
+                expect(superagent.get).to.have.callCount(5)
+                    .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
+                    .calledWithExactly(`${vaultUrl}/v1/secret/data/secret2`)
+                    .calledWithExactly(`${vaultUrl}/v1/secret/data/secret3`);
+                expect(getRequest.set).to.have.callCount(5).calledWithExactly(authHeader, token);
+            },
+            'groups data by URL': async () => {
+                agentRequest().set.resolves({body: {data: {keys: ['secret1', 'secret2', 'secret3']}}});
+                const getRequest = agentRequest('get');
+                getRequest.set.onCall(0).resolves(secretResponse({url: 'url1', username: 'url1 user'}));
+                getRequest.set.onCall(1).resolves(secretResponse({url: 'url2', password: 'url2 password'}));
+                getRequest.set.onCall(2).resolves(secretResponse({url: 'url1', username: 'url1 user2', password: 'url1 password2'}));
+
+                const result = await vaultApi.getUrlPaths(vaultUrl, token);
+
+                expect(result).to.deep.equal({
+                    url1: [{path: 'secret1', username: true, password: false}, {path: 'secret3', username: true, password: true}],
+                    url2: [{path: 'secret2', username: false, password: true}],
                 });
                 expect(superagent.get).to.have.callCount(3)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
@@ -217,9 +238,9 @@ module.exports = {
                 const result = await vaultApi.getUrlPaths(vaultUrl, token);
 
                 expect(result).to.deep.equal({
-                    url1: {path: 'secret1', username: true, password: false},
-                    url2: {path: 'nested/secret2', username: false, password: true},
-                    url3: {path: 'nested/secret3', username: true, password: true},
+                    url1: [{path: 'secret1', username: true, password: false}],
+                    url2: [{path: 'nested/secret2', username: false, password: true}],
+                    url3: [{path: 'nested/secret3', username: true, password: true}],
                 });
                 expect(superagent).to.be.calledTwice
                     .calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/`)

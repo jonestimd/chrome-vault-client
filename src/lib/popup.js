@@ -4,12 +4,6 @@ document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 import {MDCTextField} from '@material/textfield/index';
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
 
-const fillBothButton = document.getElementById('fill-both');
-const fillUserButton = document.getElementById('fill-user');
-const fillPasswordButton = document.getElementById('fill-password');
-
-fillBothButton.disabled = fillUserButton.disabled = fillPasswordButton.disabled = true;
-
 const statusArea = document.getElementById('status');
 
 import * as settings from './settings';
@@ -26,76 +20,84 @@ function isMatch(urlString, pageUrl) {
     }
 }
 
-function findPath(urlPaths, pageUrlString) {
+function findVaultPaths(urlPaths, pageUrlString) {
     const pageUrl = new URL(pageUrlString);
-    const match = Object.entries(urlPaths).find(([entryUrlString]) => isMatch(entryUrlString, pageUrl));
-    return match && match[1];
+    const entries = Object.entries(urlPaths).filter(([entryUrlString]) => isMatch(entryUrlString, pageUrl));
+    return entries.reduce((configs, entry) => configs.concat(entry[1].map(config => config.path)), []);
+}
+
+class SecretAccessor {
+    static async newAccessor(vaultUrl, paths, vaultToken) {
+        const accessor = new SecretAccessor(vaultUrl, paths);
+        if (vaultToken) await accessor.getSecrets(vaultToken);
+        else statusArea.innerText = 'Need a Vault token';
+        return accessor;
+    }
+
+    constructor(vaultUrl, paths) {
+        this.vaultUrl = vaultUrl;
+        this.paths = paths;
+        this.secrets = {};
+    }
+
+    async getSecrets(vaultToken) {
+        try {
+            statusArea.innerText = '';
+            for (let path of this.paths) {
+                this.secrets[path] = await vaultApi.getSecret(this.vaultUrl, vaultToken, path);
+            }
+        } catch (err) {
+            if (err.status === 403) statusArea.innerText = 'Invalid token';
+            else statusArea.innerText = 'Error: ' + vaultApi.getErrorMessage(err);
+        }
+    }
+
+    get haveSecrets() {
+        return this.paths.length === Object.keys(this.secrets).length;
+    }
 }
 
 chrome.runtime.onMessage.addListener(async function(message, sender) {
     const {vaultUrl, vaultUser, token, urlPaths} = await settings.load();
     document.querySelector('#username').innerText = vaultUser;
-    const config = findPath(urlPaths, message.url);
+    const vaultPaths = findVaultPaths(urlPaths, message.url);
     let vaultToken = token;
 
-    function updateButtons(haveSecret) {
-        if (haveSecret || vaultToken || passwordInput.value.length > 0) {
-            fillUserButton.disabled = !(message.username && config.username);
-            fillPasswordButton.disabled = !(message.password && config.password);
-            fillBothButton.disabled = fillUserButton.disabled || fillPasswordButton.disabled;
-        }
-        else {
-            statusArea.innerText = 'Need a Vault token';
-            fillBothButton.disabled = fillUserButton.disabled = fillPasswordButton.disabled = true;
-        }
-    }
+    const accessor = await SecretAccessor.newAccessor(vaultUrl, vaultPaths, vaultToken);
 
-    async function getSecret() {
-        try {
-            statusArea.innerText = '';
-            return await vaultApi.getSecret(vaultUrl, vaultToken, config.path);
-        } catch (err) {
-            if (err.status === 403) {
-                if (passwordInput.value.length > 0) {
-                    try {
-                        vaultToken = (await vaultApi.login(vaultUrl, vaultUser, passwordInput.value)).client_token;
-                        await settings.saveToken(vaultToken);
-                        statusArea.innerText = '';
-                        return await vaultApi.getSecret(vaultUrl, vaultToken, config.path);
-                    } catch (err) {
-                        statusArea.innerText = 'Error: ' + err.message;
-                        updateButtons();
-                    }
-                }
-                else {
-                    statusArea.innerText = 'Invalid token';
-                    vaultToken = undefined;
-                    updateButtons();
+    const buttonDiv = document.querySelector('div.buttons');
+    buttonDiv.innerHTML = '';
+    const buttons = vaultPaths.map(path => {
+        const name = path.replace(/^.*\//, '');
+        const button = document.createElement('button');
+        button.className = 'mdc-button mdc-button--raised';
+        button.innerHTML = `<span class="mdc-button__label">${name}</span>`;
+        buttonDiv.appendChild(button);
+        button.addEventListener('click', async () => {
+            if (!accessor.secrets[path] && passwordInput.value.length > 0) {
+                try {
+                    vaultToken = (await vaultApi.login(vaultUrl, vaultUser, passwordInput.value)).client_token;
+                    await settings.saveToken(vaultToken);
+                    await accessor.getSecrets(vaultToken);
+                } catch (err) {
+                    statusArea.innerText = 'Error: ' + err.message;
                 }
             }
-            else statusArea.innerText = 'Error: ' + vaultApi.getErrorMessage(err);
-        }
-    }
-
-    if (config) {
-        let secret = vaultToken && await getSecret(vaultUrl, config.path);
-        updateButtons(Boolean(secret));
-
-        async function fillForm(fillUser, fillPassword) {
-            if (!secret) secret = await getSecret(vaultUrl, config.path);
-            if (secret) {
-                const message = {};
-                if (fillUser) message.username = secret.username;
-                if (fillPassword) message.password = secret.password;
-                chrome.tabs.sendMessage(sender.tab.id, message);
+            if (accessor.secrets[path]) {
+                const {username, password} = accessor.secrets[path];
+                chrome.tabs.sendMessage(sender.tab.id, {username, password});
             }
-        }
+        });
+        return button;
+    });
 
-        fillUserButton.addEventListener('click', () => fillForm(true, false));
-        fillPasswordButton.addEventListener('click', () => fillForm(false, true));
-        fillBothButton.addEventListener('click', () => fillForm(true, true));
-        passwordInput.listen('input', updateButtons);
+    function updateButtons() {
+        const noInputs = !message.username && !message.password;
+        const disableButtons = noInputs || !accessor.haveSecrets && passwordInput.value.length === 0;
+        buttons.forEach(button => button.disabled = disableButtons);
     }
+    updateButtons();
+    passwordInput.listen('input', updateButtons);
 });
 
 chrome.tabs.executeScript({file: 'contentScript.js', allFrames: true});

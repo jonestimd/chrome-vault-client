@@ -31,9 +31,10 @@ function setStatus(token) {
 
 function showUrlPaths(urlPaths) {
     urlList.removeAll();
-    Object.keys(urlPaths).sort().forEach(path => {
-        const hasUser = urlPaths[path].password || urlPaths[path].username;
-        urlList.addItem(path, hasUser && 'account_circle' || undefined);
+    Object.keys(urlPaths).sort().forEach(url => {
+        const multiUser = urlPaths[url].length > 1;
+        const href = url.match(/^https?:\/\//) ? url : 'https://' + url;
+        urlList.addItem(`<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`, multiUser ? 'people' : 'person');
     });
 }
 

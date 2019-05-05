@@ -49,7 +49,7 @@ module.exports = {
             'adds page rule for hostname': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': {}});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{}]});
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -65,7 +65,7 @@ module.exports = {
             'adds page rule for scheme and hostname': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'http://some.site.com': {}});
+                settings.cacheUrlPaths.resolves({'http://some.site.com': [{}]});
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -81,7 +81,7 @@ module.exports = {
             'adds page rule for scheme, hostname and port': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com:8888': {}});
+                settings.cacheUrlPaths.resolves({'https://some.site.com:8888': [{}]});
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -97,7 +97,7 @@ module.exports = {
             'adds page rule for scheme, hostname and path prefix': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com/account': {}});
+                settings.cacheUrlPaths.resolves({'https://some.site.com/account': [{}]});
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -113,7 +113,7 @@ module.exports = {
             'adds page rule for scheme, hostname, path prefix and query': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com/account?login=true': {}});
+                settings.cacheUrlPaths.resolves({'https://some.site.com/account?login=true': [{}]});
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -149,7 +149,7 @@ module.exports = {
                 chrome.declarativeContent.ShowPageAction.returns(action);
                 chrome.declarativeContent.PageStateMatcher.returns(matcher);
 
-                await getStorageListener()({urlPaths: {newValue: {'https://some.site.com': {}}}}, 'local');
+                await getStorageListener()({urlPaths: {newValue: {'https://some.site.com': [{}]}}}, 'local');
 
                 expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
                 expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce

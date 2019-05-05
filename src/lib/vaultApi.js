@@ -11,7 +11,7 @@ export function getErrorMessage(err) {
 function setRenewAlarm(body) {
     const auth = body && body.auth;
     if (auth && auth.renewable && auth.lease_duration >= 60) {
-        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30)/60});
+        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30) / 60});
     }
     return auth;
 }
@@ -61,12 +61,13 @@ export async function getUrlPaths(vaultUrl, token) {
         }
         else {
             const data = await getSecret(vaultUrl, token, names[i]);
-            if (data.url) {
-                urlPaths[data.url] = {
+            if (data.url && (data.username || data.password)) {
+                if (!urlPaths[data.url]) urlPaths[data.url] = [];
+                urlPaths[data.url].push({
                     path,
                     username: Boolean(data.username),
                     password: Boolean(data.password)
-                };
+                });
             }
             i++;
         }

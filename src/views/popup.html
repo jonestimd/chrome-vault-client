@@ -5,13 +5,8 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
 div.buttons {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-}
-div.buttons button:not(:last-child) {
-    margin-right: 5px;
+    display: grid;
+    grid-row-gap: 5px;
 }
 h2 {
     border-bottom: 1px solid;
@@ -34,11 +29,6 @@ div.mdc-text-field {
 </head>
 <body class="mdc-typography">
     <div class="buttons" style="white-space: nowrap">
-        <button id="fill-user" class="mdc-icon-button material-icons">account_circle</button>
-        <button id="fill-password" class="mdc-icon-button material-icons">vpn_key</button>
-        <button id="fill-both" class="mdc-fab mdc-fab--mini">
-            <span class="mdc-fab__icon material-icons" aria-hidden="true">input</span>
-        </button>
     </div>
     <div>
         <h2>Vault credentials</h2>

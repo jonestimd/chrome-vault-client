@@ -23,8 +23,8 @@ const password = 'passw0rd';
 const token = 'vault token';
 
 const urlPaths = {
-    'https://my.bank.com': {path: '/secret/my-bank', username: true, password: true},
-    'https://my.utility.com': {path: '/secret/my-utility'},
+    'https://my.bank.com': [{path: '/secret/my-bank'}],
+    'https://my.utility.com': [{path: '/secret/my-utility/user1'}, {path: 'secret/my-utility/user2'}],
 };
 
 const loadPage = () => {
@@ -99,8 +99,8 @@ module.exports = {
             setImmediate(() => {
                 expect(MockList.byId['saved-urls'].removeAll).to.be.calledOnce;
                 expect(MockList.byId['saved-urls'].addItem).to.be.calledTwice
-                    .calledWithExactly('https://my.bank.com', 'account_circle')
-                    .calledWithExactly('https://my.utility.com', undefined);
+                    .calledWithExactly('<a href="https://my.bank.com" target="_blank" rel="noopener noreferrer">https://my.bank.com</a>', 'person')
+                    .calledWithExactly('<a href="https://my.utility.com" target="_blank" rel="noopener noreferrer">https://my.utility.com</a>', 'people');
                 done();
             });
         },
@@ -271,8 +271,8 @@ module.exports = {
                     expect(document.getElementById('status').innerText).to.equal('Logged in');
                     expect(MockList.byId['saved-urls'].removeAll).to.be.calledOnce;
                     expect(MockList.byId['saved-urls'].addItem).to.be.calledTwice
-                        .calledWithExactly('https://my.bank.com', 'account_circle')
-                        .calledWithExactly('https://my.utility.com', undefined);
+                        .calledWithExactly('<a href="https://my.bank.com" target="_blank" rel="noopener noreferrer">https://my.bank.com</a>', 'person')
+                        .calledWithExactly('<a href="https://my.utility.com" target="_blank" rel="noopener noreferrer">https://my.utility.com</a>', 'people');
                     done();
                 });
             },
