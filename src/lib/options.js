@@ -29,9 +29,24 @@ function setStatus(token) {
     logoutButton.disabled = !token;
 }
 
+const getHost = (url) => {
+    try {
+        return new URL(url).hostname;
+    } catch (err) {
+        return url;
+    }
+};
+
+const compareUrls = (u1, u2) => {
+    const h1 = getHost(u1);
+    const h2 = getHost(u2);
+    if (h1 === h2) return 0;
+    return h1 < h2 ? -1 : 1;
+};
+
 function showUrlPaths(urlPaths) {
     urlList.removeAll();
-    Object.keys(urlPaths).sort().forEach(url => {
+    Object.keys(urlPaths).sort(compareUrls).forEach(url => {
         const multiUser = urlPaths[url].length > 1;
         const href = url.match(/^https?:\/\//) ? url : 'https://' + url;
         urlList.addItem(`<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`, multiUser ? 'people' : 'person');
