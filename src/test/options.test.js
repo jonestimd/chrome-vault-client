@@ -8,7 +8,7 @@ import * as vaultApi from '../lib/vaultApi';
 import fs from 'fs';
 import path from 'path';
 import {MockTextField} from './mock/MockTextField';
-import {MockList} from './mock/MockList';
+import {MockUrlCardList} from './mock/MockUrlCardList';
 import {MockSnackbar} from './mock/MockSnackbar';
 import proxyquire from 'proxyquire';
 proxyquire.noCallThru();
@@ -34,7 +34,7 @@ const loadPage = () => {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},
         '@material/textfield/index': {MDCTextField: MockTextField},
         '@material/snackbar': {MDCSnackbar: MockSnackbar},
-        './components/List': MockList
+        './components/UrlCardList': MockUrlCardList
     });
 };
 
@@ -57,8 +57,8 @@ module.exports = {
                 expect(document.getElementById('vault-url').value).to.equal(vaultUrl);
                 expect(document.getElementById('username').value).to.equal(vaultUser);
                 expect(document.getElementById('status').innerText).to.equal('Logged in');
-                expect(MockList.byId['saved-urls'].removeAll).to.not.be.called;
-                expect(MockList.byId['saved-urls'].addItem).to.not.be.called;
+                expect(MockUrlCardList.byId['saved-urls'].removeAll).to.not.be.called;
+                expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                 expect(MockTextField.byId.password.required).to.not.be.true;
                 expect(document.getElementById('login').disabled).to.be.true;
                 done();
@@ -97,10 +97,10 @@ module.exports = {
             loadPage();
 
             setImmediate(() => {
-                expect(MockList.byId['saved-urls'].removeAll).to.be.calledOnce;
-                expect(MockList.byId['saved-urls'].addItem).to.be.calledTwice
-                    .calledWithExactly('<a href="https://my.bank.com" target="_blank" rel="noopener noreferrer">https://my.bank.com</a>', 'person')
-                    .calledWithExactly('<a href="https://my.utility.com" target="_blank" rel="noopener noreferrer">https://my.utility.com</a>', 'people');
+                expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
+                expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
+                    .calledWithExactly('https://my.bank.com', ['/secret/my-bank'])
+                    .calledWithExactly('https://my.utility.com', ["/secret/my-utility/user1", "secret/my-utility/user2"]);
                 done();
             });
         },
@@ -269,10 +269,10 @@ module.exports = {
 
                 setImmediate(() => {
                     expect(document.getElementById('status').innerText).to.equal('Logged in');
-                    expect(MockList.byId['saved-urls'].removeAll).to.be.calledOnce;
-                    expect(MockList.byId['saved-urls'].addItem).to.be.calledTwice
-                        .calledWithExactly('<a href="https://my.bank.com" target="_blank" rel="noopener noreferrer">https://my.bank.com</a>', 'person')
-                        .calledWithExactly('<a href="https://my.utility.com" target="_blank" rel="noopener noreferrer">https://my.utility.com</a>', 'people');
+                    expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
+                    expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
+                        .calledWithExactly('https://my.bank.com', ["/secret/my-bank"])
+                        .calledWithExactly('https://my.utility.com', ["/secret/my-utility/user1", "secret/my-utility/user2"]);
                     done();
                 });
             },
@@ -285,8 +285,8 @@ module.exports = {
 
                 setImmediate(() => {
                     expect(document.getElementById('status').innerText).to.equal('Not logged in');
-                    expect(MockList.byId['saved-urls'].removeAll).to.not.be.called;
-                    expect(MockList.byId['saved-urls'].addItem).to.not.be.called;
+                    expect(MockUrlCardList.byId['saved-urls'].removeAll).to.not.be.called;
+                    expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                     expect(MockSnackbar.instance.labelText).to.equal('Need a token');
                     expect(MockSnackbar.instance.open).to.be.calledOnce;
                     done();
@@ -301,8 +301,8 @@ module.exports = {
 
                 setImmediate(() => {
                     expect(document.getElementById('status').innerText).to.equal('Logged in');
-                    expect(MockList.byId['saved-urls'].removeAll).to.not.be.called;
-                    expect(MockList.byId['saved-urls'].addItem).to.not.be.called;
+                    expect(MockUrlCardList.byId['saved-urls'].removeAll).to.not.be.called;
+                    expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                     expect(MockSnackbar.instance.labelText).to.equal('bad request');
                     expect(MockSnackbar.instance.open).to.be.calledOnce;
                     done();

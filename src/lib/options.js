@@ -9,7 +9,7 @@ import * as settings from './settings';
 import * as permissions from './permissions';
 import * as vaultApi from './vaultApi';
 
-import List from './components/List';
+import UrlCardList from './components/UrlCardList';
 
 const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
 const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
@@ -18,7 +18,7 @@ const statusArea = document.getElementById('status');
 const loginButton = document.getElementById('login');
 const logoutButton = document.getElementById('logout');
 const reloadButton = document.getElementById('reload');
-const urlList = new List(document.getElementById('saved-urls'));
+const urlList = new UrlCardList(document.getElementById('saved-urls'));
 
 function updateLoginButton() {
     loginButton.disabled = !urlInput.valid || !usernameInput.valid || passwordInput.value.length === 0;
@@ -37,19 +37,12 @@ const getHost = (url) => {
     }
 };
 
-const compareUrls = (u1, u2) => {
-    const h1 = getHost(u1);
-    const h2 = getHost(u2);
-    if (h1 === h2) return 0;
-    return h1 < h2 ? -1 : 1;
-};
+const compareUrls = ([u1], [u2]) => getHost(u1).localeCompare(getHost(u2));
 
 function showUrlPaths(urlPaths) {
     urlList.removeAll();
-    Object.keys(urlPaths).sort(compareUrls).forEach(url => {
-        const multiUser = urlPaths[url].length > 1;
-        const href = url.match(/^https?:\/\//) ? url : 'https://' + url;
-        urlList.addItem(`<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`, multiUser ? 'people' : 'person');
+    Object.entries(urlPaths).sort(compareUrls).forEach(([url, configs]) => {
+        urlList.addCard(url, configs.map(config => config.path).sort());
     });
 }
 

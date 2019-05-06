@@ -64,6 +64,28 @@ div.section {
             margin-right: 5px;
         }
     }
+
+    div.card-list {
+        display: flex;
+        flex-wrap: wrap;
+
+        div.mdc-card {
+            flex: 0 0 500px;
+            min-width: 500px;
+            overflow-wrap: break-word;
+            margin: 5px;
+            padding: 10px;
+
+            a {
+                text-decoration: none;
+            }
+
+            ul {
+                list-style-type: none;
+                padding: 0;
+            }
+        }
+    }
 }
 
 .mdc-fab:disabled {
