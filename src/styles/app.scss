@@ -14,6 +14,7 @@ div.section {
     margin: 10px 5px;
     padding: 5px;
     position: relative;
+    border-bottom: 1px solid lightgray;
 
     h2 {
         margin: 5px;
@@ -70,7 +71,7 @@ div.section {
         flex-wrap: wrap;
 
         div.mdc-card {
-            flex: 0 0 500px;
+            flex: 1 0 500px;
             min-width: 500px;
             overflow-wrap: break-word;
             margin: 5px;
