@@ -14,6 +14,7 @@ import UrlCardList from './components/UrlCardList';
 const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
 const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
+const filterInput = new MDCTextField(document.getElementById('vault-filter').parentElement);
 const statusArea = document.getElementById('status');
 const loginButton = document.getElementById('login');
 const logoutButton = document.getElementById('logout');
@@ -120,4 +121,9 @@ reloadButton.addEventListener('click', async () => {
         }
         else showAlert(err.message);
     }
+});
+
+filterInput.listen('input', () => {
+    if (filterInput.value.length > 0) urlList.filterCards(filterInput.value);
+    else urlList.showAll();
 });

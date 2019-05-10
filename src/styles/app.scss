@@ -10,88 +10,13 @@ $mdc-theme-accent: rgb(84, 110, 122) !default;
 @import "@material/snackbar/mdc-snackbar";
 @import "@material/list/mdc-list";
 
-div.section {
-    margin: 10px 5px;
-    padding: 5px;
-    position: relative;
-    border-bottom: 1px solid lightgray;
-
-    h2 {
-        margin: 5px;
-    }
-    
-    div.options {
-        display: flex;
-
-        @media screen and (max-width: 500px) {
-            flex-direction: column;
-            flex-wrap: nowrap;
-        }
-
-        @media screen and (min-width: 500px) {
-            flex-direction: row;
-            flex-wrap: wrap;
-
-            .mdc-text-field.wide {
-                min-width: calc(100% - 10px);
-            }
-        }
-
-        .mdc-text-field {
-            flex: 1 0;
-            margin: 5px;
-        }
-    }
-
-    div.buttons {
-        margin: 10px 5px;
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-end;
-        align-items: center;
-
-        #status {
-            flex: 1 0;
-            margin: 0 5px;
-            font-size: larger;
-            color: $mdc-theme-primary;
-        }
-
-        h2 {
-            flex: 1 0;
-        }
-
-        button:not(:last-child) {
-            margin-right: 5px;
-        }
-    }
-
-    div.card-list {
-        display: flex;
-        flex-wrap: wrap;
-
-        div.mdc-card {
-            flex: 1 0 500px;
-            min-width: 500px;
-            overflow-wrap: break-word;
-            margin: 5px;
-            padding: 10px;
-
-            a {
-                text-decoration: none;
-            }
-
-            ul {
-                list-style-type: none;
-                padding: 0;
-            }
-        }
-    }
-}
-
 .mdc-fab:disabled {
     cursor: default;
     pointer-events: none;
     background-color: #819ca9; /* rgba(0,0,0,0.12); */
     color: rgba(0,0,0,0.51);
+}
+
+.hidden {
+    display: none;
 }

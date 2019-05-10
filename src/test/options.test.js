@@ -308,6 +308,26 @@ module.exports = {
                     done();
                 });
             }
+        },
+        'filter input': {
+            'filters cards when input is not empty': () => {
+                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths});
+                loadPage();
+                MockTextField.byId['vault-filter'].value = 'search';
+
+                MockTextField.byId['vault-filter'].listen.args[0][1]();
+
+                expect(MockUrlCardList.byId['saved-urls'].filterCards).to.be.calledOnce.calledWithExactly('search');
+            },
+            'resets cards when input is empty': () => {
+                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths});
+                loadPage();
+                MockTextField.byId['vault-filter'].value = '';
+
+                MockTextField.byId['vault-filter'].listen.args[0][1]();
+
+                expect(MockUrlCardList.byId['saved-urls'].showAll).to.be.calledOnce.calledWithExactly();
+            }
         }
     }
 };

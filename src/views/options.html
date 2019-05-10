@@ -1,11 +1,108 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <link rel="stylesheet" href="bundle.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-</head>
+<link rel="stylesheet" href="bundle.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+.section {
+    margin: 10px 5px;
+    position: relative;
+    border-bottom: 1px solid lightgray;
+}
 
+h2 {
+    margin: 5px;
+}
+
+.options {
+    display: flex;
+}
+.options .mdc-text-field {
+    flex: 1 0;
+    margin: 5px;
+}
+@media screen and (max-width: 500px) {
+    .options {
+        flex-direction: column;
+        flex-wrap: nowrap;
+    }
+}
+@media screen and (min-width: 500px) {
+    .options {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .options .mdc-text-field.wide {
+        min-width: calc(100% - 10px);
+    }
+}
+
+.buttons {
+    margin: 10px 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+.buttons #status {
+    flex: 1 0;
+    margin: 0 5px;
+    font-size: larger;
+    color: var(--mdc-theme-primary, #6200ee);
+}
+.buttons button:not(:last-child) {
+    margin-right: 5px;
+}
+
+.filter-header {
+    display: grid;
+    grid-auto-flow: column;
+    align-items: center;
+}
+
+.buttons .mdc-text-field {
+    flex: 1 0 auto;
+    margin: 0 10px;
+    max-width: 40em;
+}
+.buttons .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading {
+    width: 28px;
+    border-radius: 28px 0 0 28px;
+}
+.buttons .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+    width: 28px;
+    border-radius: 0 28px 28px 0;
+}
+.buttons .mdc-text-field__input {
+    padding-left: 32px;
+    padding-right: 0;
+}
+
+.card-list {
+    display: flex;
+    flex-wrap: wrap;
+}
+.card-list .mdc-card {
+    flex: 1 0 500px;
+    min-width: 500px;
+    overflow-wrap: break-word;
+    margin: 5px;
+    padding: 10px;
+}
+.card-list .mdc-card a {
+    text-decoration: none;
+}
+.card-list .mdc-card ul {
+    list-style-type: none;
+    padding: 0;
+}
+.card-list .mdc-card em {
+    background-color: yellow;
+    font-style: normal;
+    font-weight: bold;
+}
+</style>
+</head>
 <body class="mdc-typography">
     <div class="section">
         <h2 class="mdc-typography--headline6">Vault Connection</h2>
@@ -21,7 +118,7 @@
                 <label class="mdc-floating-label" for="username">Username</label>
             </div>
             <div class="mdc-text-field">
-                <input type="password" class="mdc-text-field__input" id="password"/>
+                <input type="password" class="mdc-text-field__input" id="password" />
                 <div class="mdc-line-ripple"></div>
                 <label class="mdc-floating-label" for="password">Password</label>
             </div>
@@ -37,13 +134,26 @@
         </div>
     </div>
     <div class="section">
-        <div class="buttons">
+        <div class="filter-header">
             <h2 class="mdc-typography--headline6">Saved URLs</h2>
-            <button id="reload" class="mdc-button">
-                <span class="mdc-button__label">Reload</span>
-            </button>
+            <div class="buttons">
+                <div class="mdc-text-field mdc-text-field--outlined">
+                    <input type="text" id="vault-filter" class="mdc-text-field__input">
+                    <div class="mdc-notched-outline">
+                        <div class="mdc-notched-outline__leading"></div>
+                        <div class="mdc-notched-outline__notch">
+                            <label for="tf-outlined" class="mdc-floating-label">Filter URLs</label>
+                        </div>
+                        <div class="mdc-notched-outline__trailing"></div>
+                    </div>
+                </div>
+                <button id="reload" class="mdc-button">
+                    <span class="mdc-button__label">Reload</span>
+                </button>
             </div>
+        </div>
         <div class="card-list" id="saved-urls">
+            <span id="html-encoder" style="display: none"></span>
         </div>
     </div>
     <div class="mdc-snackbar">

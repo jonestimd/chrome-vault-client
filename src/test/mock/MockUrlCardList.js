@@ -5,7 +5,9 @@ export function MockUrlCardList(element) {
 
     Object.defineProperties(this, {
         removeAll: {value: sinon.stub()},
-        addCard: {value: sinon.stub()}
+        addCard: {value: sinon.stub()},
+        filterCards: {value: sinon.stub()},
+        showAll: {value: sinon.stub()}
     });
 }
 MockUrlCardList.byId = {};
