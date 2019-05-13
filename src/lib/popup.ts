@@ -8,8 +8,9 @@ const statusArea = document.getElementById('status');
 
 import * as settings from './settings';
 import * as vaultApi from './vaultApi';
+import { PageInfoMessage } from './message';
 
-function isMatch(urlString, pageUrl) {
+function isMatch(urlString: string, pageUrl: URL) {
     try {
         const url = new URL(urlString);
         return url.hostname === pageUrl.hostname && url.port === pageUrl.port
@@ -20,27 +21,31 @@ function isMatch(urlString, pageUrl) {
     }
 }
 
-function findVaultPaths(urlPaths, pageUrlString) {
+function findVaultPaths(urlPaths: vaultApi.UrlPaths, pageUrlString: string) {
     const pageUrl = new URL(pageUrlString);
     const entries = Object.entries(urlPaths).filter(([entryUrlString]) => isMatch(entryUrlString, pageUrl));
     return entries.reduce((configs, entry) => configs.concat(entry[1].map(config => config.path)), []);
 }
 
 class SecretAccessor {
-    static async newAccessor(vaultUrl, paths, vaultToken) {
+    static async newAccessor(vaultUrl: string, paths: string[], vaultToken: string) {
         const accessor = new SecretAccessor(vaultUrl, paths);
         if (vaultToken) await accessor.getSecrets(vaultToken);
         else statusArea.innerText = 'Need a Vault token';
         return accessor;
     }
 
-    constructor(vaultUrl, paths) {
+    vaultUrl: string
+    paths: string[]
+    secrets: {[path: string]: vaultApi.Secret}
+
+    constructor(vaultUrl: string, paths: string[]) {
         this.vaultUrl = vaultUrl;
         this.paths = paths;
         this.secrets = {};
     }
 
-    async getSecrets(vaultToken) {
+    async getSecrets(vaultToken: string) {
         try {
             statusArea.innerText = '';
             for (let path of this.paths) {
@@ -57,9 +62,9 @@ class SecretAccessor {
     }
 }
 
-chrome.runtime.onMessage.addListener(async function(message, sender) {
+chrome.runtime.onMessage.addListener(async function(message: PageInfoMessage, sender: chrome.runtime.MessageSender) {
     const {vaultUrl, vaultUser, token, urlPaths} = await settings.load();
-    document.querySelector('#username').innerText = vaultUser;
+    document.querySelector<HTMLElement>('#username').innerText = vaultUser;
     const vaultPaths = findVaultPaths(urlPaths, message.url);
     let vaultToken = token;
 

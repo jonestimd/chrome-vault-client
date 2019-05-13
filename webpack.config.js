@@ -4,10 +4,10 @@ const autoprefixer = require('autoprefixer');
 module.exports = [{
     entry: {
       styles: './src/styles/app.scss',
-      options: './src/lib/options.js',
-      popup: './src/lib/popup.js',
-      contentScript: './src/lib/contentScript.js',
-      background: './src/lib/background.js'
+      options: './src/lib/options.ts',
+      popup: './src/lib/popup.ts',
+      contentScript: './src/lib/contentScript.ts',
+      background: './src/lib/background.ts'
     },
     output: {
       path: path.resolve(__dirname, 'build'),
@@ -27,10 +27,13 @@ module.exports = [{
           ]
         },
         {
-          test: /\.js$/,
-          loader: 'babel-loader',
-          query: {presets: [['@babel/preset-env', {targets: {chrome: 60}}]]}
+          test: /\.ts$/,
+          loader: 'ts-loader',
+          exclude: /node_modules/
         }
       ]
+    },
+    resolve: {
+      extensions: [".ts", ".js"]
     },
   }];

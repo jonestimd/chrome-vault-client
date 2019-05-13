@@ -1,11 +1,13 @@
+import {LoginMessage, PageInfoMessage} from './message';
+
 const username = Boolean(document.querySelector('input[id*="user" i]'));
 const password = Boolean(document.querySelector('input[type="password"]'));
-const result = {username, password, url: window.location.href};
+const result: PageInfoMessage = {username, password, url: window.location.href};
 
-chrome.runtime.onMessage.addListener(function(message) {
+chrome.runtime.onMessage.addListener(function(message: LoginMessage) {
     if (message) {
         if (message.username) {
-            const userInput = document.querySelector('input[id*="user" i]');
+            const userInput: HTMLInputElement = document.querySelector('input[id*="user" i]');
             if (userInput) {
                 userInput.setAttribute('value', message.username);
                 userInput.dispatchEvent(new Event("change", {bubbles: true}));
@@ -13,7 +15,7 @@ chrome.runtime.onMessage.addListener(function(message) {
             }
         }
         if (message.password) {
-            const passwordInput = document.querySelector('input[type="password"]');
+            const passwordInput: HTMLInputElement = document.querySelector('input[type="password"]');
             if (passwordInput) {
                 passwordInput.setAttribute('value', message.password);
                 passwordInput.dispatchEvent(new Event("change", {bubbles: true}));

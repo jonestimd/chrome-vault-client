@@ -1,6 +1,6 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
+const {expect} = chai;
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import UrlCardList from '../../lib/components/UrlCardList';
 

@@ -1,9 +1,9 @@
-import sinon from 'sinon';
+import * as sinon from 'sinon';
 
 export function MockTextField(element) {
     const input = element.querySelector('input');
     const foundation = {
-        adapter_: {addClass: sinon.stub()}
+        setValid: sinon.stub()
     };
     MockTextField.byId[input.id] = this;
 

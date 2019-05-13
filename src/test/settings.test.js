@@ -1,7 +1,8 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
-import proxyquire from 'proxyquire';
+const {expect} = chai;
+import * as sinon from 'sinon';
+import * as proxyquire from 'proxyquire';
 
 let settings, vaultApi;
 

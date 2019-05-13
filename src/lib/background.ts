@@ -2,19 +2,20 @@
 import * as settings from './settings';
 import * as vaultApi from './vaultApi';
 import {refreshTokenAlarm} from './alarms';
+import PageStateUrlDetails = chrome.declarativeContent.PageStateUrlDetails;
 
 // const cssMatchers = ['input[type="password"]', 'input[type="text"][id*="user" i]'];
 
-function newRule(pageUrl) {
+function newRule(pageUrl: PageStateUrlDetails) {
     // return {pageUrl, css: cssMatchers};
     return { pageUrl };
 }
 
-function getUrlRule(urlPaths) {
+function getUrlRule(urlPaths: vaultApi.UrlPaths) {
     const conditions = Object.keys(urlPaths).map(urlString => {
         try {
             const url = new URL(urlString);
-            const pageUrl = { hostEquals: url.hostname, schemes: [url.protocol.replace(':', '')] };
+            const pageUrl: PageStateUrlDetails = { hostEquals: url.hostname, schemes: [url.protocol.replace(':', '')] };
             if (url.port) pageUrl.ports = [parseInt(url.port)];
             if (url.pathname.length > 1) pageUrl.pathPrefix = url.pathname;
             if (url.search) pageUrl.queryContains = url.search.substr(1);
@@ -26,7 +27,7 @@ function getUrlRule(urlPaths) {
     return { conditions, actions: [new chrome.declarativeContent.ShowPageAction()] };
 }
 
-function setPageRules(urlPaths) {
+function setPageRules(urlPaths: vaultApi.UrlPaths) {
     chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
         if (urlPaths) chrome.declarativeContent.onPageChanged.addRules([getUrlRule(urlPaths)]);
     });

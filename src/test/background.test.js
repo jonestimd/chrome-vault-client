@@ -1,9 +1,10 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
-import proxyquire from 'proxyquire';
+const {expect} = chai;
+import * as sinon from 'sinon';
+import * as proxyquire from 'proxyquire';
 
-let background, settings, vaultApi;
+let settings, vaultApi;
 
 const vaultUrl = 'https://my.vault';
 const token = 'the token';
@@ -23,7 +24,7 @@ module.exports = {
             vaultApi = {
                 refreshToken: sinon.stub()
             };
-            background = proxyquire('../lib/background', {
+            proxyquire('../lib/background', {
                 './settings': settings,
                 './vaultApi': vaultApi
             })

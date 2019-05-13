@@ -16,21 +16,21 @@ const usernameInput = new MDCTextField(document.getElementById('username').paren
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
 const filterInput = new MDCTextField(document.getElementById('vault-filter').parentElement);
 const statusArea = document.getElementById('status');
-const loginButton = document.getElementById('login');
-const logoutButton = document.getElementById('logout');
-const reloadButton = document.getElementById('reload');
+const loginButton = document.getElementById('login') as HTMLButtonElement;
+const logoutButton = document.getElementById('logout') as HTMLButtonElement;
+const reloadButton = document.getElementById('reload') as HTMLButtonElement;
 const urlList = new UrlCardList(document.getElementById('saved-urls'));
 
 function updateLoginButton() {
     loginButton.disabled = !urlInput.valid || !usernameInput.valid || passwordInput.value.length === 0;
 }
 
-function setStatus(token) {
+function setStatus(token?: string) {
     statusArea.innerText = token ? 'Logged in' : 'Not logged in';
     logoutButton.disabled = !token;
 }
 
-const getHost = (url) => {
+const getHost = (url: string) => {
     try {
         return new URL(url).hostname;
     } catch (err) {
@@ -38,18 +38,20 @@ const getHost = (url) => {
     }
 };
 
-const compareUrls = ([u1], [u2]) => getHost(u1).localeCompare(getHost(u2));
+type Comparator<T> = (t1: T, t2: T) => number;
 
-function showUrlPaths(urlPaths) {
+const compareUrls: Comparator<[string, vaultApi.SecretInfo[]]> = ([u1], [u2]) => getHost(u1).localeCompare(getHost(u2));
+
+function showUrlPaths(urlPaths: vaultApi.UrlPaths) {
     urlList.removeAll();
     Object.entries(urlPaths).sort(compareUrls).forEach(([url, configs]) => {
         urlList.addCard(url, configs.map(config => config.path).sort());
     });
 }
 
-let savedUrl, savedToken;
+let savedUrl: string, savedToken: string;
 
-settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }) => {
+settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }: settings.Settings) => {
     savedUrl = vaultUrl;
     savedToken = token;
     if (vaultUrl) {
@@ -57,15 +59,15 @@ settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }) => {
         usernameInput.focus();
     }
     else {
-        urlInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+        urlInput.getDefaultFoundation().setValid(false);
         passwordInput.required = true;
-        passwordInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+        passwordInput.getDefaultFoundation().setValid(false);
     }
     if (vaultUser) {
         usernameInput.value = vaultUser;
         if (urlInput.valid) passwordInput.focus();
     }
-    else usernameInput.getDefaultFoundation().adapter_.addClass('mdc-text-field--invalid');
+    else usernameInput.getDefaultFoundation().setValid(false);
     updateLoginButton();
     setStatus(token);
     if (urlPaths) showUrlPaths(urlPaths);
@@ -75,7 +77,7 @@ urlInput.listen('input', updateLoginButton);
 usernameInput.listen('input', updateLoginButton);
 passwordInput.listen('input', updateLoginButton);
 
-function showAlert(message) {
+function showAlert(message: string) {
     snackbar.labelText = message;
     snackbar.open();
 }
@@ -89,7 +91,7 @@ loginButton.addEventListener('click', async () => {
                 setStatus(auth.client_token);
                 savedUrl = urlInput.value;
                 savedToken = auth.client_token;
-                await settings.save(urlInput.value, usernameInput.value, auth.client_token, auth.lease_duration); // seconds
+                await settings.save(urlInput.value, usernameInput.value, auth.client_token);
             }
         }
         else showAlert('Need permission to access ' + urlInput.value);

@@ -1,6 +1,7 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
+const {expect} = chai;
+import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 
 const windowUrl = 'https://some.site';

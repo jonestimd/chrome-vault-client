@@ -1,4 +1,4 @@
-import sinon from 'sinon';
+import * as sinon from 'sinon';
 
 export function MockSnackbar(element) {
     let labelText;

@@ -1,14 +1,15 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
+const {expect} = chai;
+import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import {MockTextField} from './mock/MockTextField';
 import * as settings from '../lib/settings';
 import * as vaultApi from '../lib/vaultApi';
-import fs from 'fs';
-import path from 'path';
-import util, {promisify} from 'util';
-import proxyquire from 'proxyquire';
+import * as fs from 'fs';
+import * as path from 'path';
+import {promisify} from 'util';
+import * as proxyquire from 'proxyquire';
 proxyquire.noCallThru();
 
 const sandbox = sinon.createSandbox();

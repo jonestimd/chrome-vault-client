@@ -1,16 +1,17 @@
-import chai, {expect} from 'chai';
+import * as chai from 'chai';
 chai.use(require('sinon-chai'));
-import sinon from 'sinon';
+const {expect} = chai;
+import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import * as settings from '../lib/settings';
 import * as permissions from '../lib/permissions';
 import * as vaultApi from '../lib/vaultApi';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import {MockTextField} from './mock/MockTextField';
 import {MockUrlCardList} from './mock/MockUrlCardList';
 import {MockSnackbar} from './mock/MockSnackbar';
-import proxyquire from 'proxyquire';
+import * as proxyquire from 'proxyquire';
 proxyquire.noCallThru();
 
 const html = fs.readFileSync(path.join(__dirname, '../views/options.html'));
@@ -34,7 +35,7 @@ const loadPage = () => {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},
         '@material/textfield/index': {MDCTextField: MockTextField},
         '@material/snackbar': {MDCSnackbar: MockSnackbar},
-        './components/UrlCardList': MockUrlCardList
+        './components/UrlCardList': {default: MockUrlCardList}
     });
 };
 
@@ -81,12 +82,12 @@ module.exports = {
             loadPage();
 
             setImmediate(() => {
-                expect(MockTextField.byId['vault-url'].getDefaultFoundation().adapter_.addClass)
-                    .to.be.calledOnce.calledWithExactly('mdc-text-field--invalid');
-                expect(MockTextField.byId.username.getDefaultFoundation().adapter_.addClass)
-                    .to.be.calledOnce.calledWithExactly('mdc-text-field--invalid');
-                expect(MockTextField.byId.password.getDefaultFoundation().adapter_.addClass)
-                    .to.be.calledOnce.calledWithExactly('mdc-text-field--invalid');
+                expect(MockTextField.byId['vault-url'].getDefaultFoundation().setValid)
+                    .to.be.calledOnce.calledWithExactly(false);
+                expect(MockTextField.byId.username.getDefaultFoundation().setValid)
+                    .to.be.calledOnce.calledWithExactly(false);
+                expect(MockTextField.byId.password.getDefaultFoundation().setValid)
+                    .to.be.calledOnce.calledWithExactly(false);
                 expect(MockTextField.byId.password.required).to.be.true;
                 done();
             });
@@ -142,7 +143,7 @@ module.exports = {
 
                 setImmediate(() => {
                     expect(vaultApi.login).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, password);
-                    expect(settings.save).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, token, 1800);
+                    expect(settings.save).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, token);
                     expect(document.getElementById('status').innerText).to.equal('Logged in');
                     expect(MockSnackbar.instance.open).to.not.be.called;
                     done();
