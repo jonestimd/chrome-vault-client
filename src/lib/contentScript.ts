@@ -1,9 +1,5 @@
 import {LoginMessage, PageInfoMessage} from './message';
 
-const username = Boolean(document.querySelector('input[id*="user" i]'));
-const password = Boolean(document.querySelector('input[type="password"]'));
-const result: PageInfoMessage = {username, password, url: window.location.href};
-
 function setInput(input: HTMLInputElement, value: string): void {
     input.setAttribute('value', value);
     input.dispatchEvent(new Event("change", {bubbles: true}));
@@ -34,5 +30,9 @@ chrome.runtime.onMessage.addListener(function(message: LoginMessage) {
         }
     }
 });
+
+const username = Boolean(findVisibleInput('input[id*="user" i]'));
+const password = Boolean(findVisibleInput('input[type="password"]'));
+const result: PageInfoMessage = {username, password, url: window.location.href};
 
 if (username || password) chrome.runtime.sendMessage(result);

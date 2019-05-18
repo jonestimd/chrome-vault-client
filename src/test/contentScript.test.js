@@ -45,6 +45,7 @@ module.exports = {
         },
         'sends message with username true if input exists': () => {
             global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
+            sinon.stub(document.getElementById('username'), 'getClientRects').returns([{}]);
 
             require('../lib/contentScript');
 
@@ -53,6 +54,7 @@ module.exports = {
         },
         'sends message with password true if input exists': () => {
             global.document = new JSDOM('<html><input type="password"/></html>').window.document;
+            sinon.stub(document.querySelector('input'), 'getClientRects').returns([{}]);
 
             require('../lib/contentScript');
 
