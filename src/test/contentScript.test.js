@@ -59,7 +59,7 @@ module.exports = {
             expect(chrome.runtime.sendMessage).to.be.calledOnce
                 .calledWithExactly({username: false, password: true, url: windowUrl});
         },
-        '@test message listener': {
+        'message listener': {
             beforeEach() {
                 global.Event = sinon.stub().returns(event);
             },
@@ -72,11 +72,27 @@ module.exports = {
 
                 chrome.runtime.onMessage.addListener.args[0][0]();
             },
+            'ignores hidden inputs': () => {
+                global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
+                const input = document.querySelector('input');
+                const value = stubProperty(input, 'value', username);
+                const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
+                getClientRects.returns([]);
+                require('../lib/contentScript');
+
+                chrome.runtime.onMessage.addListener.args[0][0]({username});
+
+                expect(setAttribute).to.not.be.called;
+                expect(Event).to.not.be.called;
+                expect(dispatchEvent).to.not.be.called;
+                expect(value.set).to.not.be.called;
+            },
             'populates username field using setAttribute': () => {
                 global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
                 const input = document.querySelector('input');
                 const value = stubProperty(input, 'value', username);
-                const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+                const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
+                getClientRects.returns([{}]);
                 require('../lib/contentScript');
 
                 chrome.runtime.onMessage.addListener.args[0][0]({username});
@@ -90,21 +106,25 @@ module.exports = {
                 global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
                 const input = document.querySelector('input');
                 const value = stubProperty(input, 'value');
-                const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+                const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
+                getClientRects.returns([{}]);
                 require('../lib/contentScript');
 
                 chrome.runtime.onMessage.addListener.args[0][0]({username});
 
                 expect(setAttribute).to.be.calledOnce.calledWithExactly('value', username);
-                expect(Event).to.be.calledOnce.calledWithExactly("change", {bubbles: true});
-                expect(dispatchEvent).to.be.calledOnce.calledWithExactly(event);
+                expect(Event).to.be.calledTwice
+                    .calledWithExactly("change", {bubbles: true})
+                    .calledWithExactly("input", {bubbles: true});
+                expect(dispatchEvent).to.be.calledTwice.calledWithExactly(event);
                 expect(value.set).to.be.calledOnce.calledWithExactly(username);
             },
             'populates password field using setAttribute': () => {
                 global.document = new JSDOM('<html><input type="password"/></html>').window.document;
                 const input = document.querySelector('input');
                 const value = stubProperty(input, 'value', password);
-                const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+                const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
+                getClientRects.returns([{}]);
                 require('../lib/contentScript');
 
                 chrome.runtime.onMessage.addListener.args[0][0]({password});
@@ -118,14 +138,17 @@ module.exports = {
                 global.document = new JSDOM('<html><input type="password"/></html>').window.document;
                 const input = document.querySelector('input');
                 const value = stubProperty(input, 'value');
-                const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+                const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
+                getClientRects.returns([{}]);
                 require('../lib/contentScript');
 
                 chrome.runtime.onMessage.addListener.args[0][0]({password});
 
                 expect(setAttribute).to.be.calledOnce.calledWithExactly('value', password);
-                expect(Event).to.be.calledOnce.calledWithExactly("change", {bubbles: true});
-                expect(dispatchEvent).to.be.calledOnce.calledWithExactly(event);
+                expect(Event).to.be.calledTwice
+                    .calledWithExactly("change", {bubbles: true})
+                    .calledWithExactly("input", {bubbles: true});
+                expect(dispatchEvent).to.be.calledTwice.calledWithExactly(event);
                 expect(value.set).to.be.calledOnce.calledWithExactly(password);
             }
         }
