@@ -43,9 +43,18 @@ module.exports = {
 
             expect(chrome.runtime.sendMessage).to.not.be.called;
         },
-        'sends message with username true if input exists': () => {
+        'sends message with username true if input id matches': () => {
             global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
             sinon.stub(document.getElementById('username'), 'getClientRects').returns([{}]);
+
+            require('../lib/contentScript');
+
+            expect(chrome.runtime.sendMessage).to.be.calledOnce
+                .calledWithExactly({username: true, password: false, url: windowUrl});
+        },
+        'sends message with username true if input label matches': () => {
+            global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId"/></html>').window.document;
+            sinon.stub(document.querySelector('label'), 'getClientRects').returns([{}]);
 
             require('../lib/contentScript');
 
@@ -120,6 +129,21 @@ module.exports = {
                     .calledWithExactly("input", {bubbles: true});
                 expect(dispatchEvent).to.be.calledTwice.calledWithExactly(event);
                 expect(value.set).to.be.calledOnce.calledWithExactly(username);
+            },
+            'populates username field by matching label': () => {
+                global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId"/></html>').window.document;
+                const input = document.querySelector('input');
+                const value = stubProperty(input, 'value', username);
+                const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+                sinon.stub(document.querySelector('label'), 'getClientRects').returns([{}]);
+                require('../lib/contentScript');
+
+                chrome.runtime.onMessage.addListener.args[0][0]({username});
+
+                expect(setAttribute).to.be.calledOnce.calledWithExactly('value', username);
+                expect(Event).to.be.calledOnce.calledWithExactly("change", {bubbles: true});
+                expect(dispatchEvent).to.be.calledOnce.calledWithExactly(event);
+                expect(value.set).to.not.be.called;
             },
             'populates password field using setAttribute': () => {
                 global.document = new JSDOM('<html><input type="password"/></html>').window.document;
