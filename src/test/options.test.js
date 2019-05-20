@@ -24,8 +24,10 @@ const password = 'passw0rd';
 const token = 'vault token';
 
 const urlPaths = {
-    'https://my.bank.com': [{path: '/secret/my-bank'}],
-    'https://my.utility.com': [{path: '/secret/my-utility/user1'}, {path: 'secret/my-utility/user2'}],
+    'my.bank.com': [{path: '/secret/my-bank', url: 'https://my.bank.com'}],
+    'my.utility.com': [
+        {path: '/secret/my-utility/user1', url: 'https://my.utility.com/path1'},
+        {path: 'secret/my-utility/user2', url: 'https://my.utility.com/path2'}],
 };
 
 const loadPage = () => {
@@ -100,8 +102,9 @@ module.exports = {
             setImmediate(() => {
                 expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
                 expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
-                    .calledWithExactly('https://my.bank.com', ['/secret/my-bank'])
-                    .calledWithExactly('https://my.utility.com', ["/secret/my-utility/user1", "secret/my-utility/user2"]);
+                    .calledWithExactly('my.bank.com', ['https://my.bank.com'], ['/secret/my-bank'])
+                    .calledWithExactly('my.utility.com', ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
+                        ["/secret/my-utility/user1", "secret/my-utility/user2"]);
                 done();
             });
         },
@@ -272,8 +275,9 @@ module.exports = {
                     expect(document.getElementById('status').innerText).to.equal('Logged in');
                     expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
                     expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
-                        .calledWithExactly('https://my.bank.com', ["/secret/my-bank"])
-                        .calledWithExactly('https://my.utility.com', ["/secret/my-utility/user1", "secret/my-utility/user2"]);
+                        .calledWithExactly('my.bank.com', ['https://my.bank.com'], ["/secret/my-bank"])
+                        .calledWithExactly('my.utility.com', ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
+                            ["/secret/my-utility/user1", "secret/my-utility/user2"]);
                     done();
                 });
             },

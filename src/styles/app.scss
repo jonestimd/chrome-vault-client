@@ -9,6 +9,8 @@ $mdc-theme-accent: rgb(84, 110, 122) !default;
 @import "@material/textfield/mdc-text-field";
 @import "@material/snackbar/mdc-snackbar";
 @import "@material/list/mdc-list";
+@import "@material/menu-surface/mdc-menu-surface";
+@import "@material/menu/mdc-menu";
 
 .mdc-fab:disabled {
     cursor: default;

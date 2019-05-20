@@ -5,6 +5,7 @@ const authHeader = 'X-Vault-Token';
 
 export interface SecretInfo {
     path: string
+    url: string
     username: boolean
     password: boolean
 }
@@ -65,17 +66,44 @@ export async function refreshToken(vaultUrl: string, token: string): Promise<boo
 export async function logout(vaultUrl: string, token: string): Promise<void> {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
 }
+function getHost(url: string): string {
+    try {
+        const {hostname, port} = new URL(url);
+        return hostname + (port ? ':' + port : '');
+    } catch (err) {
+        return url;
+    }
+}
 
-export interface Secret {
+interface SecretData {
     url?: string
     username?: string
     password?: string
     [key: string]: string
 }
 
+export class Secret {
+    readonly url?: string
+    readonly username?: string
+    readonly password?: string
+    private data: {readonly [key: string]: string}
+
+    constructor({url, username, password, ...data}: SecretData) {
+        this.url = url;
+        this.username = username;
+        this.password = password;
+        this.data = data;
+    }
+
+    get siteHost(): string | undefined {
+        if (this.data['site url']) return getHost(this.data['site url']);
+        return getHost(this.url);
+    }
+}
+
 export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret> {
     const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
-    return body.data.data;
+    return new Secret(body.data.data);
 }
 
 async function listSecrets(vaultUrl: string, token: string, path?: string): Promise<string[]> {
@@ -95,9 +123,10 @@ export async function getUrlPaths(vaultUrl: string, token: string): Promise<UrlP
         else {
             const secret = await getSecret(vaultUrl, token, names[i]);
             if (secret.url && (secret.username || secret.password)) {
-                if (!urlPaths[secret.url]) urlPaths[secret.url] = [];
-                urlPaths[secret.url].push({
+                if (!urlPaths[secret.siteHost]) urlPaths[secret.siteHost] = [];
+                urlPaths[secret.siteHost].push({
                     path,
+                    url: secret.url,
                     username: Boolean(secret.username),
                     password: Boolean(secret.password)
                 });

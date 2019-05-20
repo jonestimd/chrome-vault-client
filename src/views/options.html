@@ -104,6 +104,7 @@ h2 {
 </style>
 </head>
 <body class="mdc-typography">
+    <a id="page-opener" target="_blank" rel="noopener noreferrer" style="display: none;"></a>
     <div class="section">
         <h2 class="mdc-typography--headline6">Vault Connection</h2>
         <div class="options">
@@ -125,12 +126,8 @@ h2 {
         </div>
         <div class="buttons">
             <p id="status"></p>
-            <button id="login" class="mdc-button mdc-button--raised">
-                <span class="mdc-button__label">Log in</span>
-            </button>
-            <button id="logout" class="mdc-button">
-                <span class="mdc-button__label">Log out</span>
-            </button>
+            <button id="login" class="mdc-button mdc-button--raised">Log in</button>
+            <button id="logout" class="mdc-button">Log out</button>
         </div>
     </div>
     <div class="section">
@@ -147,9 +144,7 @@ h2 {
                         <div class="mdc-notched-outline__trailing"></div>
                     </div>
                 </div>
-                <button id="reload" class="mdc-button">
-                    <span class="mdc-button__label">Reload</span>
-                </button>
+                <button id="reload" class="mdc-button">Reload</button>
             </div>
         </div>
         <div class="card-list" id="saved-urls">

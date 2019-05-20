@@ -30,22 +30,18 @@ function setStatus(token?: string) {
     logoutButton.disabled = !token;
 }
 
-const getHost = (url: string) => {
-    try {
-        return new URL(url).hostname;
-    } catch (err) {
-        return url;
-    }
-};
-
 type Comparator<T> = (t1: T, t2: T) => number;
 
-const compareUrls: Comparator<[string, vaultApi.SecretInfo[]]> = ([u1], [u2]) => getHost(u1).localeCompare(getHost(u2));
+const compareHosts: Comparator<[string, vaultApi.SecretInfo[]]> = ([h1], [h2]) => h1.localeCompare(h2);
+
+function pluck<T, K extends keyof T>(items: T[], key: K): T[K][] {
+    return items.map(item => item[key]);
+}
 
 function showUrlPaths(urlPaths: vaultApi.UrlPaths) {
     urlList.removeAll();
-    Object.entries(urlPaths).sort(compareUrls).forEach(([url, configs]) => {
-        urlList.addCard(url, configs.map(config => config.path).sort());
+    Object.entries(urlPaths).sort(compareHosts).forEach(([host, secrets]) => {
+        urlList.addCard(host, pluck(secrets, 'url'), pluck(secrets, 'path'));
     });
 }
 
