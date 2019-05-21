@@ -8,6 +8,7 @@ export interface SecretInfo {
     url: string
     username: boolean
     password: boolean
+    email: boolean
 }
 
 export interface UrlPaths {
@@ -86,12 +87,14 @@ export class Secret {
     readonly url?: string
     readonly username?: string
     readonly password?: string
+    readonly email?: string
     private data: {readonly [key: string]: string}
 
-    constructor({url, username, password, ...data}: SecretData) {
+    constructor({url, username, password, email, ...data}: SecretData) {
         this.url = url;
         this.username = username;
         this.password = password;
+        this.email = email;
         this.data = data;
     }
 
@@ -122,13 +125,14 @@ export async function getUrlPaths(vaultUrl: string, token: string): Promise<UrlP
         }
         else {
             const secret = await getSecret(vaultUrl, token, names[i]);
-            if (secret.url && (secret.username || secret.password)) {
+            if (secret.url && (secret.username || secret.password || secret.email)) {
                 if (!urlPaths[secret.siteHost]) urlPaths[secret.siteHost] = [];
                 urlPaths[secret.siteHost].push({
                     path,
                     url: secret.url,
                     username: Boolean(secret.username),
-                    password: Boolean(secret.password)
+                    password: Boolean(secret.password),
+                    email: Boolean(secret.email)
                 });
             }
             i++;

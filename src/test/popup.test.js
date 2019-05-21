@@ -37,6 +37,20 @@ const messageCallback = () => chrome.runtime.onMessage.addListener.args[0][0];
 
 const nextTick = promisify(setImmediate);
 
+async function testFillButtonEnabled(field) {
+    settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
+    vaultApi.getSecret.resolves({password});
+    loadPage();
+
+    await messageCallback()({url: pageUrl, [field]: true});
+
+    const button = document.querySelector('div.buttons button');
+    expect(button.disabled).to.be.false;
+    expect(button.querySelector('span').innerHTML).to.equal('secret name');
+    expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath);
+    expect(document.getElementById('status').innerText).to.equal('');
+}
+
 module.exports = {
     'popup': {
         beforeEach() {
@@ -61,28 +75,23 @@ module.exports = {
         },
         'messageCallback': {
             'adds button for Vault secret when page has username field': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
-                vaultApi.getSecret.resolves({password});
-                loadPage();
-
-                await messageCallback()({url: pageUrl, username: true});
-
-                const button = document.querySelector('div.buttons button');
-                expect(button.disabled).to.be.false;
-                expect(button.querySelector('span').innerHTML).to.equal('secret name');
-                expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath);
-                expect(document.getElementById('status').innerText).to.equal('');
+                await testFillButtonEnabled('username');
             },
             'adds button for Vault secret when page has password field': async () => {
+                await testFillButtonEnabled('password');
+            },
+            'adds button for Vault secret when page has email field': async () => {
+                await testFillButtonEnabled('email');
+            },
+            'disables button when page contains no fields': async () => {
                 settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
                 vaultApi.getSecret.resolves({password});
                 loadPage();
 
-                await messageCallback()({url: pageUrl, password: true});
+                await messageCallback()({url: pageUrl, password: false});
 
                 const button = document.querySelector('div.buttons button');
-                expect(button.disabled).to.be.false;
-                expect(button.querySelector('span').innerHTML).to.equal('secret name');
+                expect(button.disabled).to.be.true;
             },
             'disables button when not logged in and password is empty': async () => {
                 settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
@@ -132,17 +141,19 @@ module.exports = {
         },
         'fill button': {
             'sends message to fill in user field': async () => {
-                settings.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [{username: true, password: true, path: vaultPath}]}});
-                vaultApi.getSecret.resolves({username: 'site user', password: 'site password'});
+                const secret = {username: 'site user', password: 'site password', email: 'user@mail.host'};
+                settings.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [{path: vaultPath}]}});
+                vaultApi.getSecret.resolves(secret);
                 loadPage();
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
 
                 document.querySelector('div.buttons button').click();
 
-                expect(chrome.tabs.sendMessage).to.be.calledOnce.calledWithExactly(sender.tab.id, {username: 'site user', password: 'site password'});
+                expect(chrome.tabs.sendMessage).to.be.calledOnce
+                    .calledWithExactly(sender.tab.id, secret);
             },
             'gets new Vault token when password is not empty': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, password: true, path: vaultPath}]}});
+                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{path: vaultPath}]}});
                 vaultApi.getSecret.onCall(0).rejects({status: 403});
                 vaultApi.getSecret.onCall(1).resolves({username: 'site user', password: 'site password'});
                 vaultApi.login.resolves({client_token: 'new token'});
@@ -157,7 +168,8 @@ module.exports = {
                     .calledWithExactly(vaultUrl, token, vaultPath)
                     .calledWithExactly(vaultUrl, 'new token', vaultPath);
                 expect(vaultApi.login).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, password);
-                expect(chrome.tabs.sendMessage).to.be.calledOnce.calledWithExactly(sender.tab.id, {username: 'site user', password: 'site password'});
+                expect(chrome.tabs.sendMessage).to.be.calledOnce
+                    .calledWithExactly(sender.tab.id, {username: 'site user', password: 'site password', email: undefined});
                 expect(document.getElementById('status').innerText).to.equal('');
             }
         }

@@ -89,15 +89,15 @@ chrome.runtime.onMessage.addListener(async function(message: PageInfoMessage, se
                 }
             }
             if (accessor.secrets[path]) {
-                const {username, password} = accessor.secrets[path];
-                chrome.tabs.sendMessage(sender.tab.id, {username, password});
+                const {username, password, email} = accessor.secrets[path];
+                chrome.tabs.sendMessage(sender.tab.id, {username, password, email});
             }
         });
         return button;
     });
 
     function updateButtons() {
-        const noInputs = !message.username && !message.password;
+        const noInputs = !message.username && !message.password && !message.email;
         const disableButtons = noInputs || !accessor.haveSecrets && passwordInput.value.length === 0;
         buttons.forEach(button => button.disabled = disableButtons);
     }

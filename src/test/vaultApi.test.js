@@ -165,7 +165,7 @@ module.exports = {
         'getSecret': {
             'returns secret data': async () => {
                 const path = '/secret/path';
-                const data = {url: 'https://hostname:8080/path', username: 'site user', password: 'site password'};
+                const data = {url: 'https://hostname:8080/path', username: 'site user', password: 'site password', email: 'user@mail.host'};
                 const request = agentRequest('get');
                 request.set.resolves(secretResponse(data));
 
@@ -175,6 +175,7 @@ module.exports = {
                 expect(result.siteHost).to.equal('hostname:8080');
                 expect(result.username).to.equal(data.username);
                 expect(result.password).to.equal(data.password);
+                expect(result.email).to.equal(data.email);
                 expect(superagent.get).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/secret/data/${path}`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
             }
@@ -196,15 +197,15 @@ module.exports = {
                 getRequest.set.onCall(0).resolves(secretResponse({url: 'url1', username: 'url1 user'}));
                 getRequest.set.onCall(1).resolves(secretResponse({url: 'url2', password: 'url2 password'}));
                 getRequest.set.onCall(2).resolves(secretResponse({url: 'url3', note: 'skipped: no username or password'}));
-                getRequest.set.onCall(3).resolves(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password'}));
+                getRequest.set.onCall(3).resolves(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email', }));
                 getRequest.set.onCall(4).resolves(secretResponse({username: 'url3 user', password: 'url3 password', note: 'skipped: no url'}));
 
                 const result = await vaultApi.getUrlPaths(vaultUrl, token);
 
                 expect(result).to.deep.equal({
-                    url1: [{path: 'secret1', url: 'url1', username: true, password: false}],
-                    url2: [{path: 'secret2', url: 'url2', username: false, password: true}],
-                    url4: [{path: 'secret4', url: 'url4', username: true, password: true}],
+                    url1: [{path: 'secret1', url: 'url1', username: true, password: false, email: false}],
+                    url2: [{path: 'secret2', url: 'url2', username: false, password: true, email: false}],
+                    url4: [{path: 'secret4', url: 'url4', username: true, password: true, email: true}],
                 });
                 expect(superagent.get).to.have.callCount(5)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
@@ -224,10 +225,10 @@ module.exports = {
 
                 expect(result).to.deep.equal({
                     host1: [
-                        {path: 'secret1', url: 'https://host1/path1', username: true, password: false},
-                        {path: 'secret3', url: 'http://host1/path2', username: true, password: true}],
-                    'host1:8080': [{path: 'secret4', url: 'http://host1:8080/path3', username: true, password: true}],
-                    host2: [{path: 'secret2', url: 'host2', username: false, password: true}],
+                        {path: 'secret1', url: 'https://host1/path1', username: true, password: false, email: false},
+                        {path: 'secret3', url: 'http://host1/path2', username: true, password: true, email: false}],
+                    'host1:8080': [{path: 'secret4', url: 'http://host1:8080/path3', username: true, password: true, email: false}],
+                    host2: [{path: 'secret2', url: 'host2', username: false, password: true, email: false}],
                 });
                 expect(superagent.get).to.have.callCount(4)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
@@ -247,9 +248,9 @@ module.exports = {
                 const result = await vaultApi.getUrlPaths(vaultUrl, token);
 
                 expect(result).to.deep.equal({
-                    url1: [{path: 'secret1', url: 'url1', username: true, password: false}],
-                    url2: [{path: 'nested/secret2', url: 'url2', username: false, password: true}],
-                    url3: [{path: 'nested/secret3', url: 'url3', username: true, password: true}],
+                    url1: [{path: 'secret1', url: 'url1', username: true, password: false, email: false}],
+                    url2: [{path: 'nested/secret2', url: 'url2', username: false, password: true, email: false}],
+                    url3: [{path: 'nested/secret3', url: 'url3', username: true, password: true, email: false}],
                 });
                 expect(superagent).to.be.calledTwice
                     .calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/`)

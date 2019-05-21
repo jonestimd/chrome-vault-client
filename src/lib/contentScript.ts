@@ -40,6 +40,10 @@ chrome.runtime.onMessage.addListener(function (message: LoginMessage) {
             const userInput = findVisibleInput('input[id*="user" i]') || findByLabel('user');
             if (userInput) setInput(userInput, message.username);
         }
+        if (message.email) {
+            const emailInput = findVisibleInput('input[id*="email" i]') || findByLabel('email');
+            if (emailInput) setInput(emailInput, message.email);
+        }
         if (message.password) {
             const passwordInput = findVisibleInput('input[type="password"]');
             if (passwordInput) setInput(passwordInput, message.password);
@@ -49,6 +53,7 @@ chrome.runtime.onMessage.addListener(function (message: LoginMessage) {
 
 const username = Boolean(findVisibleInput('input[id*="user" i]') || findByLabel('user'));
 const password = Boolean(findVisibleInput('input[type="password"]'));
-const result: PageInfoMessage = {username, password, url: window.location.href};
+const email = Boolean(findVisibleInput('input[id*="email" i]') || findByLabel('email'));
+const result: PageInfoMessage = {username, password, email, url: window.location.href};
 
-if (username || password) chrome.runtime.sendMessage(result);
+if (username || password || email) chrome.runtime.sendMessage(result);
