@@ -12,7 +12,7 @@ export interface SecretInfo {
 }
 
 export interface UrlPaths {
-    [url: string]: SecretInfo[]
+    [siteHost: string]: SecretInfo[]
 }
 
 interface VaultError {

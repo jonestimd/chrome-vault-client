@@ -102,7 +102,7 @@ module.exports = {
             'adds page rule for hostname': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{}]});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'some.site.login'}]});
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -110,7 +110,7 @@ module.exports = {
 
                 expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
                 expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.com', schemes: ['https']}});
+                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.login', schemes: ['https']}});
                 expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
                 expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
                     .calledWithExactly([{conditions: [matcher], actions: [action]}]);
@@ -118,7 +118,7 @@ module.exports = {
             'adds page rule for scheme and hostname': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'http://some.site.com': [{}]});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'http://some.site.com'}]});
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -134,7 +134,7 @@ module.exports = {
             'adds page rule for scheme, hostname and port': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com:8888': [{}]});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com:8888'}]});
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -150,7 +150,7 @@ module.exports = {
             'adds page rule for scheme, hostname and path prefix': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com/account': [{}]});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com/account'}]});
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -166,7 +166,7 @@ module.exports = {
             'adds page rule for scheme, hostname, path prefix and query': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'https://some.site.com/account?login=true': [{}]});
+                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com/account?login=true'}]});
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
@@ -174,12 +174,14 @@ module.exports = {
 
                 expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
                 expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {
-                        hostEquals: 'some.site.com',
-                        pathPrefix: '/account',
-                        queryContains: 'login=true',
-                        schemes: ['https']
-                    }});
+                    .calledWithExactly({
+                        pageUrl: {
+                            hostEquals: 'some.site.com',
+                            pathPrefix: '/account',
+                            queryContains: 'login=true',
+                            schemes: ['https']
+                        }
+                    });
                 expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
                 expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
                     .calledWithExactly([{conditions: [matcher], actions: [action]}]);
@@ -202,14 +204,16 @@ module.exports = {
                 declarativeContent.ShowPageAction.returns(action);
                 declarativeContent.PageStateMatcher.returns(matcher);
 
-                await getStorageListener()({urlPaths: {newValue: {'https://some.site.com': [{}]}}}, 'local');
+                await getStorageListener()({urlPaths: {newValue: {'some.site.com': [{url: 'https://some.site.com'}]}}}, 'local');
 
                 expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
                 expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {
-                        hostEquals: 'some.site.com',
-                        schemes: ['https']
-                    }});
+                    .calledWithExactly({
+                        pageUrl: {
+                            hostEquals: 'some.site.com',
+                            schemes: ['https']
+                        }
+                    });
                 expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
                 expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
                     .calledWithExactly([{conditions: [matcher], actions: [action]}]);
