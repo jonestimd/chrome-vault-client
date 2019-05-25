@@ -55,25 +55,26 @@ h2 {
 }
 
 .filter-header {
-    display: grid;
-    grid-auto-flow: column;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
 }
 
-.buttons .mdc-text-field {
+.filter-header .mdc-text-field {
     flex: 1 0 auto;
     margin: 0 10px;
     max-width: 40em;
 }
-.buttons .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading {
+.filter-header .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading {
     width: 28px;
     border-radius: 28px 0 0 28px;
 }
-.buttons .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+.filter-header .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
     width: 28px;
     border-radius: 0 28px 28px 0;
 }
-.buttons .mdc-text-field__input {
+.filter-header .mdc-text-field__input {
     padding-left: 32px;
     padding-right: 0;
 }
@@ -126,25 +127,22 @@ h2 {
         </div>
         <div class="buttons">
             <p id="status"></p>
-            <button id="login" class="mdc-button mdc-button--raised">Log in</button>
+            <button id="reload" class="mdc-button mdc-button--raised">Reload URLs</button>
             <button id="logout" class="mdc-button">Log out</button>
         </div>
     </div>
     <div class="section">
         <div class="filter-header">
             <h2 class="mdc-typography--headline6">Saved URLs</h2>
-            <div class="buttons">
-                <div class="mdc-text-field mdc-text-field--outlined">
-                    <input type="text" id="vault-filter" class="mdc-text-field__input">
-                    <div class="mdc-notched-outline">
-                        <div class="mdc-notched-outline__leading"></div>
-                        <div class="mdc-notched-outline__notch">
-                            <label for="tf-outlined" class="mdc-floating-label">Filter URLs</label>
-                        </div>
-                        <div class="mdc-notched-outline__trailing"></div>
+            <div class="mdc-text-field mdc-text-field--outlined">
+                <input type="text" id="vault-filter" class="mdc-text-field__input">
+                <div class="mdc-notched-outline">
+                    <div class="mdc-notched-outline__leading"></div>
+                    <div class="mdc-notched-outline__notch">
+                        <label for="tf-outlined" class="mdc-floating-label">Filter URLs</label>
                     </div>
+                    <div class="mdc-notched-outline__trailing"></div>
                 </div>
-                <button id="reload" class="mdc-button">Reload</button>
             </div>
         </div>
         <div class="card-list" id="saved-urls">

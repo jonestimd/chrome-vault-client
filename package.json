@@ -12,7 +12,7 @@
         "build": "cp -r src/manifest.json src/views/* src/images/ build",
         "postbuild": "rm build/styles.js",
         "test": "_mocha src/test/**/**/*.test.ts",
-        "test:watch": "_mocha --watch src/test/**/**/*.test.js"
+        "test:watch": "_mocha --watch src/test/**/**/*.test.ts"
     },
     "mocha": {
         "require": "ts-node/register",

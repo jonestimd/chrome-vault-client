@@ -16,13 +16,14 @@ const usernameInput = new MDCTextField(document.getElementById('username').paren
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
 const filterInput = new MDCTextField(document.getElementById('vault-filter').parentElement);
 const statusArea = document.getElementById('status');
-const loginButton = document.getElementById('login') as HTMLButtonElement;
 const logoutButton = document.getElementById('logout') as HTMLButtonElement;
 const reloadButton = document.getElementById('reload') as HTMLButtonElement;
 const urlList = new UrlCardList(document.getElementById('saved-urls'));
 
-function updateLoginButton() {
-    loginButton.disabled = !urlInput.valid || !usernameInput.valid || passwordInput.value.length === 0;
+let savedUrl: string, savedToken: string;
+
+function updateReloadButton() {
+    reloadButton.disabled = !(urlInput.valid && usernameInput.valid && (savedToken || passwordInput.value.length > 0));
 }
 
 function setStatus(token?: string) {
@@ -45,8 +46,6 @@ function showUrlPaths(urlPaths: vaultApi.UrlPaths) {
     });
 }
 
-let savedUrl: string, savedToken: string;
-
 settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }: settings.Settings) => {
     savedUrl = vaultUrl;
     savedToken = token;
@@ -64,21 +63,21 @@ settings.load().then(({ vaultUrl, vaultUser, token, urlPaths }: settings.Setting
         if (urlInput.valid) passwordInput.focus();
     }
     else usernameInput.getDefaultFoundation().setValid(false);
-    updateLoginButton();
+    updateReloadButton();
     setStatus(token);
     if (urlPaths) showUrlPaths(urlPaths);
 });
 
-urlInput.listen('input', updateLoginButton);
-usernameInput.listen('input', updateLoginButton);
-passwordInput.listen('input', updateLoginButton);
+urlInput.listen('input', updateReloadButton);
+usernameInput.listen('input', updateReloadButton);
+passwordInput.listen('input', updateReloadButton);
 
 function showAlert(message: string) {
     snackbar.labelText = message;
     snackbar.open();
 }
 
-loginButton.addEventListener('click', async () => {
+async function login() {
     try {
         if (await permissions.requestOrigin(urlInput.value)) {
             const auth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
@@ -94,12 +93,14 @@ loginButton.addEventListener('click', async () => {
     } catch (err) {
         showAlert('Error getting token: ' + err.message);
     }
-});
+    return Boolean(savedToken);
+}
 
 logoutButton.addEventListener('click', async () => {
     try {
         if (savedToken) await vaultApi.logout(savedUrl, savedToken);
         savedToken = undefined;
+        updateReloadButton();
     } catch (err) {
         if (err.status === 403) savedToken = undefined;
         else showAlert('Error revoking token: ' + err.message);
@@ -110,7 +111,7 @@ logoutButton.addEventListener('click', async () => {
 
 reloadButton.addEventListener('click', async () => {
     try {
-        showUrlPaths(await settings.cacheUrlPaths());
+        if (savedToken || await login()) showUrlPaths(await settings.cacheUrlPaths());
     } catch (err) {
         if (err.status === 403) {
             savedToken = undefined;

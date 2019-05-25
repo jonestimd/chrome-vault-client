@@ -23,6 +23,7 @@ export class MockTextField {
 
     set value(value: string) {
         this.input.value = value;
+        this.listen.args.forEach(([, handler]) => handler({target: this}));
     }
 
     get valid(): boolean {
