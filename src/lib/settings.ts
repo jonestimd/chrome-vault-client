@@ -3,10 +3,10 @@ import * as vaultApi from './vaultApi';
 const keys = ['vaultUrl', 'vaultUser', 'token', 'urlPaths'];
 
 export interface Settings {
-    vaultUrl: string
-    vaultUser: string
+    vaultUrl?: string
+    vaultUser?: string
     token?: string
-    urlPaths: vaultApi.UrlPaths
+    urlPaths?: vaultApi.UrlPaths
 }
 
 export function load(): Promise<Settings> {

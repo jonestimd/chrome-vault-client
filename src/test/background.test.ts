@@ -1,17 +1,45 @@
+import './types/global';
 import * as chai from 'chai';
 chai.use(require('sinon-chai'));
 const {expect} = chai;
 import * as sinon from 'sinon';
 import * as proxyquire from 'proxyquire';
 
-let settings, vaultApi;
+interface SettingsStub {
+    load: sinon.SinonStub;
+    clearToken: sinon.SinonStub;
+    cacheUrlPaths: sinon.SinonStub;
+}
+
+interface VaultStub {
+    refreshToken: sinon.SinonStub;
+}
+
+type KeyValueMap = {[key: string]: any};
+
+interface DeclarativeContentStub extends KeyValueMap {
+    PageStateMatcher: sinon.SinonStub;
+    ShowPageAction: sinon.SinonStub;
+}
+interface AlarmStub extends KeyValueMap {
+    onAlarm: {
+        addListener: sinon.SinonStub;
+    }
+}
+interface StorageStub extends KeyValueMap {
+    onChanged: {
+        addListener: sinon.SinonStub;
+    }
+}
+let settings: SettingsStub, vaultApi: VaultStub;
+let declarativeContent: DeclarativeContentStub, alarms: AlarmStub, storage: StorageStub;
 
 const vaultUrl = 'https://my.vault';
 const token = 'the token';
 
 const getInstalledListener = () => chrome.runtime.onInstalled.addListener.args[0][0];
-const getStorageListener = () => chrome.storage.onChanged.addListener.args[0][0];
-const getAlarmListener = () => chrome.alarms.onAlarm.addListener.args[0][0];
+const getStorageListener = () => storage.onChanged.addListener.args[0][0];
+const getAlarmListener = () => alarms.onAlarm.addListener.args[0][0];
 
 module.exports = {
     'background': {
@@ -23,6 +51,30 @@ module.exports = {
             };
             vaultApi = {
                 refreshToken: sinon.stub()
+            };
+            global.chrome.declarativeContent = declarativeContent = {
+                onPageChanged: {
+                    addRules: sinon.stub(),
+                    removeRules: sinon.stub().yields()
+                },
+                PageStateMatcher: sinon.stub(),
+                ShowPageAction: sinon.stub()
+            };
+            global.chrome.alarms = alarms = {
+                create: sinon.stub(),
+                onAlarm: {
+                    addListener: sinon.stub()
+                }
+            };
+            global.chrome.storage = storage = {
+                local: {
+                    get: sinon.stub(),
+                    set: sinon.stub(),
+                    remove: sinon.stub()
+                },
+                onChanged: {
+                    addListener: sinon.stub()
+                }
             };
             proxyquire('../lib/background', {
                 './settings': settings,
@@ -51,8 +103,8 @@ module.exports = {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
                 settings.cacheUrlPaths.resolves({'some.site.com': [{}]});
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getInstalledListener()();
 
@@ -67,8 +119,8 @@ module.exports = {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
                 settings.cacheUrlPaths.resolves({'http://some.site.com': [{}]});
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getInstalledListener()();
 
@@ -83,8 +135,8 @@ module.exports = {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
                 settings.cacheUrlPaths.resolves({'https://some.site.com:8888': [{}]});
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getInstalledListener()();
 
@@ -99,8 +151,8 @@ module.exports = {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
                 settings.cacheUrlPaths.resolves({'https://some.site.com/account': [{}]});
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getInstalledListener()();
 
@@ -115,8 +167,8 @@ module.exports = {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
                 settings.cacheUrlPaths.resolves({'https://some.site.com/account?login=true': [{}]});
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getInstalledListener()();
 
@@ -147,8 +199,8 @@ module.exports = {
             'updates page rules when urlPaths changes': async () => {
                 const action = {name: 'show page'};
                 const matcher = {name: 'url matcher'};
-                chrome.declarativeContent.ShowPageAction.returns(action);
-                chrome.declarativeContent.PageStateMatcher.returns(matcher);
+                declarativeContent.ShowPageAction.returns(action);
+                declarativeContent.PageStateMatcher.returns(matcher);
 
                 await getStorageListener()({urlPaths: {newValue: {'https://some.site.com': [{}]}}}, 'local');
 

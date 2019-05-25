@@ -9,28 +9,6 @@ module.exports = {
                     addListener: sinon.stub()
                 }
             },
-            declarativeContent: {
-                onPageChanged: {
-                    addRules: sinon.stub(),
-                    removeRules: sinon.stub().yields()
-                },
-                PageStateMatcher: sinon.stub(),
-                ShowPageAction: sinon.stub()
-            },
-            storage: {
-                local: {
-                    get: sinon.stub(),
-                    set: sinon.stub(),
-                    remove: sinon.stub()
-                },
-                onChanged: {
-                    addListener: sinon.stub()
-                }
-            },
-            permissions: {
-                getAll: sinon.stub(),
-                request: sinon.stub()
-            },
             runtime: {
                 onInstalled: {
                     addListener: sinon.stub()

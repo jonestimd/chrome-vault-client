@@ -28,9 +28,9 @@ export function getErrorMessage(err: VaultError): string {
 }
 
 export interface AuthToken {
-    client_token: string
-    lease_duration: number
-    renewable: boolean
+    client_token?: string
+    lease_duration?: number
+    renewable?: boolean
 }
 interface AuthResponse {
     auth?: AuthToken

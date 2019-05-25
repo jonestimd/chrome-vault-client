@@ -1,8 +1,10 @@
+import './types/global';
 import * as chai from 'chai';
 chai.use(require('sinon-chai'));
 const {expect} = chai;
 import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
+import {fromPairs} from 'lodash';
 
 const windowUrl = 'https://some.site';
 const username = 'site user';
@@ -10,7 +12,7 @@ const email = 'user email';
 const password = 'passw0rd';
 const event = {type: 'change'};
 
-function stubProperty(obj, name, value) {
+function stubProperty(obj: any, name: string, value?: any) {
     const def = {
         get: sinon.stub().returns(value),
         set: sinon.stub()
@@ -18,11 +20,11 @@ function stubProperty(obj, name, value) {
     Object.defineProperty(obj, name, def);
     return def;
 }
-function stubEach(obj, ...props) {
-    return props.reduce((stubs, prop) => Object.assign(stubs, {[prop]: sinon.stub(obj, prop)}), {});
+function stubEach<K extends string>(obj: any, ...props: K[]): {[P in K]: sinon.SinonStub} {
+    return fromPairs(props.map(prop => [prop, sinon.stub(obj, prop)]));
 }
 
-function testSetInputByAttribute(field, value, inputHtml) {
+function testSetInputByAttribute(field: string, value: any, inputHtml: string) {
     global.document = new JSDOM(`<html>${inputHtml}</html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value', value);
@@ -38,7 +40,7 @@ function testSetInputByAttribute(field, value, inputHtml) {
     expect(inputValue.set).to.not.be.called;
 }
 
-function testSetInputByValue(field, value, inputHtml) {
+function testSetInputByValue(field: string, value: any, inputHtml: string) {
     global.document = new JSDOM(`<html>${inputHtml}</html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value');
@@ -56,12 +58,29 @@ function testSetInputByValue(field, value, inputHtml) {
     expect(inputValue.set).to.be.calledOnce.calledWithExactly(value);
 }
 
-function testSetInputWithLabel(field, id, value) {
+class MockRectList {
+    private readonly _length: number;
+    readonly [index: number]: DOMRect;
+
+    constructor(...items: any[]) {
+        this._length = items.length;
+    }
+
+    get length() {
+        return this._length;
+    }
+
+    item(index: number): DOMRect {
+        return null;
+    }
+}
+
+function testSetInputWithLabel(field: string, id: string, value: string) {
     global.document = new JSDOM(`<html><label for="${id}">${field}</label><input type="text" id="${id}"/></html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value', value);
     const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
-    sinon.stub(document.querySelector('label'), 'getClientRects').returns([{}]);
+    sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
     require('../lib/contentScript');
 
     chrome.runtime.onMessage.addListener.args[0][0]({[field]: value});
@@ -96,7 +115,7 @@ module.exports = {
         },
         'sends message with username true if input id matches': () => {
             global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
-            sinon.stub(document.getElementById('username'), 'getClientRects').returns([{}]);
+            sinon.stub(document.getElementById('username'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
@@ -105,7 +124,7 @@ module.exports = {
         },
         'sends message with username true if input label matches': () => {
             global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId"/></html>').window.document;
-            sinon.stub(document.querySelector('label'), 'getClientRects').returns([{}]);
+            sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
@@ -114,7 +133,7 @@ module.exports = {
         },
         'sends message with password true if input exists': () => {
             global.document = new JSDOM('<html><input type="password"/></html>').window.document;
-            sinon.stub(document.querySelector('input'), 'getClientRects').returns([{}]);
+            sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
@@ -123,7 +142,7 @@ module.exports = {
         },
         'sends message with email true if input exists': () => {
             global.document = new JSDOM('<html><input id="email"/></html>').window.document;
-            sinon.stub(document.querySelector('input'), 'getClientRects').returns([{}]);
+            sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
@@ -132,7 +151,7 @@ module.exports = {
         },
         'sends message with email true if input label matches': () => {
             global.document = new JSDOM('<html><label for="abc">Email</label><input type="text" id="abc"/></html>').window.document;
-            sinon.stub(document.querySelector('label'), 'getClientRects').returns([{}]);
+            sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 

@@ -3,8 +3,8 @@ chai.use(require('sinon-chai'));
 const {expect} = chai;
 import * as sinon from 'sinon';
 import * as proxyquire from 'proxyquire';
-
-let vaultApi, superagent;
+proxyquire.noCallThru();
+import * as vaultApiDef from '../lib/vaultApi';
 
 const vaultUrl = 'https://my.vault';
 const token = 'vault token';
@@ -12,28 +12,40 @@ const authHeader = 'X-Vault-Token';
 const password = 'vault password';
 const username = 'vault user';
 
-function agentRequest(type) {
+let agent: sinon.SinonStub & {
+    get: sinon.SinonStub
+    post: sinon.SinonStub
+};
+
+let vaultApi: typeof vaultApiDef;
+
+function agentRequest(type?: 'get' | 'post') {
     const request = {set: sinon.stub().resolves()};
-    const method = type ? superagent[type] : superagent;
+    // const method = type ? agentStub[type] : agentStub;
+    const method = type ? agent[type] : agent;
     method.returns(request);
     return request;
 }
 
-function getPathRequest(path) {
+function getPathRequest(path: string) {
     const request = {set: sinon.stub().resolves()};
-    superagent.get.withArgs(vaultUrl + path).returns(request);
+    agent.get.withArgs(vaultUrl + path).returns(request);
     return request;
 }
 
-const secretResponse = (data) => ({body: {data: {data}}});
+const secretResponse = (data: {[key: string]: string}) => ({body: {data: {data}}});
 
 module.exports = {
     'vaultApi': {
         beforeEach() {
-            superagent = sinon.stub();
-            superagent.post = sinon.stub();
-            superagent.get = sinon.stub();
-            vaultApi = proxyquire('../lib/vaultApi', {superagent});
+            agent = Object.assign(sinon.stub(), {
+                get: sinon.stub(),
+                post: sinon.stub(),
+            });
+            vaultApi = proxyquire('../lib/vaultApi', {superagent: agent});
+        },
+        afterEach() {
+            sinon.restore();
         },
         'getErrorMessage': {
             'returns message if response is undefined': () => {
@@ -56,18 +68,18 @@ module.exports = {
         'login': {
             'returns auth object': async () => {
                 const auth = {client_token: 'the token'};
-                superagent.post.resolves({body: {auth}});
+                agent.post.resolves({body: {auth}});
 
                 const result = await vaultApi.login(vaultUrl, username, password);
 
                 expect(result).to.equal(auth);
-                expect(superagent.post).to.be.calledOnce
+                expect(agent.post).to.be.calledOnce
                     .calledWithExactly(`${vaultUrl}/v1/auth/userpass/login/${username}`, {password});
                 expect(chrome.alarms.create, 'token not renewable').to.not.be.called;
             },
             'sets alarm to renew the token': async () => {
                 const auth = {renewable: true, lease_duration: 60};
-                superagent.post.resolves({body: {auth}});
+                agent.post.resolves({body: {auth}});
 
                 const result = await vaultApi.login(vaultUrl, username, password);
 
@@ -77,7 +89,7 @@ module.exports = {
             },
             'does not set alarm to renew the token if lease duration is less than 60s': async () => {
                 const auth = {renewable: true, lease_duration: 59};
-                superagent.post.resolves({body: {auth}});
+                agent.post.resolves({body: {auth}});
 
                 const result = await vaultApi.login(vaultUrl, username, password);
 
@@ -85,17 +97,17 @@ module.exports = {
                 expect(chrome.alarms.create).to.not.be.called;
             },
             'returns undefined if response does not contain auth object': async () => {
-                superagent.post.resolves({body: {}});
+                agent.post.resolves({body: {}});
 
-                const result = await vaultApi.login();
+                const result = await vaultApi.login('url', 'user', 'password');
 
                 expect(result).to.be.undefined;
             },
             'throws error with Vault message': async () => {
                 const errors = ['invalid username or password'];
-                superagent.post.rejects({response: {body: {errors}}});
+                agent.post.rejects({response: {body: {errors}}});
 
-                return vaultApi.login().then(() => expect.fail('expected an error'), (err) => {
+                return vaultApi.login('url', 'user', 'password').then(() => expect.fail('expected an error'), (err) => {
 
                     expect(err.message).to.equal(errors[0]);
                 });
@@ -105,12 +117,12 @@ module.exports = {
             'sets new alarm after renewing the token': async () => {
                 const auth = {renewable: true, lease_duration: 60};
                 const request = agentRequest('post');
-                superagent.post.returns(request);
+                agent.post.returns(request);
                 request.set.resolves({body: {auth}});
 
                 expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
 
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
                 expect(chrome.alarms.create).to.be.calledOnce
                     .calledWithExactly('refresh-token', {delayInMinutes: (auth.lease_duration-30)/60});
@@ -118,36 +130,36 @@ module.exports = {
             'does not set new alarm if token is not renewable': async () => {
                 const auth = {renewable: false, lease_duration: 60};
                 const request = agentRequest('post');
-                superagent.post.returns(request);
+                agent.post.returns(request);
                 request.set.resolves({body: {auth}});
 
                 expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
 
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
                 expect(chrome.alarms.create).to.not.be.called;
             },
             'does not set new alarm if lease duration is less than 60s': async () => {
                 const auth = {renewable: false, lease_duration: 59};
                 const request = agentRequest('post');
-                superagent.post.returns(request);
+                agent.post.returns(request);
                 request.set.resolves({body: {auth}});
 
                 expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.true;
 
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
                 expect(chrome.alarms.create).to.not.be.called;
             },
             'returns false if renewal fails': async () => {
                 const auth = {renewable: false, lease_duration: 59};
                 const request = agentRequest('post');
-                superagent.post.returns(request);
+                agent.post.returns(request);
                 request.set.rejects({message: 'permission denied'});
 
                 expect(await vaultApi.refreshToken(vaultUrl, token)).to.be.false;
 
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
+                expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
                 expect(chrome.alarms.create).to.not.be.called;
             }
@@ -158,7 +170,7 @@ module.exports = {
 
                 await vaultApi.logout(vaultUrl, token);
 
-                expect(superagent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/revoke-self`);
+                expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/revoke-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
             }
         },
@@ -176,7 +188,7 @@ module.exports = {
                 expect(result.username).to.equal(data.username);
                 expect(result.password).to.equal(data.password);
                 expect(result.email).to.equal(data.email);
-                expect(superagent.get).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/secret/data/${path}`);
+                expect(agent.get).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/secret/data/${path}`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
             }
         },
@@ -188,7 +200,7 @@ module.exports = {
                 const result = await vaultApi.getUrlPaths(vaultUrl, token);
 
                 expect(result).to.deep.equal({});
-                expect(superagent).to.be.calledOnce.calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/`);
+                expect(agent).to.be.calledOnce.calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
             },
             'returns secret path, username flag and password flag for each URL': async () => {
@@ -207,7 +219,7 @@ module.exports = {
                     url2: [{path: 'secret2', url: 'url2', username: false, password: true, email: false}],
                     url4: [{path: 'secret4', url: 'url4', username: true, password: true, email: true}],
                 });
-                expect(superagent.get).to.have.callCount(5)
+                expect(agent.get).to.have.callCount(5)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret2`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret3`);
@@ -230,7 +242,7 @@ module.exports = {
                     'host1:8080': [{path: 'secret4', url: 'http://host1:8080/path3', username: true, password: true, email: false}],
                     host2: [{path: 'secret2', url: 'host2', username: false, password: true, email: false}],
                 });
-                expect(superagent.get).to.have.callCount(4)
+                expect(agent.get).to.have.callCount(4)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret2`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret3`)
@@ -252,10 +264,10 @@ module.exports = {
                     url2: [{path: 'nested/secret2', url: 'url2', username: false, password: true, email: false}],
                     url3: [{path: 'nested/secret3', url: 'url3', username: true, password: true, email: false}],
                 });
-                expect(superagent).to.be.calledTwice
+                expect(agent).to.be.calledTwice
                     .calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/`)
                     .calledWithExactly('LIST', `${vaultUrl}/v1/secret/metadata/nested/`);
-                expect(superagent.get).to.have.callCount(3)
+                expect(agent.get).to.have.callCount(3)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/secret1`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/nested/secret2`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/nested/secret3`);

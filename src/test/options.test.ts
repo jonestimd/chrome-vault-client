@@ -1,3 +1,4 @@
+import './types/global';
 import * as chai from 'chai';
 chai.use(require('sinon-chai'));
 const {expect} = chai;
@@ -23,11 +24,12 @@ const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
 
+const secretInfo = (path: string, url: string): vaultApi.SecretInfo => ({path, url, username: true, password: true, email: false});
 const urlPaths = {
-    'my.bank.com': [{path: '/secret/my-bank', url: 'https://my.bank.com'}],
+    'my.bank.com': [secretInfo('/secret/my-bank', 'https://my.bank.com')],
     'my.utility.com': [
-        {path: '/secret/my-utility/user1', url: 'https://my.utility.com/path1'},
-        {path: 'secret/my-utility/user2', url: 'https://my.utility.com/path2'}],
+        secretInfo('/secret/my-utility/user1', 'https://my.utility.com/path1'),
+        secretInfo('/secret/my-utility/user2', 'https://my.utility.com/path2')],
 };
 
 const loadPage = () => {
@@ -41,34 +43,40 @@ const loadPage = () => {
     });
 };
 
+let settingsStub: sinon.SinonStubbedInstance<typeof settings>;
+let permissionsStub: sinon.SinonStubbedInstance<typeof permissions>;
+let vaultApiStub: sinon.SinonStubbedInstance<typeof vaultApi>;
+
+const getInput = (id: string) => (document.getElementById(id) as HTMLInputElement);
+
 module.exports = {
     'options': {
         beforeEach() {
-            sandbox.stub(settings);
-            sandbox.stub(permissions);
-            sandbox.stub(vaultApi);
+            settingsStub = sandbox.stub(settings);
+            permissionsStub = sandbox.stub(permissions);
+            vaultApiStub = sandbox.stub(vaultApi);
         },
         afterEach() {
             sandbox.restore();
         },
-        'displays saved URL and username': (done) => {
-            settings.load.resolves({vaultUrl, vaultUser, token});
+        'displays saved URL and username': (done: Mocha.Done) => {
+            settingsStub.load.resolves({vaultUrl, vaultUser, token});
 
             loadPage();
 
             setImmediate(() => {
-                expect(document.getElementById('vault-url').value).to.equal(vaultUrl);
-                expect(document.getElementById('username').value).to.equal(vaultUser);
+                expect(getInput('vault-url').value).to.equal(vaultUrl);
+                expect(getInput('username').value).to.equal(vaultUser);
                 expect(document.getElementById('status').innerText).to.equal('Logged in');
                 expect(MockUrlCardList.byId['saved-urls'].removeAll).to.not.be.called;
                 expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                 expect(MockTextField.byId.password.required).to.not.be.true;
-                expect(document.getElementById('login').disabled).to.be.true;
+                expect(getInput('login').disabled).to.be.true;
                 done();
             });
         },
-        'moves focus to password when URL and username are in settings': (done) => {
-            settings.load.resolves({vaultUrl, vaultUser});
+        'moves focus to password when URL and username are in settings': (done: Mocha.Done) => {
+            settingsStub.load.resolves({vaultUrl, vaultUser});
 
             loadPage();
 
@@ -78,8 +86,8 @@ module.exports = {
                 done();
             });
         },
-        'marks URL, username and password invalid when settings are empty': (done) => {
-            settings.load.resolves({});
+        'marks URL, username and password invalid when settings are empty': (done: Mocha.Done) => {
+            settingsStub.load.resolves({});
 
             loadPage();
 
@@ -94,8 +102,8 @@ module.exports = {
                 done();
             });
         },
-        'displays saved URLs': (done) => {
-            settings.load.resolves({urlPaths});
+        'displays saved URLs': (done: Mocha.Done) => {
+            settingsStub.load.resolves({urlPaths});
 
             loadPage();
 
@@ -103,26 +111,27 @@ module.exports = {
                 expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
                 expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
                     .calledWithExactly('my.bank.com', ['https://my.bank.com'], ['/secret/my-bank'])
-                    .calledWithExactly('my.utility.com', ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
-                        ["/secret/my-utility/user1", "secret/my-utility/user2"]);
+                    .calledWithExactly('my.utility.com',
+                        ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
+                        ["/secret/my-utility/user1", "/secret/my-utility/user2"]);
                 done();
             });
         },
         'login button': {
-            'is enabled when URL, username and password have values': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
+            'is enabled when URL, username and password have values': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
                 loadPage();
 
                 MockTextField.byId.password.value = 'passw0rd';
 
                 setImmediate(() => {
-                    expect(document.getElementById('login').disabled).to.be.false;
+                    expect(getInput('login').disabled).to.be.false;
                     done();
                 });
             },
-            'displays message when permission for Vault URL is denied': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
-                permissions.requestOrigin.resolves(false);
+            'displays message when permission for Vault URL is denied': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
+                permissionsStub.requestOrigin.resolves(false);
                 loadPage();
                 MockTextField.byId.password.value = password;
 
@@ -134,11 +143,11 @@ module.exports = {
                     done();
                 });
             },
-            'gets token from Vault when clicked': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
-                settings.save.resolves();
-                permissions.requestOrigin.resolves(true);
-                vaultApi.login.resolves({client_token: token, lease_duration: 1800});
+            'gets token from Vault when clicked': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
+                settingsStub.save.resolves();
+                permissionsStub.requestOrigin.resolves(true);
+                vaultApiStub.login.resolves({client_token: token, lease_duration: 1800});
                 loadPage();
                 MockTextField.byId.password.value = password;
 
@@ -152,10 +161,10 @@ module.exports = {
                     done();
                 });
             },
-            'displays error from vault': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
-                permissions.requestOrigin.resolves(true);
-                vaultApi.login.rejects({message: 'invalid user or password'});
+            'displays error from vault': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
+                permissionsStub.requestOrigin.resolves(true);
+                vaultApiStub.login.rejects({message: 'invalid user or password'});
                 loadPage();
                 MockTextField.byId.password.value = password;
 
@@ -170,10 +179,10 @@ module.exports = {
                     done();
                 });
             },
-            'displays message for empty response': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
-                permissions.requestOrigin.resolves(true);
-                vaultApi.login.resolves();
+            'displays message for empty response': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
+                permissionsStub.requestOrigin.resolves(true);
+                vaultApiStub.login.resolves();
                 loadPage();
                 MockTextField.byId.password.value = password;
 
@@ -188,10 +197,10 @@ module.exports = {
                     done();
                 });
             },
-            'displays message for response which does not contain a token': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser});
-                permissions.requestOrigin.resolves(true);
-                vaultApi.login.resolves({});
+            'displays message for response which does not contain a token': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser});
+                permissionsStub.requestOrigin.resolves(true);
+                vaultApiStub.login.resolves({});
                 loadPage();
                 MockTextField.byId.password.value = password;
 
@@ -208,10 +217,10 @@ module.exports = {
             }
         },
         'logout button': {
-            'revokes vault token': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                vaultApi.logout.resolves();
-                settings.clearToken.resolves();
+            'revokes vault token': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                vaultApiStub.logout.resolves();
+                settingsStub.clearToken.resolves();
                 loadPage();
                 setImmediate(() => {
 
@@ -225,10 +234,10 @@ module.exports = {
                     });
                 });
             },
-            'clears token when vault returns 403': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                vaultApi.logout.rejects({status: 403});
-                settings.clearToken.resolves();
+            'clears token when vault returns 403': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                vaultApiStub.logout.rejects({status: 403});
+                settingsStub.clearToken.resolves();
                 loadPage();
                 setImmediate(() => {
 
@@ -243,10 +252,10 @@ module.exports = {
                     });
                 });
             },
-            'displays error from Vault': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                vaultApi.logout.rejects({message: 'bad request'});
-                settings.clearToken.resolves();
+            'displays error from Vault': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                vaultApiStub.logout.rejects({message: 'bad request'});
+                settingsStub.clearToken.resolves();
                 loadPage();
                 setImmediate(() => {
 
@@ -264,9 +273,9 @@ module.exports = {
             }
         },
         'reload button': {
-            'updates saved URL list': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                settings.cacheUrlPaths.resolves(urlPaths);
+            'updates saved URL list': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                settingsStub.cacheUrlPaths.resolves(urlPaths);
                 loadPage();
 
                 document.getElementById('reload').click();
@@ -276,14 +285,15 @@ module.exports = {
                     expect(MockUrlCardList.byId['saved-urls'].removeAll).to.be.calledOnce;
                     expect(MockUrlCardList.byId['saved-urls'].addCard).to.be.calledTwice
                         .calledWithExactly('my.bank.com', ['https://my.bank.com'], ["/secret/my-bank"])
-                        .calledWithExactly('my.utility.com', ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
-                            ["/secret/my-utility/user1", "secret/my-utility/user2"]);
+                        .calledWithExactly('my.utility.com',
+                            ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
+                            ["/secret/my-utility/user1", "/secret/my-utility/user2"]);
                     done();
                 });
             },
-            'displays message for expired token': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                settings.cacheUrlPaths.rejects({status: 403});
+            'displays message for expired token': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                settingsStub.cacheUrlPaths.rejects({status: 403});
                 loadPage();
 
                 document.getElementById('reload').click();
@@ -297,9 +307,9 @@ module.exports = {
                     done();
                 });
             },
-            'displays error from Vault': (done) => {
-                settings.load.resolves({vaultUrl, vaultUser, token});
-                settings.cacheUrlPaths.rejects({message: 'bad request'});
+            'displays error from Vault': (done: Mocha.Done) => {
+                settingsStub.load.resolves({vaultUrl, vaultUser, token});
+                settingsStub.cacheUrlPaths.rejects({message: 'bad request'});
                 loadPage();
 
                 document.getElementById('reload').click();
@@ -316,7 +326,7 @@ module.exports = {
         },
         'filter input': {
             'filters cards when input is not empty': () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths});
                 loadPage();
                 MockTextField.byId['vault-filter'].value = 'search';
 
@@ -325,7 +335,7 @@ module.exports = {
                 expect(MockUrlCardList.byId['saved-urls'].filterCards).to.be.calledOnce.calledWithExactly('search');
             },
             'resets cards when input is empty': () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths});
                 loadPage();
                 MockTextField.byId['vault-filter'].value = '';
 

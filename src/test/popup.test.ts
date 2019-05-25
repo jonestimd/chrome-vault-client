@@ -9,6 +9,7 @@ import * as vaultApi from '../lib/vaultApi';
 import * as fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
+import {pick} from 'lodash';
 import * as proxyquire from 'proxyquire';
 proxyquire.noCallThru();
 
@@ -37,14 +38,26 @@ const messageCallback = () => chrome.runtime.onMessage.addListener.args[0][0];
 
 const nextTick = promisify(setImmediate);
 
-async function testFillButtonEnabled(field) {
-    settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
-    vaultApi.getSecret.resolves({password});
+let settingsStub: sinon.SinonStubbedInstance<typeof settings>;
+let vaultApiStub: {
+    getSecret: sinon.SinonStub;
+    getErrorMessage: sinon.SinonStub;
+    login: sinon.SinonStub;
+}
+
+const secretInfo = (path: string, username = false, password = false) => ({path, url: '', username, password, email: false});
+
+const getInput = (selector: string) => document.querySelector(selector) as HTMLInputElement;
+const getButton = (selector: string) => document.querySelector(selector) as HTMLButtonElement;
+
+async function testFillButtonEnabled(field: string) {
+    settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+    vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
     loadPage();
 
     await messageCallback()({url: pageUrl, [field]: true});
 
-    const button = document.querySelector('div.buttons button');
+    const button = document.querySelector('div.buttons button') as HTMLButtonElement;
     expect(button.disabled).to.be.false;
     expect(button.querySelector('span').innerHTML).to.equal('secret name');
     expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath);
@@ -54,8 +67,12 @@ async function testFillButtonEnabled(field) {
 module.exports = {
     'popup': {
         beforeEach() {
-            sandbox.stub(settings);
-            sandbox.stub(vaultApi);
+            settingsStub = sandbox.stub(settings);
+            vaultApiStub = {
+                getSecret: sandbox.stub(vaultApi, 'getSecret'),
+                getErrorMessage: sandbox.stub(vaultApi, 'getErrorMessage'),
+                login: sandbox.stub(vaultApi, 'login')
+            };
         },
         afterEach() {
             sandbox.restore();
@@ -66,7 +83,7 @@ module.exports = {
             expect(chrome.tabs.executeScript).to.be.calledOnce.calledWithExactly({file: 'contentScript.js', allFrames: true});
         },
         'displays Vault username': async () => {
-            settings.load.resolves({vaultUser, urlPaths: {[pageUrl]: [{path: vaultPath}]}});
+            settingsStub.load.resolves({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
             loadPage();
 
             await messageCallback()({url: pageUrl});
@@ -84,84 +101,84 @@ module.exports = {
                 await testFillButtonEnabled('email');
             },
             'disables button when page contains no fields': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
-                vaultApi.getSecret.resolves({password});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
                 loadPage();
 
                 await messageCallback()({url: pageUrl, password: false});
 
-                const button = document.querySelector('div.buttons button');
+                const button = document.querySelector('div.buttons button') as HTMLButtonElement;
                 expect(button.disabled).to.be.true;
             },
             'disables button when not logged in and password is empty': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
-                vaultApi.getSecret.rejects({status: 403});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                vaultApiStub.getSecret.rejects({status: 403});
                 loadPage();
 
                 await messageCallback()({url: pageUrl, user: true, password: true});
 
-                const button = document.querySelector('div.buttons button');
+                const button = document.querySelector('div.buttons button') as HTMLButtonElement;
                 expect(button.disabled).to.be.true;
                 expect(button.querySelector('span').innerHTML).to.equal('secret name');
                 expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath);
                 expect(document.getElementById('status').innerText).to.equal('Invalid token');
             },
             'enables fill buttons when not logged in and password is not empty': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, path: vaultPath}]}});
-                vaultApi.getSecret.rejects({status: 403});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                vaultApiStub.getSecret.rejects({status: 403});
                 loadPage();
-                document.getElementById('password').value = password;
+                getInput('#password').value = password;
 
                 await messageCallback()({url: pageUrl, username: true, password: true});
 
-                expect(document.querySelector('div.buttons button').disabled).to.be.false;
+                expect(getButton('div.buttons button').disabled).to.be.false;
             },
             'displays Vault error': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{username: true, password: true, path: vaultPath}]}});
-                vaultApi.getSecret.rejects({message: 'bad request'});
-                vaultApi.getErrorMessage.returns('formatted errors');
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true, true)]}});
+                vaultApiStub.getSecret.rejects({message: 'bad request'});
+                vaultApiStub.getErrorMessage.returns('formatted errors');
                 loadPage();
 
                 await messageCallback()({url: pageUrl, username: true, password: true});
 
                 expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath)
                 expect(document.getElementById('status').innerText).to.equal('Error: formatted errors');
-                expect(document.querySelector('div.buttons button').disabled).to.be.true;
+                expect(getButton('div.buttons button').disabled).to.be.true;
             },
             'displays message for invalid Vault token': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [{username: true, password: true, path: vaultPath}]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true, true)]}});
                 loadPage();
 
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
 
                 expect(vaultApi.getSecret).to.not.be.called;
                 expect(document.getElementById('status').innerText).to.equal('Need a Vault token');
-                expect(document.querySelector('div.buttons button').disabled).to.be.true;
+                expect(getButton('div.buttons button').disabled).to.be.true;
             }
         },
         'fill button': {
             'sends message to fill in user field': async () => {
-                const secret = {username: 'site user', password: 'site password', email: 'user@mail.host'};
-                settings.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [{path: vaultPath}]}});
-                vaultApi.getSecret.resolves(secret);
+                const secretData = {username: 'site user', password: 'site password', email: 'user@mail.host'};
+                const secret = new vaultApi.Secret(secretData);
+                settingsStub.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
+                vaultApiStub.getSecret.resolves(secret);
                 loadPage();
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
 
-                document.querySelector('div.buttons button').click();
+                getButton('div.buttons button').click();
 
-                expect(chrome.tabs.sendMessage).to.be.calledOnce
-                    .calledWithExactly(sender.tab.id, secret);
+                expect(chrome.tabs.sendMessage).to.be.calledOnce.calledWithExactly(sender.tab.id, secretData);
             },
             'gets new Vault token when password is not empty': async () => {
-                settings.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [{path: vaultPath}]}});
-                vaultApi.getSecret.onCall(0).rejects({status: 403});
-                vaultApi.getSecret.onCall(1).resolves({username: 'site user', password: 'site password'});
-                vaultApi.login.resolves({client_token: 'new token'});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
+                vaultApiStub.getSecret.onCall(0).rejects({status: 403});
+                vaultApiStub.getSecret.onCall(1).resolves(new vaultApi.Secret({username: 'site user', password: 'site password'}));
+                vaultApiStub.login.resolves({client_token: 'new token'});
                 loadPage();
-                document.getElementById('password').value = password;
+                getInput('#password').value = password;
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
 
-                document.querySelector('div.buttons button').click();
+                getButton('div.buttons button').click();
 
                 await nextTick();
                 expect(vaultApi.getSecret).to.be.calledTwice
