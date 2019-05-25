@@ -23,6 +23,7 @@ const html = fs.readFileSync(path.join(__dirname, '../views/options.html'));
 const sandbox = sinon.createSandbox();
 
 const vaultUrl = 'https://my.vault';
+const vaultPath = 'web/';
 const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
@@ -63,13 +64,14 @@ module.exports = {
         afterEach() {
             sandbox.restore();
         },
-        'displays saved URL and username': async () => {
-            settingsStub.load.resolves({vaultUrl, vaultUser, token});
+        'displays saved URL, path and username': async () => {
+            settingsStub.load.resolves({vaultUrl, vaultPath, vaultUser, token});
 
             await loadPage();
 
             await nextTick();
             expect(getInput('vault-url').value).to.equal(vaultUrl);
+            expect(getInput('vault-path').value).to.equal(vaultPath);
             expect(getInput('username').value).to.equal(vaultUser);
             expect(document.getElementById('status').innerText).to.equal('Logged in');
             expect(MockUrlCardList.byId['saved-urls'].removeAll).to.not.be.called;
@@ -162,7 +164,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUrl, vaultUser});
                 await loadPage();
 
-                MockTextField.byId.password.value = 'passw0rd';
+                MockTextField.byId.password.triggerChange('passw0rd');
 
                 expect(getInput('reload').disabled).to.be.false;
             },
@@ -170,7 +172,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUrl, vaultUser});
                 permissionsStub.requestOrigin.resolves(false);
                 await loadPage();
-                MockTextField.byId.password.value = password;
+                MockTextField.byId.password.triggerChange(password);
 
                 document.getElementById('reload').click();
 
@@ -179,19 +181,19 @@ module.exports = {
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
             },
             'gets token from Vault when clicked': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser});
+                settingsStub.load.resolves({vaultUrl, vaultPath, vaultUser});
                 settingsStub.save.resolves();
                 permissionsStub.requestOrigin.resolves(true);
                 vaultApiStub.login.resolves({client_token: token, lease_duration: 1800});
                 await loadPage();
                 settingsStub.cacheUrlPaths.resolves({});
-                MockTextField.byId.password.value = password;
+                MockTextField.byId.password.triggerChange(password);
 
                 document.getElementById('reload').click();
 
                 await nextTick();
                 expect(vaultApi.login).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, password);
-                expect(settings.save).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, token);
+                expect(settings.save).to.be.calledOnce.calledWithExactly(vaultUrl, vaultPath, vaultUser, token);
                 expect(document.getElementById('status').innerText).to.equal('Logged in');
                 expect(MockSnackbar.instance.open).to.not.be.called;
             },
@@ -200,7 +202,7 @@ module.exports = {
                 permissionsStub.requestOrigin.resolves(true);
                 vaultApiStub.login.rejects({message: 'invalid user or password'});
                 await loadPage();
-                MockTextField.byId.password.value = password;
+                MockTextField.byId.password.triggerChange(password);
 
                 document.getElementById('reload').click();
 
@@ -208,7 +210,7 @@ module.exports = {
                 expect(vaultApi.login).to.be.calledOnce.calledWithExactly(vaultUrl, vaultUser, password);
                 expect(settings.save).to.be.not.called;
                 expect(document.getElementById('status').innerText).to.equal('Not logged in');
-                expect(MockSnackbar.instance.labelText).to.equal('Error getting token: invalid user or password');
+                expect(MockSnackbar.instance.labelText).to.equal('invalid user or password');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
             },
             'displays message for empty response': async () => {
@@ -216,7 +218,7 @@ module.exports = {
                 permissionsStub.requestOrigin.resolves(true);
                 vaultApiStub.login.resolves();
                 await loadPage();
-                MockTextField.byId.password.value = password;
+                MockTextField.byId.password.triggerChange(password);
 
                 document.getElementById('reload').click();
 
@@ -232,7 +234,7 @@ module.exports = {
                 permissionsStub.requestOrigin.resolves(true);
                 vaultApiStub.login.resolves({});
                 await loadPage();
-                MockTextField.byId.password.value = password;
+                MockTextField.byId.password.triggerChange(password);
 
                 document.getElementById('reload').click();
 
@@ -243,7 +245,7 @@ module.exports = {
                 expect(MockSnackbar.instance.labelText).to.equal('Did not get a token, please verify the base URL');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
             },
-            'updates saved URL list': async () => {
+            '@test updates saved URL list': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token});
                 settingsStub.cacheUrlPaths.resolves(urlPaths);
                 await loadPage();
@@ -294,7 +296,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths});
                 await loadPage();
 
-                MockTextField.byId['vault-filter'].value = 'search';
+                MockTextField.byId['vault-filter'].triggerChange('search');
 
                 expect(MockUrlCardList.byId['saved-urls'].filterCards).to.be.calledOnce.calledWithExactly('search');
             },
@@ -302,7 +304,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths});
                 await loadPage();
 
-                MockTextField.byId['vault-filter'].value = '';
+                MockTextField.byId['vault-filter'].triggerChange('');
 
                 expect(MockUrlCardList.byId['saved-urls'].showAll).to.be.calledOnce.calledWithExactly();
             }

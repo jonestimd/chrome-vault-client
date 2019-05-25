@@ -114,8 +114,8 @@ async function listSecrets(vaultUrl: string, token: string, path?: string): Prom
     return body.data.keys;
 }
 
-export async function getUrlPaths(vaultUrl: string, token: string): Promise<UrlPaths> {
-    const names = await listSecrets(vaultUrl, token);
+export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: string): Promise<UrlPaths> {
+    const names = (await listSecrets(vaultUrl, token, vaultPath)).map(name => vaultPath ? `${vaultPath}/${name}` : name);
     const urlPaths: UrlPaths = {};
     for (let i = 0; i < names.length;) {
         const path = names[i];

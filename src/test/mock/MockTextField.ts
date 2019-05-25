@@ -23,7 +23,6 @@ export class MockTextField {
 
     set value(value: string) {
         this.input.value = value;
-        this.listen.args.forEach(([, handler]) => handler({target: this}));
     }
 
     get valid(): boolean {
@@ -40,5 +39,10 @@ export class MockTextField {
 
     getDefaultFoundation() {
         return this.foundation;
+    }
+
+    triggerChange(value: string) {
+        this.value = value;
+        this.listen.args.forEach(([, handler]) => handler({target: this}));
     }
 }

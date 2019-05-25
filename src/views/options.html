@@ -15,25 +15,19 @@ h2 {
 }
 
 .options {
-    display: flex;
+    display: grid;
 }
 .options .mdc-text-field {
-    flex: 1 0;
     margin: 5px;
 }
-@media screen and (max-width: 500px) {
+@media screen and (min-width: 50em) {
     .options {
-        flex-direction: column;
-        flex-wrap: nowrap;
+        grid-template-columns: 1fr 1fr;
     }
 }
-@media screen and (min-width: 500px) {
+@media screen and (min-width: 100em) {
     .options {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    .options .mdc-text-field.wide {
-        min-width: calc(100% - 10px);
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
@@ -109,10 +103,15 @@ h2 {
     <div class="section">
         <h2 class="mdc-typography--headline6">Vault Connection</h2>
         <div class="options">
-            <div class="mdc-text-field wide">
+            <div class="mdc-text-field">
                 <input type="text" class="mdc-text-field__input" id="vault-url" required autofocus />
                 <div class="mdc-line-ripple"></div>
                 <label class="mdc-floating-label" for="vault-url">Vault URL</label>
+            </div>
+            <div class="mdc-text-field">
+                <input type="text" class="mdc-text-field__input" id="vault-path" />
+                <div class="mdc-line-ripple"></div>
+                <label class="mdc-floating-label" for="vault-path">Base vault path</label>
             </div>
             <div class="mdc-text-field">
                 <input type="text" class="mdc-text-field__input" id="username" required />

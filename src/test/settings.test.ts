@@ -6,6 +6,7 @@ import * as settings from '../lib/settings';
 import * as vaultApi from '../lib/vaultApi';
 
 const vaultUrl = 'https://my.vault.host';
+const vaultPath = 'web/';
 const vaultUser = 'username';
 const token = 'vault token';
 
@@ -40,24 +41,25 @@ module.exports = {
         },
         'load': {
             'returns stored settings': async () => {
-                const storedSettings = {vaultUrl, vaultUser};
+                const storedSettings = {vaultUrl, vaultPath, vaultUser};
                 chromeStorage.local.get.yields(storedSettings);
 
                 const result = await settings.load();
 
                 expect(result).to.equal(storedSettings);
                 expect(chromeStorage.local.get).to.be.calledOnce;
-                expect(chromeStorage.local.get.args[0][0]).to.deep.equal(['vaultUrl', 'vaultUser', 'token', 'urlPaths']);
+                expect(chromeStorage.local.get.args[0][0])
+                    .to.deep.equal(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
             }
         },
         'save': {
             'saves vault Url, username and token to local storage': async () => {
                 chromeStorage.local.set.yields();
 
-                await settings.save(vaultUrl, vaultUser, token);
+                await settings.save(vaultUrl, vaultPath, vaultUser, token);
 
                 expect(chromeStorage.local.set).to.be.calledOnce;
-                expect(chromeStorage.local.set.args[0][0]).to.deep.equal({vaultUrl, vaultUser, token});
+                expect(chromeStorage.local.set.args[0][0]).to.deep.equal({vaultUrl, vaultPath, vaultUser, token});
             }
         },
         'saveToken': {
@@ -88,10 +90,11 @@ module.exports = {
 
                 expect(chromeStorage.local.get).to.be.calledOnce;
                 expect(chromeStorage.local.set).to.not.be.called;
+                expect(vaultApiStub.getUrlPaths).to.not.be.called;
             },
             'saves result from vaultApi.getUrlPaths': async () => {
                 const urlPaths = {'https://some.web.site': '/vault/secret/path'};
-                chromeStorage.local.get.yields({vaultUrl, token});
+                chromeStorage.local.get.yields({vaultUrl, vaultPath, token});
                 chromeStorage.local.set.yields();
                 vaultApiStub.getUrlPaths.resolves(urlPaths);
 
@@ -100,6 +103,7 @@ module.exports = {
                 expect(result).to.equal(urlPaths);
                 expect(chromeStorage.local.set).to.be.calledOnce;
                 expect(chromeStorage.local.set.args[0][0]).to.deep.equal({urlPaths});
+                expect(vaultApiStub.getUrlPaths).to.be.calledOnce.calledWithExactly(vaultUrl, vaultPath, token);
             }
         }
     }
