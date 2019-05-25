@@ -8,23 +8,26 @@ const statusArea = document.getElementById('status');
 
 import * as settings from './settings';
 import * as vaultApi from './vaultApi';
-import { PageInfoMessage } from './message';
+import {PageInfoMessage} from './message';
 
-function isMatch(urlString: string, pageUrl: URL) {
-    try {
-        const url = new URL(urlString);
-        return url.hostname === pageUrl.hostname && url.port === pageUrl.port
-            && pageUrl.pathname.startsWith(url.pathname)
-            && pageUrl.search.includes(url.search);
-    } catch (err) { // just the hostname
-        return urlString === pageUrl.hostname;
-    }
+function pageMatcher(pageUrl: URL): (secret: vaultApi.SecretInfo) => boolean {
+    return (secret) => {
+        try {
+            const url = new URL(secret.url);
+            return url.hostname === pageUrl.hostname && url.port === pageUrl.port
+                && pageUrl.pathname.startsWith(url.pathname)
+                && pageUrl.search.includes(url.search);
+        } catch (err) { // just the hostname
+            return secret.url === pageUrl.hostname;
+        }
+    };
 }
 
-function findVaultPaths(urlPaths: vaultApi.UrlPaths, pageUrlString: string) {
-    const pageUrl = new URL(pageUrlString);
-    const entries = Object.entries(urlPaths).filter(([entryUrlString]) => isMatch(entryUrlString, pageUrl));
-    return entries.reduce((configs, entry) => configs.concat(entry[1].map(config => config.path)), []);
+function findVaultPaths(urlPaths: vaultApi.UrlPaths, pageUrlString: string): string[] {
+    const filter = pageMatcher(new URL(pageUrlString));
+    return Object.values(urlPaths).reduce((paths: string[], secrets) => {
+        return paths.concat(secrets.filter(filter).map(secret => secret.path));
+    }, []);
 }
 
 class SecretAccessor {
@@ -62,7 +65,7 @@ class SecretAccessor {
     }
 }
 
-chrome.runtime.onMessage.addListener(async function(message: PageInfoMessage, sender: chrome.runtime.MessageSender) {
+chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, sender: chrome.runtime.MessageSender) {
     const {vaultUrl, vaultUser, token, urlPaths} = await settings.load();
     document.querySelector<HTMLElement>('#username').innerText = vaultUser;
     const vaultPaths = findVaultPaths(urlPaths, message.url);

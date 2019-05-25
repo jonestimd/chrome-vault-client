@@ -45,13 +45,13 @@ let vaultApiStub: {
     login: sinon.SinonStub;
 }
 
-const secretInfo = (path: string, username = false, password = false) => ({path, url: '', username, password, email: false});
+const secretInfo = (path: string, url: string, username = false, password = false) => ({path, url, username, password, email: false});
 
 const getInput = (selector: string) => document.querySelector(selector) as HTMLInputElement;
 const getButton = (selector: string) => document.querySelector(selector) as HTMLButtonElement;
 
 async function testFillButtonEnabled(field: string) {
-    settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+    settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
     vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
     loadPage();
 
@@ -83,7 +83,7 @@ module.exports = {
             expect(chrome.tabs.executeScript).to.be.calledOnce.calledWithExactly({file: 'contentScript.js', allFrames: true});
         },
         'displays Vault username': async () => {
-            settingsStub.load.resolves({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
+            settingsStub.load.resolves({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
             loadPage();
 
             await messageCallback()({url: pageUrl});
@@ -101,7 +101,7 @@ module.exports = {
                 await testFillButtonEnabled('email');
             },
             'disables button when page contains no fields': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
                 loadPage();
 
@@ -111,7 +111,7 @@ module.exports = {
                 expect(button.disabled).to.be.true;
             },
             'disables button when not logged in and password is empty': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.rejects({status: 403});
                 loadPage();
 
@@ -124,7 +124,7 @@ module.exports = {
                 expect(document.getElementById('status').innerText).to.equal('Invalid token');
             },
             'enables fill buttons when not logged in and password is not empty': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.rejects({status: 403});
                 loadPage();
                 getInput('#password').value = password;
@@ -134,7 +134,7 @@ module.exports = {
                 expect(getButton('div.buttons button').disabled).to.be.false;
             },
             'displays Vault error': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true, true)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true, true)]}});
                 vaultApiStub.getSecret.rejects({message: 'bad request'});
                 vaultApiStub.getErrorMessage.returns('formatted errors');
                 loadPage();
@@ -146,7 +146,7 @@ module.exports = {
                 expect(getButton('div.buttons button').disabled).to.be.true;
             },
             'displays message for invalid Vault token': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, true, true)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true, true)]}});
                 loadPage();
 
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
@@ -160,7 +160,7 @@ module.exports = {
             'sends message to fill in user field': async () => {
                 const secretData = {username: 'site user', password: 'site password', email: 'user@mail.host'};
                 const secret = new vaultApi.Secret(secretData);
-                settingsStub.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
+                settingsStub.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
                 vaultApiStub.getSecret.resolves(secret);
                 loadPage();
                 await messageCallback()({url: pageUrl, username: true, password: true}, sender);
@@ -170,7 +170,7 @@ module.exports = {
                 expect(chrome.tabs.sendMessage).to.be.calledOnce.calledWithExactly(sender.tab.id, secretData);
             },
             'gets new Vault token when password is not empty': async () => {
-                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath)]}});
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
                 vaultApiStub.getSecret.onCall(0).rejects({status: 403});
                 vaultApiStub.getSecret.onCall(1).resolves(new vaultApi.Secret({username: 'site user', password: 'site password'}));
                 vaultApiStub.login.resolves({client_token: 'new token'});
