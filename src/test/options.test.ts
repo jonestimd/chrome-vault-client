@@ -179,6 +179,7 @@ module.exports = {
                 await nextTick();
                 expect(MockSnackbar.instance.labelText).to.equal(`Need permission to access ${vaultUrl}`);
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'gets token from Vault when clicked': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultPath, vaultUser});
@@ -196,6 +197,7 @@ module.exports = {
                 expect(settings.save).to.be.calledOnce.calledWithExactly(vaultUrl, vaultPath, vaultUser, token);
                 expect(document.getElementById('status').innerText).to.equal('Logged in');
                 expect(MockSnackbar.instance.open).to.not.be.called;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'displays error from vault': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser});
@@ -212,6 +214,7 @@ module.exports = {
                 expect(document.getElementById('status').innerText).to.equal('Not logged in');
                 expect(MockSnackbar.instance.labelText).to.equal('invalid user or password');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'displays message for empty response': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser});
@@ -228,6 +231,7 @@ module.exports = {
                 expect(document.getElementById('status').innerText).to.equal('Not logged in');
                 expect(MockSnackbar.instance.labelText).to.equal('Did not get a token, please verify the base URL');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'displays message for response which does not contain a token': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser});
@@ -244,8 +248,9 @@ module.exports = {
                 expect(document.getElementById('status').innerText).to.equal('Not logged in');
                 expect(MockSnackbar.instance.labelText).to.equal('Did not get a token, please verify the base URL');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
-            '@test updates saved URL list': async () => {
+            'updates saved URL list': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token});
                 settingsStub.cacheUrlPaths.resolves(urlPaths);
                 await loadPage();
@@ -260,6 +265,7 @@ module.exports = {
                     .calledWithExactly('my.utility.com',
                         ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
                         ["/secret/my-utility/user1", "/secret/my-utility/user2"]);
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'displays message for expired token': async () => {
                 permissionsStub.requestOrigin.resolves(true);
@@ -275,6 +281,7 @@ module.exports = {
                 expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                 expect(MockSnackbar.instance.labelText).to.equal('Need a token');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             },
             'displays error from Vault': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token});
@@ -289,6 +296,7 @@ module.exports = {
                 expect(MockUrlCardList.byId['saved-urls'].addCard).to.not.be.called;
                 expect(MockSnackbar.instance.labelText).to.equal('bad request');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
+                expect(document.querySelector('.progress-overlay.hidden')).to.exist;
             }
         },
         'filter input': {

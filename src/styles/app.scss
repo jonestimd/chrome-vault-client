@@ -13,12 +13,155 @@ $mdc-theme-accent: rgb(84, 110, 122) !default;
 @import "@material/menu/mdc-menu";
 
 .mdc-fab:disabled {
-    cursor: default;
-    pointer-events: none;
-    background-color: #819ca9; /* rgba(0,0,0,0.12); */
-    color: rgba(0,0,0,0.51);
+  cursor: default;
+  pointer-events: none;
+  background-color: #819ca9; /* rgba(0,0,0,0.12); */
+  color: rgba(0, 0, 0, 0.51);
 }
 
 .hidden {
-    display: none;
+  display: none;
+}
+
+$progress-circular-animation-duration: 5.332s !default;
+$progress-circular-bg: $mdc-theme-primary !default;
+$progress-circular-height: 10rem !default;
+$progress-circular-spinner-width: 0.25rem !default;
+$transition-timing-function-standard: cubic-bezier(0.4, 0, 0.2, 1) !default;
+
+$progress-circular-size: $progress-circular-height + 2 * $progress-circular-spinner-width;
+
+.progress-overlay {
+    z-index: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(0, 0, 0, .2);
+}
+
+.progress-circular {
+  height: $progress-circular-size;
+  width: $progress-circular-size;
+  position: relative;
+  top: calc(50% - #{$progress-circular-size / 2});
+  margin: auto;
+  padding: 10px;
+  border-radius: 50%;
+}
+
+.progress-circular-inner {
+  animation: progress-circular-inner-rotate $progress-circular-animation-duration $transition-timing-function-standard
+    infinite;
+  height: $progress-circular-size;
+  position: relative;
+  width: $progress-circular-size;
+}
+
+.progress-circular-left,
+.progress-circular-right {
+  height: $progress-circular-height;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  width: ($progress-circular-size / 2);
+}
+
+.progress-circular-left {
+  left: 0;
+}
+
+.progress-circular-right {
+  right: 0;
+}
+
+.progress-circular-spinner {
+  border: $progress-circular-spinner-width solid $progress-circular-bg;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  height: $progress-circular-height;
+  position: absolute;
+  top: 0;
+  width: $progress-circular-height;
+
+  .progress-circular-left & {
+    animation: progress-circular-spinner-left ($progress-circular-animation-duration / 4)
+      $transition-timing-function-standard infinite;
+    border-right-color: transparent;
+    left: 0;
+  }
+
+  .progress-circular-right & {
+    animation: progress-circular-spinner-right ($progress-circular-animation-duration / 4)
+      $transition-timing-function-standard infinite;
+    border-left-color: transparent;
+    right: 0;
+  }
+}
+
+.progress-circular-wrapper {
+  animation: progress-circular-wrapper-rotate ($progress-circular-animation-duration / 2) linear infinite;
+}
+
+@keyframes progress-circular-inner-rotate {
+  12.5% {
+    transform: rotate(135deg);
+  }
+
+  25% {
+    transform: rotate(270deg);
+  }
+
+  37.5% {
+    transform: rotate(405deg);
+  }
+
+  50% {
+    transform: rotate(540deg);
+  }
+
+  62.5% {
+    transform: rotate(675deg);
+  }
+
+  75% {
+    transform: rotate(810deg);
+  }
+
+  87.5% {
+    transform: rotate(945deg);
+  }
+
+  100% {
+    transform: rotate(1080deg);
+  }
+}
+
+@keyframes progress-circular-spinner-left {
+  0%,
+  100% {
+    transform: rotate(130deg);
+  }
+
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes progress-circular-spinner-right {
+  0%,
+  100% {
+    transform: rotate(-130deg);
+  }
+
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes progress-circular-wrapper-rotate {
+  100% {
+    transform: rotate(360deg);
+  }
 }

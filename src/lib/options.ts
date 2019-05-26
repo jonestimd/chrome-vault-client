@@ -20,6 +20,7 @@ const statusArea = document.getElementById('status');
 const logoutButton = document.getElementById('logout') as HTMLButtonElement;
 const reloadButton = document.getElementById('reload') as HTMLButtonElement;
 const urlList = new UrlCardList(document.getElementById('saved-urls'));
+const progressOverlay = document.querySelector('.progress-overlay');
 
 let savedUrl: string, savedToken: string, unsaved = false;
 
@@ -110,8 +111,18 @@ logoutButton.addEventListener('click', async () => {
     setStatus(savedToken);
 });
 
+function removeClass(element: Element, toRemove: string) {
+    element.className = element.className.split(/ +/).filter(name => name !== toRemove).join(' ');
+}
+
+function addClass(element: Element, toAdd: string) {
+    const classList = element.className.split(/ +/);
+    element.className = classList.includes(toAdd) ? element.className : `${element.className} ${toAdd}`;
+}
+
 reloadButton.addEventListener('click', async () => {
     try {
+        removeClass(progressOverlay, 'hidden');
         if (unsaved || !savedToken) await login();
         showUrlPaths(await settings.cacheUrlPaths());
     } catch (err) {
@@ -121,6 +132,8 @@ reloadButton.addEventListener('click', async () => {
             showAlert('Need a token');
         }
         else showAlert(err.message);
+    } finally {
+        addClass(progressOverlay, 'hidden');
     }
 });
 

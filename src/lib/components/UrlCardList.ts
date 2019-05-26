@@ -81,7 +81,7 @@ class Card {
         this.card.querySelector('button span').innerHTML = this.hostname;
         this.card.querySelectorAll('li.vault-path').forEach((li, i) => li.innerHTML = this.vaultPaths[i]);
     }
-    
+
     remove() {
         this.menu && this.menu.destroy();
         this.card.parentElement.removeChild(this.card);
@@ -94,12 +94,12 @@ class Card {
     private removeClass(toRemove: string) {
         this.card.className = this.card.className.split(/ +/).filter(name => name !== toRemove).join(' ');
     }
-    
+
     private addClass(toAdd: string) {
         const classList = this.card.className.split(/ +/);
         this.card.className = classList.includes(toAdd) ? this.card.className : `${this.card.className} ${toAdd}`;
     }
-    
+
     applyFilter(search: string) {
         if (this.containsMatch(search)) this.removeClass('hidden');
         else this.addClass('hidden');
@@ -119,7 +119,7 @@ export default class UrlCardList {
     constructor(element: HTMLElement) {
         this.element = element;
     }
-    
+
     removeAll() {
         this.cards.splice(0, this.cards.length).forEach(card => card.remove());
     }
