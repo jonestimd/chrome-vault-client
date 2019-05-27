@@ -11,6 +11,7 @@ import * as path from 'path';
 import {promisify} from 'util';
 import {pick} from 'lodash';
 import * as proxyquire from 'proxyquire';
+import {InputInfo} from 'src/lib/message';
 proxyquire.noCallThru();
 
 const sandbox = sinon.createSandbox();
@@ -55,7 +56,7 @@ async function testFillButtonEnabled(field: string) {
     vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
     loadPage();
 
-    await messageCallback()({url: pageUrl, [field]: true});
+    await messageCallback()({url: pageUrl, [field]: true, inputs: []});
 
     const button = document.querySelector('div.buttons button') as HTMLButtonElement;
     expect(button.disabled).to.be.false;
@@ -86,9 +87,34 @@ module.exports = {
             settingsStub.load.resolves({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
             loadPage();
 
-            await messageCallback()({url: pageUrl});
+            await messageCallback()({url: pageUrl, inputs: []});
 
             expect(document.getElementById('username').innerText).to.equal(vaultUser);
+        },
+        'displays message for no inputs': async ()  => {
+            settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
+            vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
+            loadPage();
+
+            await messageCallback()({url: pageUrl, inputs: []});
+
+            expect(document.getElementById('page-inputs').innerHTML).to.equal('<h3>No inputs found</h3>');
+        },
+        'page-inputs-switch': {
+            'expands page-inputs': async () => {
+                const inputs: InputInfo[] = [{id: 'customId', label: 'Custom Label', visible: true}];
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
+                vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
+                loadPage();
+                await messageCallback()({url: pageUrl, inputs});
+                const pageInputs = document.getElementById('page-inputs');
+                const heightStub = sinon.stub(pageInputs, 'clientHeight');
+                heightStub.get(() => 123);
+
+                document.getElementById('page-inputs-switch').click();
+                expect(document.querySelector('#page-inputs-switch i').innerHTML).to.equal('arrow_drop_down');
+                expect(pageInputs.parentElement.style.height).to.equal('123px');
+            }
         },
         'messageCallback': {
             'adds button for Vault secret when page has username field': async () => {
@@ -100,12 +126,30 @@ module.exports = {
             'adds button for Vault secret when page has email field': async () => {
                 await testFillButtonEnabled('email');
             },
+            'adds page inputs': async () => {
+                const inputs: InputInfo[] = [
+                    {id: 'customId', label: 'Custom Label', visible: true},
+                    {id: 'hiddenId', label: 'Hidden Label', visible: false}];
+                settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
+                vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
+                loadPage();
+    
+                await messageCallback()({url: pageUrl, inputs});
+    
+                const pageInputs = document.getElementById('page-inputs');
+                expect(pageInputs.childNodes).to.have.length(1);
+                expect(pageInputs.children[0].innerHTML).to.equal(
+                    `<div class="row"><span class="label">id</span><span>${inputs[0].id}</span></div>` +
+                    `<div class="row"><span class="label">label</span><span>${inputs[0].label}</span></div>`);
+                expect(document.querySelector('#page-inputs-switch i').innerHTML).to.equal('arrow_right');
+                expect(pageInputs.parentElement.style.height).to.equal('0px');
+            },
             'disables button when page contains no fields': async () => {
                 settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
                 loadPage();
 
-                await messageCallback()({url: pageUrl, password: false});
+                await messageCallback()({url: pageUrl, password: false, inputs: []});
 
                 const button = document.querySelector('div.buttons button') as HTMLButtonElement;
                 expect(button.disabled).to.be.true;
@@ -115,7 +159,7 @@ module.exports = {
                 vaultApiStub.getSecret.rejects({status: 403});
                 loadPage();
 
-                await messageCallback()({url: pageUrl, user: true, password: true});
+                await messageCallback()({url: pageUrl, user: true, password: true, inputs: []});
 
                 const button = document.querySelector('div.buttons button') as HTMLButtonElement;
                 expect(button.disabled).to.be.true;
@@ -129,7 +173,7 @@ module.exports = {
                 loadPage();
                 getInput('#password').value = password;
 
-                await messageCallback()({url: pageUrl, username: true, password: true});
+                await messageCallback()({url: pageUrl, username: true, password: true, inputs: []});
 
                 expect(getButton('div.buttons button').disabled).to.be.false;
             },
@@ -139,7 +183,7 @@ module.exports = {
                 vaultApiStub.getErrorMessage.returns('formatted errors');
                 loadPage();
 
-                await messageCallback()({url: pageUrl, username: true, password: true});
+                await messageCallback()({url: pageUrl, username: true, password: true, inputs: []});
 
                 expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath)
                 expect(document.getElementById('status').innerText).to.equal('Error: formatted errors');
@@ -149,7 +193,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true, true)]}});
                 loadPage();
 
-                await messageCallback()({url: pageUrl, username: true, password: true}, sender);
+                await messageCallback()({url: pageUrl, username: true, password: true, inputs: []}, sender);
 
                 expect(vaultApi.getSecret).to.not.be.called;
                 expect(document.getElementById('status').innerText).to.equal('Need a Vault token');
@@ -163,7 +207,7 @@ module.exports = {
                 settingsStub.load.resolves({vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
                 vaultApiStub.getSecret.resolves(secret);
                 loadPage();
-                await messageCallback()({url: pageUrl, username: true, password: true}, sender);
+                await messageCallback()({url: pageUrl, username: true, password: true, inputs: []}, sender);
 
                 getButton('div.buttons button').click();
 
@@ -176,7 +220,7 @@ module.exports = {
                 vaultApiStub.login.resolves({client_token: 'new token'});
                 loadPage();
                 getInput('#password').value = password;
-                await messageCallback()({url: pageUrl, username: true, password: true}, sender);
+                await messageCallback()({url: pageUrl, username: true, password: true, inputs: []}, sender);
 
                 getButton('div.buttons button').click();
 

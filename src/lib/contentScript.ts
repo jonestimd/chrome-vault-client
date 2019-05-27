@@ -1,4 +1,4 @@
-import {LoginMessage, PageInfoMessage} from './message';
+import {LoginMessage, PageInfoMessage, InputInfo} from './message';
 
 function setInput(input: HTMLInputElement, value: string): void {
     input.setAttribute('value', value);
@@ -51,9 +51,46 @@ chrome.runtime.onMessage.addListener(function (message: LoginMessage) {
     }
 });
 
+function getLabel(input: HTMLInputElement): HTMLLabelElement {
+    const label = input.id && document.querySelector(`label[for="${input.id}"]`);
+    if (label) return label as HTMLLabelElement;
+    else {
+        let parent = input.parentElement;
+        while (parent && parent.tagName !== 'LABEL') parent = parent.parentElement;
+        return parent as HTMLLabelElement;
+    }
+}
+
+function getText(element: Element): string {
+    const ignoredTags = ['SCRIPT', 'STYLE', 'INPUT', 'BUTTON', 'SELECT'];
+    let text: string[] = [];
+    element.childNodes.forEach(child => {
+        if (child.nodeName === '#text') text.push(child.textContent.trim());
+        else if (child.nodeType === Node.ELEMENT_NODE && !ignoredTags.includes(child.nodeName)) {
+            if ((child as Element).getClientRects().length > 0) text.push(getText(child as Element));
+        }
+    });
+    return text.join(' ');
+}
+
+function getInputInfo(input: HTMLInputElement): InputInfo {
+    const label = getLabel(input);
+    return {
+        id: input.id,
+        name: input.name,
+        label: label && getText(label),
+        visible: input.getClientRects().length > 0
+    };
+}
+
+const inputTypes = ['text', 'email', 'tel', 'password'];
+const inputSelector = inputTypes.map(type => `input[type="${type}"]`).join(', ');
 const username = Boolean(findVisibleInput('input[id*="user" i]') || findByLabel('user'));
 const password = Boolean(findVisibleInput('input[type="password"]'));
 const email = Boolean(findVisibleInput('input[id*="email" i]') || findByLabel('email'));
-const result: PageInfoMessage = {username, password, email, url: window.location.href};
+const inputs: InputInfo[] = Array.from(document.querySelectorAll(inputSelector))
+    .map(getInputInfo)
+    .filter(input => input.id || input.name || input.label);
+const result: PageInfoMessage = {username, password, email, url: window.location.href, inputs};
 
 if (username || password || email) chrome.runtime.sendMessage(result);

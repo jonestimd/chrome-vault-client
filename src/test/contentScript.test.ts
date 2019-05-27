@@ -5,6 +5,7 @@ const {expect} = chai;
 import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import {fromPairs} from 'lodash';
+import {InputInfo} from 'src/lib/message';
 
 const windowUrl = 'https://some.site';
 const username = 'site user';
@@ -119,17 +120,19 @@ module.exports = {
 
             require('../lib/contentScript');
 
+            const inputs: InputInfo[] = [{id: 'username', name: '', label: null, visible: true}];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: true, password: false, email: false, url: windowUrl});
+                .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
         },
         'sends message with username true if input label matches': () => {
-            global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId"/></html>').window.document;
+            global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId" name="login.user"/></html>').window.document;
             sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
+            const inputs: InputInfo[] = [{id: 'loginId', name: 'login.user', label: 'Username', visible: false}];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: true, password: false, email: false, url: windowUrl});
+                .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
         },
         'sends message with password true if input exists': () => {
             global.document = new JSDOM('<html><input type="password"/></html>').window.document;
@@ -138,25 +141,30 @@ module.exports = {
             require('../lib/contentScript');
 
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: true, email: false, url: windowUrl});
+                .calledWithExactly({username: false, password: true, email: false, url: windowUrl, inputs: []});
         },
         'sends message with email true if input exists': () => {
-            global.document = new JSDOM('<html><input id="email"/></html>').window.document;
+            global.document = new JSDOM('<html><input id="email" type="text"/></html>').window.document;
             sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
+            const inputs: InputInfo[] = [{id: 'email', name: '', label: null, visible: true}];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: false, email: true, url: windowUrl});
+                .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
         },
         'sends message with email true if input label matches': () => {
-            global.document = new JSDOM('<html><label for="abc">Email</label><input type="text" id="abc"/></html>').window.document;
+            global.document = new JSDOM('<html><label for="abc"><p><strong>Email</strong></p></label><input type="text" id="abc"/></html>').window.document;
             sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
+            sinon.stub(document.querySelector('p'), 'getClientRects').returns(new MockRectList({}));
+            sinon.stub(document.querySelector('strong'), 'getClientRects').returns(new MockRectList({}));
+            sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
+            const inputs: InputInfo[] = [{id: 'abc', name: '', label: 'Email', visible: true}];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: false, email: true, url: windowUrl});
+                .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
         },
         'message listener': {
             beforeEach() {

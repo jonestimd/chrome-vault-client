@@ -22,5 +22,8 @@ module.exports = {
                 executeScript: sinon.stub()
             }
         };
+        global.Node = {
+            ELEMENT_NODE: 1
+        };
     }
 };

@@ -3,12 +3,26 @@ document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 
 import {MDCTextField} from '@material/textfield/index';
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
-
 const statusArea = document.getElementById('status');
+const pageInputsSwitch = document.getElementById('page-inputs-switch');
+const pageInputs = document.getElementById('page-inputs');
 
 import * as settings from './settings';
 import * as vaultApi from './vaultApi';
-import {PageInfoMessage} from './message';
+import {PageInfoMessage, InputInfo} from './message';
+
+pageInputsSwitch.addEventListener('click', () => {
+    const icon = pageInputsSwitch.querySelector('i');
+    if (icon.innerHTML === 'arrow_right') {
+        icon.innerHTML = 'arrow_drop_down';
+        pageInputs.parentElement.style.height = pageInputs.clientHeight + 'px';
+    }
+    else {
+        icon.innerHTML = 'arrow_right';
+        pageInputs.parentElement.style.height = '0';
+    }
+});
+
 
 function pageMatcher(pageUrl: URL): (secret: vaultApi.SecretInfo) => boolean {
     return (secret) => {
@@ -72,6 +86,24 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
     let vaultToken = token;
 
     const accessor = await SecretAccessor.newAccessor(vaultUrl, vaultPaths, vaultToken);
+
+    if (message.inputs.length > 0) {
+        pageInputs.innerHTML = '';
+        message.inputs.filter(input => input.visible).forEach(input => {
+            const div = pageInputs.appendChild(document.createElement('div'));
+            div.classList.add('input-info');
+
+            function appendAttribute(name: keyof InputInfo) {
+                if (input[name]) {
+                    const row = div.appendChild(document.createElement('div'));
+                    row.classList.add('row');
+                    row.innerHTML = `<span class="label">${name}</span><span>${input[name]}</span>`;
+                }
+            }
+
+            ['id', 'label'].forEach(name => appendAttribute(name as keyof InputInfo));
+        });
+    }
 
     const buttonDiv = document.querySelector('div.buttons');
     buttonDiv.innerHTML = '';

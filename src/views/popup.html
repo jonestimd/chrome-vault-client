@@ -20,10 +20,54 @@ label {
 div.mdc-text-field {
     min-width: 20em;
     margin-top: 10px;
+    width: 100%;
 }
 #status {
     color: red;
     font-size: medium;
+    margin: 10px 0;
+}
+#page-inputs-switch {
+    position: relative;
+    left: -8px;
+    display: flex;
+    align-items: center;
+}
+#page-inputs {
+    padding-right: 5px;
+    padding-bottom: 5px;
+}
+#page-inputs .input-info {
+    border: 1px solid gray;
+    margin-bottom: 8px;
+    display: table;
+    border-collapse: collapse;
+    width: 100%;
+    box-shadow: 3px 3px 3px 1px lightgrey;
+}
+#page-inputs .input-info div {
+    display: table-row;
+}
+#page-inputs .input-info div:not(:last-child) {
+    border-bottom: 1px solid #888;
+}
+#page-inputs .input-info div:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+#page-inputs .input-info div span {
+    display: table-cell;
+    padding: 3px;
+}
+#page-inputs .input-info div span.label {
+    font-weight: bold;
+    width: 1px;
+}
+#page-inputs .input-info div span.label::after {
+    content: ":  ";
+}
+.collapse {
+    overflow: hidden;
+    transition: height .35s ease-in-out;
 }
 </style>
 </head>
@@ -41,6 +85,10 @@ div.mdc-text-field {
             <label class="mdc-floating-label" for="password">Password</label>
         </div>
         <p id="status"></p>
+        <div id="page-inputs-switch"><i class="material-icons">arrow_right</i><span>Page Inputs</span></div>
+        <div class="collapse" style="height: 0;">
+            <div id="page-inputs"><h3>No inputs found</h3></div>
+        </div>
     </div>
 </body>
 <script src="popup.js"></script>
