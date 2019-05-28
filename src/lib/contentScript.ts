@@ -57,7 +57,7 @@ const email = Boolean(findVisibleInput('input[id*="email" i]') || findByLabel('e
 const inputs: InputInfo[] = Array.from(document.querySelectorAll('input'))
     .filter(InputInfo.isValid)
     .map(input => new InputInfo(input))
-    .filter(input => input.isNotEmpty);
+    .filter(input => !input.isEmpty);
 const result: PageInfoMessage = {username, password, email, url: window.location.href, inputs};
 
 if (username || password || result.inputs.length > 0) chrome.runtime.sendMessage(result);

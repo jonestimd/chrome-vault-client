@@ -9,7 +9,7 @@ export function getLabel(input: HTMLInputElement): HTMLLabelElement {
 }
 
 export function getText(element: Element): string {
-    const ignoredTags = ['SCRIPT', 'STYLE', 'INPUT', 'BUTTON', 'SELECT'];
+    const ignoredTags = ['SCRIPT', 'STYLE', 'BUTTON', 'SELECT'];
     let text: string[] = [];
     element.childNodes.forEach(child => {
         if (child.nodeName === '#text') text.push(child.textContent.trim());

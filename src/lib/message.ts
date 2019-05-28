@@ -44,8 +44,8 @@ export class InputInfo implements InputInfoProps {
         this.type = input.type || InputInfo.DEFAULT_TYPE;
     }
 
-    get isNotEmpty(): boolean {
-        return InputInfo.displayProps.some(prop => Boolean(this[prop]));
+    get isEmpty(): boolean {
+        return this.type !== InputType[InputType.password] && !InputInfo.displayProps.slice(1).some(prop => Boolean(this[prop]));
     }
 }
 
