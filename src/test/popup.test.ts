@@ -9,9 +9,8 @@ import * as vaultApi from '../lib/vaultApi';
 import * as fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
-import {pick} from 'lodash';
 import * as proxyquire from 'proxyquire';
-import {InputInfo} from 'src/lib/message';
+import {InputInfoProps} from '../lib/message';
 proxyquire.noCallThru();
 
 const sandbox = sinon.createSandbox();
@@ -102,7 +101,7 @@ module.exports = {
         },
         'page-inputs-switch': {
             'expands page-inputs': async () => {
-                const inputs: InputInfo[] = [{id: 'customId', label: 'Custom Label', visible: true}];
+                const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text'}];
                 settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
                 loadPage();
@@ -127,9 +126,7 @@ module.exports = {
                 await testFillButtonEnabled('email');
             },
             'adds page inputs': async () => {
-                const inputs: InputInfo[] = [
-                    {id: 'customId', label: 'Custom Label', visible: true},
-                    {id: 'hiddenId', label: 'Hidden Label', visible: false}];
+                const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder'}];
                 settingsStub.load.resolves({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, true)]}});
                 vaultApiStub.getSecret.resolves(new vaultApi.Secret({password}));
                 loadPage();
@@ -139,8 +136,11 @@ module.exports = {
                 const pageInputs = document.getElementById('page-inputs');
                 expect(pageInputs.childNodes).to.have.length(1);
                 expect(pageInputs.children[0].innerHTML).to.equal(
+                    `<div class="row"><span class="label">type</span><span>${inputs[0].type}</span></div>` +
                     `<div class="row"><span class="label">id</span><span>${inputs[0].id}</span></div>` +
-                    `<div class="row"><span class="label">label</span><span>${inputs[0].label}</span></div>`);
+                    `<div class="row"><span class="label">name</span><span>${inputs[0].name}</span></div>` +
+                    `<div class="row"><span class="label">label</span><span>${inputs[0].label}</span></div>` +
+                    `<div class="row"><span class="label">placeholder</span><span>${inputs[0].placeholder}</span></div>`);
                 expect(document.querySelector('#page-inputs-switch i').innerHTML).to.equal('arrow_right');
                 expect(pageInputs.parentElement.style.height).to.equal('0px');
             },

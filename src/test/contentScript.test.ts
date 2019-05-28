@@ -5,7 +5,7 @@ const {expect} = chai;
 import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import {fromPairs} from 'lodash';
-import {InputInfo} from 'src/lib/message';
+import {InputInfo} from '../lib/message';
 
 const windowUrl = 'https://some.site';
 const username = 'site user';
@@ -92,6 +92,8 @@ function testSetInputWithLabel(field: string, id: string, value: string) {
     expect(inputValue.set).to.not.be.called;
 }
 
+const getInputInfoById = (id: string) => new InputInfo(document.getElementById(id) as HTMLInputElement);
+
 module.exports = {
     'contentScript': {
         beforeEach() {
@@ -120,17 +122,19 @@ module.exports = {
 
             require('../lib/contentScript');
 
-            const inputs: InputInfo[] = [{id: 'username', name: '', label: null, visible: true}];
+            const inputs: InputInfo[] = [getInputInfoById('username')];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
                 .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
         },
         'sends message with username true if input label matches': () => {
-            global.document = new JSDOM('<html><label for="loginId">Username</label><input type="text" id="loginId" name="login.user"/></html>').window.document;
+            global.document = new JSDOM('<html><label for="loginId">Username</label>'
+                + '<input type="text" id="loginId" name="login.user"/></html>').window.document;
             sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
+            sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
 
             require('../lib/contentScript');
 
-            const inputs: InputInfo[] = [{id: 'loginId', name: 'login.user', label: 'Username', visible: false}];
+            const inputs: InputInfo[] = [getInputInfoById('loginId')];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
                 .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
         },
@@ -140,8 +144,9 @@ module.exports = {
 
             require('../lib/contentScript');
 
+            const inputs = [new InputInfo(document.querySelector('input'))];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: true, email: false, url: windowUrl, inputs: []});
+                .calledWithExactly({username: false, password: true, email: false, url: windowUrl, inputs});
         },
         'sends message with email true if input exists': () => {
             global.document = new JSDOM('<html><input id="email" type="text"/></html>').window.document;
@@ -149,7 +154,7 @@ module.exports = {
 
             require('../lib/contentScript');
 
-            const inputs: InputInfo[] = [{id: 'email', name: '', label: null, visible: true}];
+            const inputs: InputInfo[] = [getInputInfoById('email')];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
                 .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
         },
@@ -162,7 +167,7 @@ module.exports = {
 
             require('../lib/contentScript');
 
-            const inputs: InputInfo[] = [{id: 'abc', name: '', label: 'Email', visible: true}];
+            const inputs: InputInfo[] = [getInputInfoById('abc')];
             expect(chrome.runtime.sendMessage).to.be.calledOnce
                 .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
         },

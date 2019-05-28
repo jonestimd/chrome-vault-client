@@ -89,19 +89,19 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
 
     if (message.inputs.length > 0) {
         pageInputs.innerHTML = '';
-        message.inputs.filter(input => input.visible).forEach(input => {
+        message.inputs.forEach(input => {
             const div = pageInputs.appendChild(document.createElement('div'));
             div.classList.add('input-info');
 
-            function appendAttribute(name: keyof InputInfo) {
-                if (input[name]) {
+            function appendAttribute(prop: keyof InputInfo) {
+                if (input[prop]) {
                     const row = div.appendChild(document.createElement('div'));
                     row.classList.add('row');
-                    row.innerHTML = `<span class="label">${name}</span><span>${input[name]}</span>`;
+                    row.innerHTML = `<span class="label">${prop}</span><span>${input[prop]}</span>`;
                 }
             }
 
-            ['id', 'label'].forEach(name => appendAttribute(name as keyof InputInfo));
+            InputInfo.displayProps.forEach(prop => appendAttribute(prop));
         });
     }
 
