@@ -1,14 +1,13 @@
 import * as agent from 'superagent';
 import { refreshTokenAlarm } from './alarms';
+import {InputInfoProps} from './message';
 
 const authHeader = 'X-Vault-Token';
 
 export interface SecretInfo {
-    path: string
-    url: string
-    username: boolean
-    password: boolean
-    email: boolean
+    path: string;
+    url: string;
+    keys: string[];
 }
 
 export interface UrlPaths {
@@ -83,24 +82,72 @@ interface SecretData {
     [key: string]: string
 }
 
-export class Secret {
-    readonly url?: string
-    readonly username?: string
-    readonly password?: string
-    readonly email?: string
-    private data: {readonly [key: string]: string}
+class Matcher {
+    private static readonly inputKeys: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
+    private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = []
 
-    constructor({url, username, password, email, ...data}: SecretData) {
-        this.url = url;
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.data = data;
+    constructor(input: InputInfoProps) {
+        Matcher.inputKeys.forEach(key => {
+            if (input[key]) {
+                const lowerValue = input[key].toLowerCase();
+                this.conditions.push([key, (lowerKey) => lowerValue.includes(lowerKey)]);
+            }
+        })
     }
 
-    get siteHost(): string | undefined {
-        if (this.data['site url']) return getHost(this.data['site url']);
-        return getHost(this.url);
+    find(lowerKey: string): keyof InputInfoProps | void {
+        const match = this.conditions.find(([, condition]) => condition(lowerKey));
+        return match && match[0] as keyof InputInfoProps || undefined;
+    }
+}
+
+export interface InputMatch {
+    inputProp: keyof InputInfoProps;
+    key: string;
+    value: string;
+}
+
+export function hasSecretValue(input: InputInfoProps, secret: SecretInfo) {
+    const matcher = new Matcher(input);
+    return secret.keys.some(key => !!matcher.find(key.toLowerCase()))
+        || input.type === 'password' && secret.keys.includes('password');
+}
+
+export class Secret {
+    readonly url?: string
+    private siteUrl?: string
+    private readonly _data: {readonly [key: string]: string}
+    private readonly _keys: string[];
+
+    constructor({url, ['site url']: siteUrl, username, ...data}: SecretData) {
+        this.url = url;
+        this.siteUrl = siteUrl;
+        this._data = Object.assign({...data}, username && {user: username});
+        this._keys = Object.keys(this._data).filter(key => key !== 'password').concat(data.password && ['password'] || []);
+    }
+
+    get siteHost(): string {
+        return this.siteUrl ? getHost(this.siteUrl) : getHost(this.url);
+    }
+
+    get password(): string {
+        return this._data['password'];
+    }
+
+    get(key: string): string {
+        return this._data[key];
+    }
+
+    get keys() {
+        return this._keys;
+    }
+
+    findValue(input: InputInfoProps): InputMatch | void {
+        const matcher = new Matcher(input);
+        for (const key of this._keys) {
+            const inputProp = matcher.find(key.toLowerCase());
+            if (inputProp) return {inputProp, key, value: this._data[key]};
+        }
     }
 }
 
@@ -125,14 +172,12 @@ export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: st
         }
         else {
             const secret = await getSecret(vaultUrl, token, names[i]);
-            if (secret.url && (secret.username || secret.password || secret.email)) {
+            if (secret.url && secret.keys.length > 0) {
                 if (!urlPaths[secret.siteHost]) urlPaths[secret.siteHost] = [];
                 urlPaths[secret.siteHost].push({
                     path,
                     url: secret.url,
-                    username: Boolean(secret.username),
-                    password: Boolean(secret.password),
-                    email: Boolean(secret.email)
+                    keys: secret.keys
                 });
             }
             i++;

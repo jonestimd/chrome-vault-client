@@ -28,7 +28,7 @@ const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
 
-const secretInfo = (path: string, url: string): vaultApi.SecretInfo => ({path, url, username: true, password: true, email: false});
+const secretInfo = (path: string, url: string): vaultApi.SecretInfo => ({path, url, keys: ['user', 'password']});
 const urlPaths = {
     'my.bank.com': [secretInfo('/secret/my-bank', 'https://my.bank.com')],
     'my.utility.com': [

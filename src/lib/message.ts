@@ -1,9 +1,9 @@
 import {getLabel, getText} from './htmlUtil';
 
-export interface LoginMessage {
-    username?: string
-    password?: string
-    email?: string
+export interface LoginInput {
+    selector?: string;
+    label?: string;
+    value: string;
 }
 
 enum InputType {text, email, tel, password};
@@ -50,9 +50,6 @@ export class InputInfo implements InputInfoProps {
 }
 
 export interface PageInfoMessage {
-    username: boolean
-    password: boolean
-    email: boolean
     url: string
     inputs: InputInfo[];
 }

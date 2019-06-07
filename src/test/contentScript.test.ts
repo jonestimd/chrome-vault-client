@@ -5,7 +5,7 @@ const {expect} = chai;
 import * as sinon from 'sinon';
 import {JSDOM} from 'jsdom';
 import {fromPairs} from 'lodash';
-import {InputInfo} from '../lib/message';
+import {LoginInput, InputInfo} from '../lib/message';
 
 const windowUrl = 'https://some.site';
 const username = 'site user';
@@ -25,23 +25,23 @@ function stubEach<K extends string>(obj: any, ...props: K[]): {[P in K]: sinon.S
     return fromPairs(props.map(prop => [prop, sinon.stub(obj, prop)]));
 }
 
-function testSetInputByAttribute(field: string, value: any, inputHtml: string) {
+function testSetInputByAttribute(loginInput: LoginInput, inputHtml: string) {
     global.document = new JSDOM(`<html>${inputHtml}</html>`).window.document;
     const input = document.querySelector('input');
-    const inputValue = stubProperty(input, 'value', value);
+    const inputValue = stubProperty(input, 'value', loginInput.value);
     const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
     getClientRects.returns([{}]);
     require('../lib/contentScript');
 
-    chrome.runtime.onMessage.addListener.args[0][0]({[field]: value});
+    chrome.runtime.onMessage.addListener.args[0][0]([loginInput]);
 
-    expect(setAttribute).to.be.calledOnce.calledWithExactly('value', value);
+    expect(setAttribute).to.be.calledOnce.calledWithExactly('value', loginInput.value);
     expect(Event).to.be.calledOnce.calledWithExactly("change", {bubbles: true});
     expect(dispatchEvent).to.be.calledOnce.calledWithExactly(event);
     expect(inputValue.set).to.not.be.called;
 }
 
-function testSetInputByValue(field: string, value: any, inputHtml: string) {
+function testSetInputByValue(loginInput: LoginInput, inputHtml: string) {
     global.document = new JSDOM(`<html>${inputHtml}</html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value');
@@ -49,14 +49,14 @@ function testSetInputByValue(field: string, value: any, inputHtml: string) {
     getClientRects.returns([{}]);
     require('../lib/contentScript');
 
-    chrome.runtime.onMessage.addListener.args[0][0]({[field]: value});
+    chrome.runtime.onMessage.addListener.args[0][0]([loginInput]);
 
-    expect(setAttribute).to.be.calledOnce.calledWithExactly('value', value);
+    expect(setAttribute).to.be.calledOnce.calledWithExactly('value', loginInput.value);
     expect(Event).to.be.calledTwice
         .calledWithExactly("change", {bubbles: true})
         .calledWithExactly("input", {bubbles: true});
     expect(dispatchEvent).to.be.calledTwice.calledWithExactly(event);
-    expect(inputValue.set).to.be.calledOnce.calledWithExactly(value);
+    expect(inputValue.set).to.be.calledOnce.calledWithExactly(loginInput.value);
 }
 
 class MockRectList {
@@ -76,15 +76,16 @@ class MockRectList {
     }
 }
 
-function testSetInputWithLabel(field: string, id: string, value: string) {
-    global.document = new JSDOM(`<html><label for="${id}">${field}</label><input type="text" id="${id}"/></html>`).window.document;
+function testSetInputWithLabel(field: string, value: string) {
+    global.document = new JSDOM(`<html><label>${field}<input type="text"/></label></html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value', value);
     const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
+    sinon.stub(document.querySelector('input'), 'getClientRects').returns(new MockRectList({}));
     sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
     require('../lib/contentScript');
 
-    chrome.runtime.onMessage.addListener.args[0][0]({[field]: value});
+    chrome.runtime.onMessage.addListener.args[0][0]([{label: field, value}]);
 
     expect(setAttribute).to.be.calledOnce.calledWithExactly('value', value);
     expect(Event).to.be.calledOnce.calledWithExactly("change", {bubbles: true});
@@ -123,8 +124,7 @@ module.exports = {
             require('../lib/contentScript');
 
             const inputs: InputInfo[] = [getInputInfoById('username')];
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
+            expect(chrome.runtime.sendMessage).to.be.calledOnce.calledWithExactly({url: windowUrl, inputs});
         },
         'sends message with username true if input label matches': () => {
             global.document = new JSDOM('<html><label for="loginId">Username</label>'
@@ -135,8 +135,7 @@ module.exports = {
             require('../lib/contentScript');
 
             const inputs: InputInfo[] = [getInputInfoById('loginId')];
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: true, password: false, email: false, url: windowUrl, inputs});
+            expect(chrome.runtime.sendMessage).to.be.calledOnce.calledWithExactly({url: windowUrl, inputs});
         },
         'sends message with password true if input exists': () => {
             global.document = new JSDOM('<html><input type="password"/></html>').window.document;
@@ -145,8 +144,7 @@ module.exports = {
             require('../lib/contentScript');
 
             const inputs = [new InputInfo(document.querySelector('input'))];
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: true, email: false, url: windowUrl, inputs});
+            expect(chrome.runtime.sendMessage).to.be.calledOnce.calledWithExactly({url: windowUrl, inputs});
         },
         'sends message with email true if input exists': () => {
             global.document = new JSDOM('<html><input id="email" type="text"/></html>').window.document;
@@ -155,10 +153,9 @@ module.exports = {
             require('../lib/contentScript');
 
             const inputs: InputInfo[] = [getInputInfoById('email')];
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
+            expect(chrome.runtime.sendMessage).to.be.calledOnce.calledWithExactly({url: windowUrl, inputs});
         },
-        'sends message with email true if input label matches': () => {
+        'sends message with email if input label matches': () => {
             global.document = new JSDOM('<html><label for="abc"><p><strong>Email</strong></p></label><input type="text" id="abc"/></html>').window.document;
             sinon.stub(document.querySelector('label'), 'getClientRects').returns(new MockRectList({}));
             sinon.stub(document.querySelector('p'), 'getClientRects').returns(new MockRectList({}));
@@ -168,8 +165,7 @@ module.exports = {
             require('../lib/contentScript');
 
             const inputs: InputInfo[] = [getInputInfoById('abc')];
-            expect(chrome.runtime.sendMessage).to.be.calledOnce
-                .calledWithExactly({username: false, password: false, email: true, url: windowUrl, inputs});
+            expect(chrome.runtime.sendMessage).to.be.calledOnce.calledWithExactly({url: windowUrl, inputs});
         },
         'message listener': {
             beforeEach() {
@@ -200,28 +196,28 @@ module.exports = {
                 expect(value.set).to.not.be.called;
             },
             'populates username field using setAttribute': () => {
-                testSetInputByAttribute('username', username, '<input type="text" id="username"/>');
+                testSetInputByAttribute({selector: 'input[id="username"]', value: username}, '<input type="text" id="username"/>');
             },
             'populates username field using value when setAttribute fails': () => {
-                testSetInputByValue('username', username, '<input type="text" id="username"/>');
+                testSetInputByValue({selector: 'input[id="username"]', value: username}, '<input type="text" id="username"/>');
             },
             'populates username field by matching label': () => {
-                testSetInputWithLabel('username', 'loginId', username);
+                testSetInputWithLabel('username', username);
             },
             'populates email field using setAttribute': () => {
-                testSetInputByAttribute('email', email, '<input type="text" id="email"/>');
+                testSetInputByAttribute({selector: 'input[id="email"]', value: email}, '<input type="text" id="email"/>');
             },
             'populates email field using value when setAttribute fails': () => {
-                testSetInputByValue('email', email, '<input type="text" id="email"/>');
+                testSetInputByValue({selector: 'input[name="email"]', value: email}, '<input type="text" name="email"/>');
             },
             'populates email field by matching label': () => {
-                testSetInputWithLabel('email', 'abc', email);
+                testSetInputWithLabel('email', email);
             },
             'populates password field using setAttribute': () => {
-                testSetInputByAttribute('password', password, '<input type="password"/>');
+                testSetInputByAttribute({selector: 'input[type="password"]', value: password}, '<input type="password"/>');
             },
             'populates password field using value when setAttribute fails': () => {
-                testSetInputByValue('password', password, '<input type="password"/>');
+                testSetInputByValue({selector: 'input[type="password"]', value: password}, '<input type="password"/>');
             }
         }
     }

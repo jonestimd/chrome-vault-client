@@ -1,4 +1,5 @@
-import {LoginMessage, PageInfoMessage, InputInfo} from './message';
+import {PageInfoMessage, InputInfo, LoginInput} from './message';
+import {getText, getContainingLabel} from './htmlUtil';
 
 function setInput(input: HTMLInputElement, value: string): void {
     input.setAttribute('value', value);
@@ -17,16 +18,18 @@ function isVisible(element: Element): boolean {
     return element.getClientRects().length > 0;
 }
 
-function containsText(value: string): (element: HTMLElement) => boolean {
-    return (element: HTMLElement) => {
-        return element.innerHTML && element.innerHTML.toLowerCase().includes(value);
-    }
+function hasText(element: HTMLElement, value: string): boolean {
+    return getText(element) === value;
 }
 
+type InputLabel = [HTMLInputElement, HTMLLabelElement];
+
 function findByLabel(text: string): HTMLInputElement | undefined {
-    const labels = document.querySelectorAll('label[for]');
-    const label = Array.from(labels).filter(isVisible).find(containsText(text));
-    return label && document.getElementById(label.getAttribute('for')) as HTMLInputElement;
+    const [input] = Array.from(document.querySelectorAll('label input')).filter(isVisible)
+        .map<InputLabel>((input: HTMLInputElement) => [input, getContainingLabel(input)])
+        .filter(([, label]) => isVisible(label))
+        .find(([, label]) => hasText(label, text));
+    return input;
 }
 
 function findVisibleInput(selector: string): HTMLInputElement | undefined {
@@ -34,30 +37,19 @@ function findVisibleInput(selector: string): HTMLInputElement | undefined {
     return Array.from(elements).filter(isInput).find(isVisible) as HTMLInputElement;
 }
 
-chrome.runtime.onMessage.addListener(function (message: LoginMessage) {
-    if (message) {
-        if (message.username) {
-            const userInput = findVisibleInput('input[id*="user" i]') || findByLabel('user');
-            if (userInput) setInput(userInput, message.username);
-        }
-        if (message.email) {
-            const emailInput = findVisibleInput('input[id*="email" i]') || findByLabel('email');
-            if (emailInput) setInput(emailInput, message.email);
-        }
-        if (message.password) {
-            const passwordInput = findVisibleInput('input[type="password"]');
-            if (passwordInput) setInput(passwordInput, message.password);
+chrome.runtime.onMessage.addListener(function (inputs: LoginInput[]) {
+    if (inputs) {
+        for (const {label, selector, value} of inputs) {
+            const input = selector && findVisibleInput(selector) || label && findByLabel(label);
+            if (input) setInput(input, value);
         }
     }
 });
 
-const username = Boolean(findVisibleInput('input[id*="user" i]') || findByLabel('user'));
-const password = Boolean(findVisibleInput('input[type="password"]'));
-const email = Boolean(findVisibleInput('input[id*="email" i]') || findByLabel('email'));
 const inputs: InputInfo[] = Array.from(document.querySelectorAll('input'))
     .filter(InputInfo.isValid)
     .map(input => new InputInfo(input))
     .filter(input => !input.isEmpty);
-const result: PageInfoMessage = {username, password, email, url: window.location.href, inputs};
+const result: PageInfoMessage = {url: window.location.href, inputs};
 
-if (username || password || result.inputs.length > 0) chrome.runtime.sendMessage(result);
+if (result.inputs.length > 0) chrome.runtime.sendMessage(result);
