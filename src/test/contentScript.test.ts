@@ -22,7 +22,7 @@ function stubProperty(obj: any, name: string, value?: any) {
     return def;
 }
 function stubEach<K extends string>(obj: any, ...props: K[]): {[P in K]: sinon.SinonStub} {
-    return fromPairs(props.map(prop => [prop, sinon.stub(obj, prop)]));
+    return fromPairs(props.map(prop => [prop, sinon.stub(obj, prop)])) as {[P in K]: sinon.SinonStub};
 }
 
 function testSetInputByAttribute(loginInput: LoginInput, inputHtml: string) {
@@ -76,8 +76,8 @@ class MockRectList {
     }
 }
 
-function testSetInputWithLabel(field: string, value: string) {
-    global.document = new JSDOM(`<html><label>${field}<input type="text"/></label></html>`).window.document;
+function testSetInputWithLabel(field: string, value: string, body: string) {
+    global.document = new JSDOM(`<html><body>${body}</body></html>`).window.document;
     const input = document.querySelector('input');
     const inputValue = stubProperty(input, 'value', value);
     const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
@@ -201,8 +201,11 @@ module.exports = {
             'populates username field using value when setAttribute fails': () => {
                 testSetInputByValue({selector: 'input[id="username"]', value: username}, '<input type="text" id="username"/>');
             },
-            'populates username field by matching label': () => {
-                testSetInputWithLabel('username', username);
+            'populates username field by matching outer label': () => {
+                testSetInputWithLabel('Username', username, '<label>Username<input type="text"/></label>');
+            },
+            'populates username field by matching label with "for"': () => {
+                testSetInputWithLabel('Username', username, '<label for="login">Username</label><input id="login" type="text"/>');
             },
             'populates email field using setAttribute': () => {
                 testSetInputByAttribute({selector: 'input[id="email"]', value: email}, '<input type="text" id="email"/>');
@@ -210,8 +213,8 @@ module.exports = {
             'populates email field using value when setAttribute fails': () => {
                 testSetInputByValue({selector: 'input[name="email"]', value: email}, '<input type="text" name="email"/>');
             },
-            'populates email field by matching label': () => {
-                testSetInputWithLabel('email', email);
+            'populates email field by matching outer label': () => {
+                testSetInputWithLabel('Email', email, '<label>Email<input type="text"/></label>');
             },
             'populates password field using setAttribute': () => {
                 testSetInputByAttribute({selector: 'input[type="password"]', value: password}, '<input type="password"/>');

@@ -25,11 +25,14 @@ function hasText(element: HTMLElement, value: string): boolean {
 type InputLabel = [HTMLInputElement, HTMLLabelElement];
 
 function findByLabel(text: string): HTMLInputElement | undefined {
-    const [input] = Array.from(document.querySelectorAll('label input')).filter(isVisible)
-        .map<InputLabel>((input: HTMLInputElement) => [input, getContainingLabel(input)])
-        .filter(([, label]) => isVisible(label))
-        .find(([, label]) => hasText(label, text));
-    return input;
+    const label = Array.from(document.querySelectorAll('label')).filter(isVisible)
+        .find(label => hasText(label, text));
+    if (label) {
+        if (label.getAttribute('for')) {
+            return document.getElementById(label.getAttribute('for')) as HTMLInputElement;
+        }
+        return Array.from(label.querySelectorAll('input')).filter(isVisible)[0];
+    }
 }
 
 function findVisibleInput(selector: string): HTMLInputElement | undefined {
