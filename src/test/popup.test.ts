@@ -22,7 +22,7 @@ const loadPage = () => {
     global.document = window.document;
     return proxyquire('../lib/popup', {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},
-        '@material/textfield/index': {MDCTextField: MockTextField}
+        '@material/textfield/index': {MDCTextField: MockTextField},
     });
 };
 
@@ -43,7 +43,7 @@ let vaultApiStub: {
     getSecret: sinon.SinonStub;
     getErrorMessage: sinon.SinonStub;
     login: sinon.SinonStub;
-}
+};
 
 const secretInfo = (path: string, url: string, ...keys: string[]) => ({path, url, keys});
 
@@ -71,7 +71,7 @@ module.exports = {
             vaultApiStub = {
                 getSecret: sandbox.stub(vaultApi, 'getSecret'),
                 getErrorMessage: sandbox.stub(vaultApi, 'getErrorMessage'),
-                login: sandbox.stub(vaultApi, 'login')
+                login: sandbox.stub(vaultApi, 'login'),
             };
         },
         afterEach() {
@@ -113,7 +113,7 @@ module.exports = {
                 document.getElementById('page-inputs-switch').click();
                 expect(document.querySelector('#page-inputs-switch i').innerHTML).to.equal('arrow_drop_down');
                 expect(pageInputs.parentElement.style.height).to.equal('123px');
-            }
+            },
         },
         'messageCallback': {
             'adds button for Vault secret when page has username field': async () => {
@@ -185,7 +185,7 @@ module.exports = {
 
                 await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]});
 
-                expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath)
+                expect(vaultApi.getSecret).to.be.calledOnce.calledWithExactly(vaultUrl, token, vaultPath);
                 expect(document.getElementById('status').innerText).to.equal('Error: formatted errors');
                 expect(getButton('div.buttons button').disabled).to.be.true;
             },
@@ -198,7 +198,7 @@ module.exports = {
                 expect(vaultApi.getSecret).to.not.be.called;
                 expect(document.getElementById('status').innerText).to.equal('Need a Vault token');
                 expect(getButton('div.buttons button').disabled).to.be.true;
-            }
+            },
         },
         'fill button': {
             'sends message to fill fields matching name or label': async () => {
@@ -214,7 +214,7 @@ module.exports = {
                 expect(chrome.tabs.sendMessage).to.be.calledOnce
                     .calledWithExactly(sender.tab.id, [
                         {selector: 'input[name="username"]', value: secretData.username},
-                        {label: 'password', value: secretData.password}
+                        {label: 'password', value: secretData.password},
                     ]);
             },
             'gets new Vault token when password is not empty': async () => {
@@ -238,7 +238,7 @@ module.exports = {
                         {selector: 'input[id="username"]', value: 'site user'},
                         {selector: 'input[type="password"]', value: 'site password'}]);
                 expect(document.getElementById('status').innerText).to.equal('');
-            }
-        }
-    }
+            },
+        },
+    },
 };

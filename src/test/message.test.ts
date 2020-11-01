@@ -28,7 +28,7 @@ module.exports = {
                         type: 'text',
                         id: 'input id',
                         name: 'input name',
-                        placeholder: 'input placeholder'
+                        placeholder: 'input placeholder',
                     } as HTMLInputElement;
 
                     const input = new InputInfo(element);
@@ -50,7 +50,7 @@ module.exports = {
                     expect(htmlUtil.getLabel).to.be.calledOnce.calledWithExactly(element);
                     expect(htmlUtil.getText).to.be.calledOnce.calledWithExactly(labelElement);
                     expect(input.label).to.equal(labelText);
-                }
+                },
             },
             isValid: () => {
                 expect(InputInfo.isValid(mockInput({type: 'text'})), 'not visible').to.be.false;
@@ -72,7 +72,7 @@ module.exports = {
                 htmlUtilStub.getLabel.returns({} as HTMLLabelElement);
                 htmlUtilStub.getText.returns('label');
                 expect(new InputInfo(mockInput({})).isEmpty, 'has label').to.be.false;
-            }
-        }
-    }
+            },
+        },
+    },
 };

@@ -34,7 +34,7 @@ module.exports = {
                 loadPage('<label>the label</label><input></input>');
 
                 expect(htmlUtil.getLabel(document.querySelector('input'))).to.be.null;
-            }
+            },
         },
         getText: {
             'ignores hidden elements': () => {
@@ -74,7 +74,7 @@ module.exports = {
                 document.querySelector('option').getClientRects = sinon.stub().returns([{}]);
 
                 expect(htmlUtil.getText(getLabel())).to.equal('the label');
-            }
-        }
-    }
-}
+            },
+        },
+    },
+};

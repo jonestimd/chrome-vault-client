@@ -12,7 +12,7 @@ const token = 'vault token';
 
 let vaultApiStub: {
     getUrlPaths: sinon.SinonStub;
-}
+};
 
 let chromeStorage: {
     local: {
@@ -20,21 +20,21 @@ let chromeStorage: {
         set: sinon.SinonStub,
         remove: sinon.SinonStub
     }
-}
+};
 
 module.exports = {
     'settings': {
         beforeEach() {
             vaultApiStub = {
-                getUrlPaths: sinon.stub(vaultApi, 'getUrlPaths')
+                getUrlPaths: sinon.stub(vaultApi, 'getUrlPaths'),
             };
             global.chrome.storage = chromeStorage = {
                 local: {
                     get: sinon.stub(),
                     set: sinon.stub(),
-                    remove: sinon.stub()
-                }
-            }
+                    remove: sinon.stub(),
+                },
+            };
         },
         afterEach() {
             sinon.restore();
@@ -50,7 +50,7 @@ module.exports = {
                 expect(chromeStorage.local.get).to.be.calledOnce;
                 expect(chromeStorage.local.get.args[0][0])
                     .to.deep.equal(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
-            }
+            },
         },
         'save': {
             'saves vault Url, username and token to local storage': async () => {
@@ -60,7 +60,7 @@ module.exports = {
 
                 expect(chromeStorage.local.set).to.be.calledOnce;
                 expect(chromeStorage.local.set.args[0][0]).to.deep.equal({vaultUrl, vaultPath, vaultUser, token});
-            }
+            },
         },
         'saveToken': {
             'saves token': async () => {
@@ -70,7 +70,7 @@ module.exports = {
 
                 expect(chromeStorage.local.set).to.be.calledOnce;
                 expect(chromeStorage.local.set.args[0][0]).to.deep.equal({token});
-            }
+            },
         },
         'clearToken': {
             'removes token from stored settings': async () => {
@@ -80,7 +80,7 @@ module.exports = {
 
                 expect(chromeStorage.local.remove).to.be.calledOnce;
                 expect(chromeStorage.local.remove.args[0][0]).to.deep.equal(['token']);
-            }
+            },
         },
         'cacheUrlPaths': {
             'does nothing if URL is not saved': async () => {
@@ -104,7 +104,7 @@ module.exports = {
                 expect(chromeStorage.local.set).to.be.calledOnce;
                 expect(chromeStorage.local.set.args[0][0]).to.deep.equal({urlPaths});
                 expect(vaultApiStub.getUrlPaths).to.be.calledOnce.calledWithExactly(vaultUrl, vaultPath, token);
-            }
-        }
-    }
+            },
+        },
+    },
 };

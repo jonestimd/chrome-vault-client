@@ -43,7 +43,7 @@ const loadPage = async () => {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},
         '@material/textfield/index': {MDCTextField: MockTextField},
         '@material/snackbar': {MDCSnackbar: MockSnackbar},
-        './components/UrlCardList': {default: MockUrlCardList}
+        './components/UrlCardList': {default: MockUrlCardList},
     });
     await nextTick();
 };
@@ -157,7 +157,7 @@ module.exports = {
                 expect(MockSnackbar.instance.labelText).to.equal('Error revoking token: bad request');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
                 expect(document.getElementById('status').innerText).to.equal('Logged in');
-            }
+            },
         },
         'reload button': {
             'is enabled when URL, username and password have values': async () => {
@@ -297,7 +297,7 @@ module.exports = {
                 expect(MockSnackbar.instance.labelText).to.equal('bad request');
                 expect(MockSnackbar.instance.open).to.be.calledOnce;
                 expect(document.querySelector('.progress-overlay.hidden')).to.exist;
-            }
+            },
         },
         'filter input': {
             'filters cards when input is not empty': async () => {
@@ -315,7 +315,7 @@ module.exports = {
                 MockTextField.byId['vault-filter'].triggerChange('');
 
                 expect(MockUrlCardList.byId['saved-urls'].showAll).to.be.calledOnce.calledWithExactly();
-            }
-        }
-    }
+            },
+        },
+    },
 };

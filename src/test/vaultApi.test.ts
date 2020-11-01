@@ -64,7 +64,7 @@ module.exports = {
                 const errors = ['1st error', '2nd error'];
 
                 expect(vaultApi.getErrorMessage({message, response: {body: {errors}}})).to.equal(errors.join());
-            }
+            },
         },
         'login': {
             'returns auth object': async () => {
@@ -112,7 +112,7 @@ module.exports = {
 
                     expect(err.message).to.equal(errors[0]);
                 });
-            }
+            },
         },
         'refreshToken': {
             'sets new alarm after renewing the token': async () => {
@@ -163,7 +163,7 @@ module.exports = {
                 expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/renew-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
                 expect(chrome.alarms.create).to.not.be.called;
-            }
+            },
         },
         'logout': {
             'revokes Vault token': async () => {
@@ -173,7 +173,7 @@ module.exports = {
 
                 expect(agent.post).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/auth/token/revoke-self`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
-            }
+            },
         },
         'getSecret': {
             'returns secret data': async () => {
@@ -191,7 +191,7 @@ module.exports = {
                 expect(result.get('email')).to.equal(data.email);
                 expect(agent.get).to.be.calledOnce.calledWithExactly(`${vaultUrl}/v1/secret/data/${path}`);
                 expect(request.set).to.be.calledOnce.calledWithExactly(authHeader, token);
-            }
+            },
         },
         'getUrlPaths': {
             'returns empty object for no secrets': async () => {
@@ -220,7 +220,7 @@ module.exports = {
                 getRequest.set.onCall(0).resolves(secretResponse({url: 'url1', username: 'url1 user'}));
                 getRequest.set.onCall(1).resolves(secretResponse({url: 'url2', password: 'url2 password'}));
                 getRequest.set.onCall(2).resolves(secretResponse({url: 'url3', note: 'no username or password'}));
-                getRequest.set.onCall(3).resolves(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email', }));
+                getRequest.set.onCall(3).resolves(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email' }));
                 getRequest.set.onCall(4).resolves(secretResponse({username: 'url3 user', password: 'url3 password', note: 'skipped: no url'}));
 
                 const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
@@ -283,7 +283,7 @@ module.exports = {
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/web/secret1`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/web/nested/secret2`)
                     .calledWithExactly(`${vaultUrl}/v1/secret/data/web/nested/secret3`);
-            }
-        }
-    }
-}
+            },
+        },
+    },
+};

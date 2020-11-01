@@ -16,7 +16,7 @@ const event = {type: 'change'};
 function stubProperty(obj: any, name: string, value?: any) {
     const def = {
         get: sinon.stub().returns(value),
-        set: sinon.stub()
+        set: sinon.stub(),
     };
     Object.defineProperty(obj, name, def);
     return def;
@@ -100,7 +100,7 @@ module.exports = {
         beforeEach() {
             global.chrome.runtime = {
                 onMessage: {addListener: sinon.stub()},
-                sendMessage: sinon.stub()
+                sendMessage: sinon.stub(),
             };
             global.window = {location: {href: windowUrl}} as any;
             delete require.cache[require.resolve('../lib/contentScript')];
@@ -221,7 +221,7 @@ module.exports = {
             },
             'populates password field using value when setAttribute fails': () => {
                 testSetInputByValue({selector: 'input[type="password"]', value: password}, '<input type="password"/>');
-            }
-        }
-    }
+            },
+        },
+    },
 };

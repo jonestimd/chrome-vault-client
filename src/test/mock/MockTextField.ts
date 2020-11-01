@@ -12,7 +12,7 @@ export class MockTextField {
         this.element = element;
         this.input = element.querySelector('input');
         this.foundation = {
-            setValid: sinon.stub()
+            setValid: sinon.stub(),
         };
         MockTextField.byId[this.input.id] = this;
     }

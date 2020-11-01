@@ -18,7 +18,7 @@ module.exports = {
         beforeEach() {
             global.chrome.permissions = chromePermissions = {
                 getAll: sinon.stub(),
-                request: sinon.stub()
+                request: sinon.stub(),
             };
         },
         'requestOrigin': {
@@ -60,6 +60,6 @@ module.exports = {
 
             //     expect(chromePermissions.request).to.not.be.called;
             // }
-        }
-    }
+        },
+    },
 };
