@@ -102,7 +102,7 @@ module.exports = {
                 onMessage: {addListener: sinon.stub()},
                 sendMessage: sinon.stub()
             };
-            global.window = {location: {href: windowUrl}};
+            global.window = {location: {href: windowUrl}} as any;
             delete require.cache[require.resolve('../lib/contentScript')];
         },
         afterEach() {
@@ -169,7 +169,7 @@ module.exports = {
         },
         'message listener': {
             beforeEach() {
-                global.Event = sinon.stub().returns(event);
+                global.Event = sinon.stub().returns(event) as any;
             },
             afterEach() {
                 delete global.Event;

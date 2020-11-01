@@ -18,7 +18,7 @@ const sandbox = sinon.createSandbox();
 const html = fs.readFileSync(path.join(__dirname, '../views/popup.html'));
 
 const loadPage = () => {
-    global.window = new JSDOM(html).window;
+    global.window = new JSDOM(html).window as any;
     global.document = window.document;
     return proxyquire('../lib/popup', {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},

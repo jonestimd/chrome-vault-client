@@ -37,7 +37,7 @@ const urlPaths = {
 };
 
 const loadPage = async () => {
-    global.window = new JSDOM(html).window;
+    global.window = new JSDOM(html).window as any;
     global.document = window.document;
     proxyquire('../lib/options', {
         '@material/ripple/index': {MDCRipple: sandbox.stub()},
