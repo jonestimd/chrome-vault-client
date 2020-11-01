@@ -1,5 +1,4 @@
 import * as vaultApi from './vaultApi';
-import {settings} from 'cluster';
 
 const keys = ['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths'];
 
