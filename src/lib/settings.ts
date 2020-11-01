@@ -31,7 +31,7 @@ export function saveToken(token: string): Promise<void> {
 export function clearToken(): Promise<void> {
     return new Promise(resolve => {
         chrome.storage.local.remove(['token'], () => resolve());
-    })
+    });
 }
 
 export async function cacheUrlPaths(): Promise<vaultApi.UrlPaths> {

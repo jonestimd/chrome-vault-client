@@ -6,7 +6,7 @@ export interface LoginInput {
     value: string;
 }
 
-enum InputType {text, email, tel, password};
+enum InputType {text, email, tel, password}
 const inputTypes = Object.keys(InputType).filter(k => typeof InputType[k as any] === 'number');
 
 export interface InputInfoProps {

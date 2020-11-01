@@ -92,7 +92,7 @@ class Matcher {
                 const lowerValue = input[key].toLowerCase();
                 this.conditions.push([key, (lowerKey) => lowerValue.includes(lowerKey)]);
             }
-        })
+        });
     }
 
     find(lowerKey: string): keyof InputInfoProps | void {
@@ -177,7 +177,7 @@ export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: st
                 urlPaths[secret.siteHost].push({
                     path,
                     url: secret.url,
-                    keys: secret.keys
+                    keys: secret.keys,
                 });
             }
             i++;

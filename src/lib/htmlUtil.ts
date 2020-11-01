@@ -12,7 +12,7 @@ export function getContainingLabel(input: HTMLInputElement): HTMLLabelElement | 
 
 export function getText(element: Element): string {
     const ignoredTags = ['SCRIPT', 'STYLE', 'BUTTON', 'SELECT'];
-    let texts: string[] = [];
+    const texts: string[] = [];
     element.childNodes.forEach(child => {
         if (child.nodeName === '#text') texts.push(child.textContent.trim());
         else if (child.nodeType === Node.ELEMENT_NODE && !ignoredTags.includes(child.nodeName)) {

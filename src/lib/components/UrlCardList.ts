@@ -64,7 +64,7 @@ class Card {
             this.button.addEventListener('click', () => this.menu.open = !this.menu.open);
             this.menu = new MDCMenu(this.card.querySelector('.mdc-menu'));
             this.menu.setAnchorCorner(Corner.BOTTOM_LEFT);
-            this.menu.listen('click', (event) => openPage(this.getUrl(event.target as HTMLElement)))
+            this.menu.listen('click', (event) => openPage(this.getUrl(event.target as HTMLElement)));
         }
     }
 

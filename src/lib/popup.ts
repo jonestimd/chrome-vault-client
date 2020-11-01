@@ -65,7 +65,7 @@ class SecretAccessor {
     async getSecrets(vaultToken: string) {
         try {
             statusArea.innerText = '';
-            for (let path of this.paths) {
+            for (const path of this.paths) {
                 this.secrets[path] = await vaultApi.getSecret(this.vaultUrl, vaultToken, path);
             }
         } catch (err) {
