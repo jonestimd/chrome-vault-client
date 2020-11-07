@@ -1,7 +1,3 @@
-import * as chai from 'chai';
-chai.use(require('sinon-chai'));
-const {expect} = chai;
-import * as sinon from 'sinon';
 import * as settings from '../lib/settings';
 import * as vaultApi from '../lib/vaultApi';
 
@@ -11,100 +7,90 @@ const vaultUser = 'username';
 const token = 'vault token';
 
 let vaultApiStub: {
-    getUrlPaths: sinon.SinonStub;
+    getUrlPaths: jest.SpyInstance<ReturnType<typeof vaultApi['getUrlPaths']>>;
 };
 
 let chromeStorage: {
     local: {
-        get: sinon.SinonStub,
-        set: sinon.SinonStub,
-        remove: sinon.SinonStub
+        get: jest.MockedFunction<typeof chrome.storage.local['get']>,
+        set: jest.MockedFunction<typeof chrome.storage.local['set']>,
+        remove: jest.MockedFunction<typeof chrome.storage.local['remove']>
     }
 };
 
-module.exports = {
-    'settings': {
-        beforeEach() {
-            vaultApiStub = {
-                getUrlPaths: sinon.stub(vaultApi, 'getUrlPaths'),
-            };
-            global.chrome.storage = chromeStorage = {
-                local: {
-                    get: sinon.stub(),
-                    set: sinon.stub(),
-                    remove: sinon.stub(),
-                },
-            };
-        },
-        afterEach() {
-            sinon.restore();
-        },
-        'load': {
-            'returns stored settings': async () => {
-                const storedSettings = {vaultUrl, vaultPath, vaultUser};
-                chromeStorage.local.get.yields(storedSettings);
-
-                const result = await settings.load();
-
-                expect(result).to.equal(storedSettings);
-                expect(chromeStorage.local.get).to.be.calledOnce;
-                expect(chromeStorage.local.get.args[0][0])
-                    .to.deep.equal(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
+describe('settings', () => {
+    beforeEach(() => {
+        vaultApiStub = {
+            getUrlPaths: jest.spyOn(vaultApi, 'getUrlPaths').mockResolvedValue(undefined),
+        };
+        global.chrome.storage = chromeStorage = {
+            local: {
+                get: jest.fn(),
+                set: jest.fn().mockImplementation((data, cb) => cb()),
+                remove: jest.fn().mockImplementation((keys, cb) => cb()),
             },
-        },
-        'save': {
-            'saves vault Url, username and token to local storage': async () => {
-                chromeStorage.local.set.yields();
+        };
+    });
+    describe('load', () => {
+        it('returns stored settings', async () => {
+            const storedSettings = {vaultUrl, vaultPath, vaultUser};
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb(storedSettings));
 
-                await settings.save(vaultUrl, vaultPath, vaultUser, token);
+            const result = await settings.load();
 
-                expect(chromeStorage.local.set).to.be.calledOnce;
-                expect(chromeStorage.local.set.args[0][0]).to.deep.equal({vaultUrl, vaultPath, vaultUser, token});
-            },
-        },
-        'saveToken': {
-            'saves token': async () => {
-                chromeStorage.local.set.yields();
+            expect(result).toEqual(storedSettings);
+            expect(chromeStorage.local.get).toBeCalledTimes(1);
+            expect(chromeStorage.local.get.mock.calls[0][0])
+                .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
+        });
+    });
+    describe('save', () => {
+        it('saves vault Url, username and token to local storage', async () => {
+            await settings.save(vaultUrl, vaultPath, vaultUser, token);
 
-                await settings.saveToken(token);
+            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({vaultUrl, vaultPath, vaultUser, token});
+        });
+    });
+    describe('saveToken', () => {
+        it('saves token', async () => {
+            await settings.saveToken(token);
 
-                expect(chromeStorage.local.set).to.be.calledOnce;
-                expect(chromeStorage.local.set.args[0][0]).to.deep.equal({token});
-            },
-        },
-        'clearToken': {
-            'removes token from stored settings': async () => {
-                chromeStorage.local.remove.yields();
+            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({token});
+        });
+    });
+    describe('clearToken', () => {
+        it('removes token from stored settings', async () => {
+            await settings.clearToken();
 
-                await settings.clearToken();
+            expect(chromeStorage.local.remove).toBeCalledTimes(1);
+            expect(chromeStorage.local.remove.mock.calls[0][0]).toEqual(['token']);
+        });
+    });
+    describe('cacheUrlPaths', () => {
+        it('does nothing if URL is not saved', async () => {
+            chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({}));
 
-                expect(chromeStorage.local.remove).to.be.calledOnce;
-                expect(chromeStorage.local.remove.args[0][0]).to.deep.equal(['token']);
-            },
-        },
-        'cacheUrlPaths': {
-            'does nothing if URL is not saved': async () => {
-                chromeStorage.local.get.yields({});
+            await settings.cacheUrlPaths();
 
-                await settings.cacheUrlPaths();
+            expect(chromeStorage.local.get).toBeCalledTimes(1);
+            expect(chromeStorage.local.set).not.toBeCalled();
+            expect(vaultApiStub.getUrlPaths).not.toBeCalled();
+        });
+        it('saves result from vaultApi.getUrlPaths', async () => {
+            const urlPaths = {'https://some.web.site': [{path: '/vault/secret/path', url: '', keys: <string[]>[]}]};
+            chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({vaultUrl, vaultPath, token}));
+            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
 
-                expect(chromeStorage.local.get).to.be.calledOnce;
-                expect(chromeStorage.local.set).to.not.be.called;
-                expect(vaultApiStub.getUrlPaths).to.not.be.called;
-            },
-            'saves result from vaultApi.getUrlPaths': async () => {
-                const urlPaths = {'https://some.web.site': '/vault/secret/path'};
-                chromeStorage.local.get.yields({vaultUrl, vaultPath, token});
-                chromeStorage.local.set.yields();
-                vaultApiStub.getUrlPaths.resolves(urlPaths);
+            const result = await settings.cacheUrlPaths();
 
-                const result = await settings.cacheUrlPaths();
+            expect(result).toEqual(urlPaths);
+            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({urlPaths});
+            expect(vaultApiStub.getUrlPaths).toBeCalledTimes(1);
+            expect(vaultApiStub.getUrlPaths).toBeCalledWith(vaultUrl, vaultPath, token);
+        });
+    });
+});
 
-                expect(result).to.equal(urlPaths);
-                expect(chromeStorage.local.set).to.be.calledOnce;
-                expect(chromeStorage.local.set.args[0][0]).to.deep.equal({urlPaths});
-                expect(vaultApiStub.getUrlPaths).to.be.calledOnce.calledWithExactly(vaultUrl, vaultPath, token);
-            },
-        },
-    },
-};

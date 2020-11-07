@@ -1,5 +1,5 @@
 import * as agent from 'superagent';
-import { refreshTokenAlarm } from './alarms';
+import {refreshTokenAlarm} from './alarms';
 import {InputInfoProps} from './message';
 
 const authHeader = 'X-Vault-Token';
@@ -16,7 +16,7 @@ export interface UrlPaths {
 
 interface VaultError {
     response?: {
-        body?: { errors?: string[] }
+        body?: {errors?: string[]}
     }
     message?: string
 }
@@ -38,14 +38,14 @@ interface AuthResponse {
 function setRenewAlarm(body: AuthResponse): AuthToken {
     const auth = body && body.auth;
     if (auth && auth.renewable && auth.lease_duration >= 60) {
-        chrome.alarms.create(refreshTokenAlarm, { delayInMinutes: (auth.lease_duration - 30) / 60 });
+        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30) / 60});
     }
     return auth;
 }
 
 export async function login(vaultUrl: string, user: string, password: string): Promise<AuthToken> {
     try {
-        const { body } = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, { password });
+        const {body} = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, {password});
         return setRenewAlarm(body);
     } catch (err) {
         throw new Error(getErrorMessage(err));
@@ -54,7 +54,7 @@ export async function login(vaultUrl: string, user: string, password: string): P
 
 export async function refreshToken(vaultUrl: string, token: string): Promise<boolean> {
     try {
-        const { body } = await agent.post(`${vaultUrl}/v1/auth/token/renew-self`).set(authHeader, token);
+        const {body} = await agent.post(`${vaultUrl}/v1/auth/token/renew-self`).set(authHeader, token);
         setRenewAlarm(body);
         return true;
     } catch (err) {
@@ -107,7 +107,7 @@ export interface InputMatch {
     value: string;
 }
 
-export function hasSecretValue(input: InputInfoProps, secret: SecretInfo) {
+export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boolean {
     const matcher = new Matcher(input);
     return secret.keys.some(key => !!matcher.find(key.toLowerCase()))
         || input.type === 'password' && secret.keys.includes('password');
@@ -138,7 +138,7 @@ export class Secret {
         return this._data[key];
     }
 
-    get keys() {
+    get keys(): string[] {
         return this._keys;
     }
 
@@ -152,12 +152,12 @@ export class Secret {
 }
 
 export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret> {
-    const { body } = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
+    const {body} = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
     return new Secret(body.data.data);
 }
 
 async function listSecrets(vaultUrl: string, token: string, path?: string): Promise<string[]> {
-    const { body } = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
+    const {body} = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
     return body.data.keys;
 }
 

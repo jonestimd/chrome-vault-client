@@ -2,17 +2,17 @@ import {MDCRipple} from '@material/ripple';
 import {MDCMenu, Corner} from '@material/menu';
 
 const menuItemHtml = (url: string) =>
- `<li class="mdc-list-item" role="menuitem"><span class="mdc-list-item__text">${url}</span></li>`;
+    `<li class="mdc-list-item" role="menuitem"><span class="mdc-list-item__text">${url}</span></li>`;
 
 const menuHtml = (urls: string[]) =>
-`<div class="mdc-menu mdc-menu-surface">
+    `<div class="mdc-menu mdc-menu-surface">
   <ul class="mdc-list" role="menu" aria-hidden="true" aria-orientation="vertical" tabindex="-1">
     ${urls.map((url) => menuItemHtml(url)).join('')}
   </ul>
 </div>`;
 
 const menuButtonHtml = (hostname: string, urls: string[]) =>
-`<div class="mdc-menu-surface--anchor">
+    `<div class="mdc-menu-surface--anchor">
   <button class="mdc-button">
     <span class="mdc-button__label">${hostname}</span>
     <i class="material-icons mdc-button__icon" aria-hidden="true">arrow_drop_down</i>
@@ -21,7 +21,7 @@ const menuButtonHtml = (hostname: string, urls: string[]) =>
 </div>`;
 
 const html = (urls: string[], hostname: string, vaultPaths: string[]) =>
-`<div class="mcd-card__primary-action">
+    `<div class="mcd-card__primary-action">
     ${urls.length === 1
         ? `<button class="mdc-button"><span class="mdc-button__label">${hostname}</span></button>`
         : menuButtonHtml(hostname, urls)}
@@ -58,7 +58,7 @@ class Card {
         this.button = this.card.querySelector('.mdc-button');
         new MDCRipple(this.button);
         if (this.urls.length === 1) {
-            this.button.addEventListener('click', (event) => openPage(this.urls[0]));
+            this.button.addEventListener('click', () => openPage(this.urls[0]));
         }
         else {
             this.button.addEventListener('click', () => this.menu.open = !this.menu.open);
@@ -72,7 +72,7 @@ class Card {
         return target.tagName === 'SPAN' ? target.innerHTML : target.querySelector('span').innerHTML;
     }
 
-    private addEmphasis (search: string) {
+    private addEmphasis(search: string) {
         emphasize(this.card.querySelector('button span'), this.hostname, search);
         this.card.querySelectorAll('li.vault-path').forEach((li: HTMLElement, i) => emphasize(li, this.vaultPaths[i], search));
     }
@@ -120,20 +120,20 @@ export default class UrlCardList {
         this.element = element;
     }
 
-    removeAll() {
+    removeAll(): void {
         this.cards.splice(0, this.cards.length).forEach(card => card.remove());
     }
 
-    addCard(hostname: string, urls: string[], vaultPaths: string[]) {
+    addCard(hostname: string, urls: string[], vaultPaths: string[]): void {
         this.cards.push(new Card(this.element, hostname, urls, vaultPaths));
     }
 
-    filterCards(text: string) {
+    filterCards(text: string): void {
         const search = text.toLowerCase();
         this.cards.forEach(card => card.applyFilter(search));
     }
 
-    showAll() {
+    showAll(): void {
         this.cards.forEach(card => card.show());
     }
 }

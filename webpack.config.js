@@ -7,11 +7,11 @@ module.exports = [{
       options: './src/lib/options.ts',
       popup: './src/lib/popup.ts',
       contentScript: './src/lib/contentScript.ts',
-      background: './src/lib/background.ts'
+      background: './src/lib/background.ts',
     },
     output: {
       path: path.resolve(__dirname, 'build'),
-      filename: '[name].js'
+      filename: '[name].js',
     },
     devtool: false,
     module: {
@@ -24,16 +24,16 @@ module.exports = [{
             { loader: 'css-loader' },
             { loader: 'postcss-loader', options: {plugins: () => [autoprefixer()]} },
             { loader: 'sass-loader', options: {includePaths: ['./node_modules']} },
-          ]
+          ],
         },
         {
           test: /\.ts$/,
           loader: 'ts-loader',
-          exclude: /node_modules/
-        }
-      ]
+          exclude: /node_modules/,
+        },
+      ],
     },
     resolve: {
-      extensions: [".ts", ".js"]
+      extensions: [".ts", ".js"],
     },
   }];

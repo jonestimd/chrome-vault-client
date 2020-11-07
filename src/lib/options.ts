@@ -1,5 +1,5 @@
-import {MDCRipple} from '@material/ripple/index';
-import {MDCTextField} from '@material/textfield/index';
+import {MDCRipple} from '@material/ripple';
+import {MDCTextField} from '@material/textfield';
 document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 
 import {MDCSnackbar} from '@material/snackbar';

@@ -1,7 +1,7 @@
-import {MDCRipple} from '@material/ripple/index';
+import {MDCRipple} from '@material/ripple';
 document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
 
-import {MDCTextField} from '@material/textfield/index';
+import {MDCTextField} from '@material/textfield';
 const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
 const statusArea = document.getElementById('status');
 const pageInputsSwitch = document.getElementById('page-inputs-switch');

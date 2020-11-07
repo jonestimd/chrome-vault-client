@@ -1,252 +1,205 @@
 import './types/global';
-import * as chai from 'chai';
-chai.use(require('sinon-chai'));
-const {expect} = chai;
-import * as sinon from 'sinon';
-import * as proxyquire from 'proxyquire';
+import * as settings from '../lib/settings';
+import * as vaultApi from '../lib/vaultApi';
 
-interface SettingsStub {
-    load: sinon.SinonStub;
-    clearToken: sinon.SinonStub;
-    cacheUrlPaths: sinon.SinonStub;
-}
-
-interface VaultStub {
-    refreshToken: sinon.SinonStub;
-}
-
-type KeyValueMap = {[key: string]: any};
-
-interface DeclarativeContentStub extends KeyValueMap {
-    PageStateMatcher: sinon.SinonStub;
-    ShowPageAction: sinon.SinonStub;
-}
-interface AlarmStub extends KeyValueMap {
+interface AlarmStub extends Record<string, any> {
     onAlarm: {
-        addListener: sinon.SinonStub;
+        addListener: jest.MockedFunction<any>;
     }
 }
-interface StorageStub extends KeyValueMap {
+interface StorageStub extends Record<string, any> {
     onChanged: {
-        addListener: sinon.SinonStub;
+        addListener: jest.MockedFunction<any>;
     }
 }
-let settings: SettingsStub, vaultApi: VaultStub;
-let declarativeContent: DeclarativeContentStub, alarms: AlarmStub, storage: StorageStub;
+let storage: StorageStub;
+const alarms = chrome.alarms as AlarmStub;
 
 const vaultUrl = 'https://my.vault';
 const token = 'the token';
+const action = {name: 'show page'};
+const matcher = {name: 'url matcher'};
 
-const getInstalledListener = () => chrome.runtime.onInstalled.addListener.args[0][0];
-const getStorageListener = () => storage.onChanged.addListener.args[0][0];
-const getAlarmListener = () => alarms.onAlarm.addListener.args[0][0];
+const getInstalledListener = () => chrome.runtime.onInstalled.addListener.mock.calls[0][0];
+const getStorageListener = () => storage.onChanged.addListener.mock.calls[0][0];
+const getAlarmListener = () => alarms.onAlarm.addListener.mock.calls[0][0];
 
-module.exports = {
-    'background': {
-        beforeEach() {
-            settings = {
-                load: sinon.stub(),
-                clearToken: sinon.stub(),
-                cacheUrlPaths: sinon.stub()
-            };
-            vaultApi = {
-                refreshToken: sinon.stub()
-            };
-            global.chrome.declarativeContent = declarativeContent = {
-                onPageChanged: {
-                    addRules: sinon.stub(),
-                    removeRules: sinon.stub().yields()
-                },
-                PageStateMatcher: sinon.stub(),
-                ShowPageAction: sinon.stub()
-            };
-            global.chrome.alarms = alarms = {
-                create: sinon.stub(),
-                onAlarm: {
-                    addListener: sinon.stub()
-                }
-            };
-            global.chrome.storage = storage = {
-                local: {
-                    get: sinon.stub(),
-                    set: sinon.stub(),
-                    remove: sinon.stub()
-                },
-                onChanged: {
-                    addListener: sinon.stub()
-                }
-            };
-            proxyquire('../lib/background', {
-                './settings': settings,
-                './vaultApi': vaultApi
-            })
-        },
-        'onInstalled': {
-            'handles error from Vault': async () => {
-                settings.cacheUrlPaths.rejects({message: 'not logged in'});
-
-                await getInstalledListener()();
-
-                expect(settings.cacheUrlPaths).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.not.be.called;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.not.be.called;
+describe('background', () => {
+    beforeEach(() => {
+        global.chrome.declarativeContent = {
+            onPageChanged: {
+                addRules: jest.fn(),
+                removeRules: jest.fn().mockImplementation((x, cb) => cb()),
             },
-            'clears page rules if no cached URLs': async () => {
-                settings.cacheUrlPaths.resolves();
-
-                await getInstalledListener()();
-
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.not.be.calledOnce;
+            PageStateMatcher: jest.fn().mockReturnValue(matcher),
+            ShowPageAction: jest.fn().mockReturnValue(action),
+        };
+        global.chrome.storage = storage = {
+            local: {
+                get: jest.fn(),
+                set: jest.fn(),
+                remove: jest.fn(),
             },
-            'adds page rule for hostname': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'some.site.login'}]});
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
-
-                await getInstalledListener()();
-
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.login', schemes: ['https']}});
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
+            onChanged: {
+                addListener: jest.fn(),
             },
-            'adds page rule for scheme and hostname': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'http://some.site.com'}]});
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
+        };
+        jest.isolateModules(() => {
+            require('../lib/background');
+        });
+    });
+    describe('onInstalled', () => {
+        it('handles error from Vault', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockRejectedValue({message: 'not logged in'});
 
-                await getInstalledListener()();
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.com', schemes: ['http']}});
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
-            },
-            'adds page rule for scheme, hostname and port': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com:8888'}]});
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
+            expect(settings.cacheUrlPaths).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
+            expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
+        });
+        it('clears page rules if no cached URLs', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue(undefined);
 
-                await getInstalledListener()();
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.com', ports: [8888], schemes: ['https']}});
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
-            },
-            'adds page rule for scheme, hostname and path prefix': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com/account'}]});
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
+        });
+        it('adds page rule for hostname', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'some.site.login', path: '', keys: []}]});
 
-                await getInstalledListener()();
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({pageUrl: {hostEquals: 'some.site.com', pathPrefix: '/account', schemes: ['https']}});
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
-            },
-            'adds page rule for scheme, hostname, path prefix and query': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                settings.cacheUrlPaths.resolves({'some.site.com': [{url: 'https://some.site.com/account?login=true'}]});
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledWith({pageUrl: {hostEquals: 'some.site.login', schemes: ['https']}});
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+        it('adds page rule for scheme and hostname', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'http://some.site.com', path: '', keys: []}]});
 
-                await getInstalledListener()();
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({
-                        pageUrl: {
-                            hostEquals: 'some.site.com',
-                            pathPrefix: '/account',
-                            queryContains: 'login=true',
-                            schemes: ['https']
-                        }
-                    });
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
-            }
-        },
-        'storage.onChanged': {
-            'ignores message for sync storage change': async () => {
-                await getStorageListener()({urlPaths: {}}, 'sync');
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', schemes: ['http']}});
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+        it('adds page rule for scheme, hostname and port', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'https://some.site.com:8888', path: '', keys: []}]});
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.not.be.called;
-            },
-            'ignores message if urlPaths did not change': async () => {
-                await getStorageListener()({vaultUrl: 'new url'}, 'local');
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.not.be.called;
-            },
-            'updates page rules when urlPaths changes': async () => {
-                const action = {name: 'show page'};
-                const matcher = {name: 'url matcher'};
-                declarativeContent.ShowPageAction.returns(action);
-                declarativeContent.PageStateMatcher.returns(matcher);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher)
+                .toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', ports: [8888], schemes: ['https']}});
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+        it('adds page rule for scheme, hostname and path prefix', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'https://some.site.com/account', path: '', keys: []}]});
 
-                await getStorageListener()({urlPaths: {newValue: {'some.site.com': [{url: 'https://some.site.com'}]}}}, 'local');
+            await getInstalledListener()();
 
-                expect(chrome.declarativeContent.onPageChanged.removeRules).to.be.calledOnce;
-                expect(chrome.declarativeContent.PageStateMatcher).to.be.calledOnce
-                    .calledWithExactly({
-                        pageUrl: {
-                            hostEquals: 'some.site.com',
-                            schemes: ['https']
-                        }
-                    });
-                expect(chrome.declarativeContent.ShowPageAction).to.be.calledOnce;
-                expect(chrome.declarativeContent.onPageChanged.addRules).to.be.calledOnce
-                    .calledWithExactly([{conditions: [matcher], actions: [action]}]);
-            }
-        },
-        'onAlarm': {
-            'ignores unknown alarm': async () => {
-                await getAlarmListener()({name: 'unknown alamm'});
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher)
+                .toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', pathPrefix: '/account', schemes: ['https']}});
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+        it('adds page rule for scheme, hostname, path prefix and query', async () => {
+            jest.spyOn(settings, 'cacheUrlPaths')
+                .mockResolvedValue({'some.site.com': [{url: 'https://some.site.com/account?login=true', path: '', keys: []}]});
 
-                expect(settings.load).to.not.be.called;
-                expect(vaultApi.refreshToken).to.not.be.called;
-                expect(settings.clearToken).to.not.be.called;
-            },
-            'renews token': async () => {
-                settings.load.resolves({vaultUrl, token});
-                vaultApi.refreshToken.resolves(true);
+            await getInstalledListener()();
 
-                await getAlarmListener()({name: 'refresh-token'})
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher)
+                .toBeCalledWith({
+                    pageUrl: {
+                        hostEquals: 'some.site.com',
+                        pathPrefix: '/account',
+                        queryContains: 'login=true',
+                        schemes: ['https'],
+                    },
+                });
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+    });
+    describe('storage.onChanged', () => {
+        it('ignores message for sync storage change', async () => {
+            await getStorageListener()({urlPaths: {}}, 'sync');
 
-                expect(settings.load).to.be.calledOnce;
-                expect(vaultApi.refreshToken).to.be.calledOnce.calledWithExactly(vaultUrl, token);
-                expect(settings.clearToken).to.not.be.called;
-            },
-            'clears token if renewal fails': async () => {
-                settings.load.resolves({vaultUrl, token});
-                vaultApi.refreshToken.resolves(false);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
+        });
+        it('ignores message if urlPaths did not change', async () => {
+            await getStorageListener()({vaultUrl: 'new url'}, 'local');
 
-                await getAlarmListener()({name: 'refresh-token'})
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
+        });
+        it('updates page rules when urlPaths changes', async () => {
+            await getStorageListener()({urlPaths: {newValue: {'some.site.com': [{url: 'https://some.site.com'}]}}}, 'local');
 
-                expect(settings.load).to.be.calledOnce;
-                expect(vaultApi.refreshToken).to.be.calledOnce.calledWithExactly(vaultUrl, token);
-                expect(settings.clearToken).to.be.calledOnce;
-            }
-        }
-    }
-};
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher)
+                .toBeCalledWith({
+                    pageUrl: {
+                        hostEquals: 'some.site.com',
+                        schemes: ['https'],
+                    },
+                });
+            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+        });
+    });
+    describe('onAlarm', () => {
+        beforeEach(() => {
+            jest.spyOn(settings, 'clearToken').mockResolvedValue(undefined);
+            jest.spyOn(settings, 'load').mockResolvedValue(undefined);
+            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(undefined);
+        });
+        it('ignores unknown alarm', async () => {
+            await getAlarmListener()({name: 'unknown alamm'});
+
+            expect(settings.load).not.toBeCalled();
+            expect(vaultApi.refreshToken).not.toBeCalled();
+            expect(settings.clearToken).not.toBeCalled();
+        });
+        it('renews token', async () => {
+            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
+            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(true);
+
+            await getAlarmListener()({name: 'refresh-token'});
+
+            expect(settings.load).toBeCalledTimes(1);
+            expect(vaultApi.refreshToken).toBeCalledTimes(1);
+            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settings.clearToken).not.toBeCalled();
+        });
+        it('clears token if renewal fails', async () => {
+            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
+            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(false);
+
+            await getAlarmListener()({name: 'refresh-token'});
+
+            expect(settings.load).toBeCalledTimes(1);
+            expect(vaultApi.refreshToken).toBeCalledTimes(1);
+            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settings.clearToken).toBeCalledTimes(1);
+        });
+    });
+});

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import "jsdom"; // need an import for global declarations
 
 declare global {
@@ -6,17 +7,18 @@ declare global {
             window: {location: {href: string}};
             document: Document;
             chrome: any;
-            Event: sinon.SinonStub;
+            Event: jest.MockedFunction<any>;
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     namespace chrome.runtime {
         interface RuntimeInstalledEvent {
-            addListener: sinon.SinonStub;
+            addListener: jest.MockedFunction<any>;
         }
 
         interface ExtensionMessageEvent {
-            addListener: sinon.SinonStub;
+            addListener: jest.MockedFunction<any>;
         }
     }
 }

@@ -1,78 +1,89 @@
-import * as chai from 'chai';
-chai.use(require('sinon-chai'));
-const {expect} = chai;
-import * as sinon from 'sinon';
 import * as htmlUtil from '../lib/htmlUtil';
 import {InputInfo} from '../lib/message';
 
-let htmlUtilStub: sinon.SinonStubbedInstance<typeof htmlUtil>;
+jest.mock('../lib/htmlUtil');
+
+const mockHtmlUtil: {
+    getLabel: jest.MockedFunction<typeof htmlUtil['getLabel']>;
+    getText: jest.MockedFunction<typeof htmlUtil['getText']>;
+} = htmlUtil as any;
 
 function mockInput(props: {type?: string, id?: string, name?: string, placeholder?: string}, rect?: object): HTMLInputElement {
     const element = props as HTMLInputElement;
-    element.getClientRects = sinon.stub().returns(rect && [rect] || []);
+    element.getClientRects = jest.fn().mockReturnValue(rect && [rect] || []);
     return element;
 }
 
-module.exports = {
-    message: {
-        InputInfo: {
-            beforeEach() {
-                htmlUtilStub = sinon.stub(htmlUtil);
-            },
-            afterEach() {
-                sinon.restore();
-            },
-            'constructor': {
-                'copies props from input': () => {
-                    const element = {
-                        type: 'text',
-                        id: 'input id',
-                        name: 'input name',
-                        placeholder: 'input placeholder',
-                    } as HTMLInputElement;
+describe('message', () => {
+    describe('InputInfo', () => {
+        describe('constructor', () => {
+            it('copies props from input', () => {
+                const element = {
+                    type: 'text',
+                    id: 'input id',
+                    name: 'input name',
+                    placeholder: 'input placeholder',
+                } as HTMLInputElement;
 
-                    const input = new InputInfo(element);
+                const input = new InputInfo(element);
 
-                    expect(input.type).to.equal(element.type);
-                    expect(input.id).to.equal(element.id);
-                    expect(input.name).to.equal(element.name);
-                    expect(input.placeholder).to.equal(element.placeholder);
-                },
-                'populates label': () => {
-                    const element = {} as HTMLInputElement;
-                    const labelElement = ({} as HTMLLabelElement);
-                    const labelText = 'input label';
-                    htmlUtilStub.getLabel.returns(labelElement);
-                    htmlUtilStub.getText.returns(labelText);
+                expect(input.type).toEqual(element.type);
+                expect(input.id).toEqual(element.id);
+                expect(input.name).toEqual(element.name);
+                expect(input.placeholder).toEqual(element.placeholder);
+            });
+            it('populates label', () => {
+                const element = {} as HTMLInputElement;
+                const labelElement = ({} as HTMLLabelElement);
+                const labelText = 'input label';
+                mockHtmlUtil.getLabel.mockReturnValue(labelElement);
+                mockHtmlUtil.getText.mockReturnValue(labelText);
 
-                    const input = new InputInfo(element);
+                const input = new InputInfo(element);
 
-                    expect(htmlUtil.getLabel).to.be.calledOnce.calledWithExactly(element);
-                    expect(htmlUtil.getText).to.be.calledOnce.calledWithExactly(labelElement);
-                    expect(input.label).to.equal(labelText);
-                },
-            },
-            isValid: () => {
-                expect(InputInfo.isValid(mockInput({type: 'text'})), 'not visible').to.be.false;
-                expect(InputInfo.isValid(mockInput({type: 'button'}, {})), 'invalid type').to.be.false;
-                expect(InputInfo.isValid(mockInput({}, {})), 'default type').to.be.true;
-                expect(InputInfo.isValid(mockInput({type: 'text'}, {})), 'type = text').to.be.true;
-                expect(InputInfo.isValid(mockInput({type: 'password'}, {})), 'type = password').to.be.true;
-                expect(InputInfo.isValid(mockInput({type: 'email'}, {})), 'type = email').to.be.true;
-                expect(InputInfo.isValid(mockInput({type: 'tel'}, {})), 'type = tel').to.be.true;
-            },
-            isNotEmpty: () => {
-                expect(new InputInfo(mockInput({})).isEmpty, 'only default type').to.be.true;
-                expect(new InputInfo(mockInput({type: 'text'})).isEmpty, 'only type').to.be.true;
-                expect(new InputInfo(mockInput({type: 'password'})).isEmpty, 'password type').to.be.false;
-                expect(new InputInfo(mockInput({id: 'id'})).isEmpty).to.be.false;
-                expect(new InputInfo(mockInput({name: 'name'})).isEmpty).to.be.false;
-                expect(new InputInfo(mockInput({placeholder: 'placeholder'})).isEmpty).to.be.false;
+                expect(htmlUtil.getLabel).toBeCalledTimes(1);
+                expect(htmlUtil.getLabel).toBeCalledWith(element);
+                expect(htmlUtil.getText).toBeCalledTimes(1);
+                expect(htmlUtil.getText).toBeCalledWith(labelElement);
+                expect(input.label).toEqual(labelText);
+            });
+        });
+        describe('isValid', () => {
+            const params = [
+                {name: 'returns false for not visible', props: {type: 'text'}, result: false},
+                {name: 'returns false for invalid type', props: {type: 'button'}, rect: {}, result: false},
+                {name: 'returns true for default type', props: {}, rect: {}, result: true},
+                {name: 'returns true for type = text', props: {type: 'text'}, rect: {}, result: true},
+                {name: 'returns true for type = password', props: {type: 'password'}, rect: {}, result: true},
+                {name: 'returns true for type = email', props: {type: 'email'}, rect: {}, result: true},
+                {name: 'returns true for type = tel', props: {type: 'tel'}, rect: {}, result: true},
+            ];
+            params.forEach(({name, props, rect, result}) => it(name, () => {
+                expect(InputInfo.isValid(mockInput(props, rect))).toEqual(result);
+            }));
+        });
+        describe('isEmpty', () => {
+            const params = [
+                {name: 'returns true for only default type', props: {}, result: true},
+                {name: 'returns true for only type', props: {type: 'text'}, result: true},
+                {name: 'returns false for password type', props: {type: 'password'}, result: false},
+                {name: 'returns false for id', props: {id: 'id'}, result: false},
+                {name: 'returns false for name', props: {name: 'name'}, result: false},
+                {name: 'returns false for placeholder', props: {placeholder: 'placeholder'}, result: false},
+            ];
+            params.forEach(({name, props, result}) => it(name, () => {
+                mockHtmlUtil.getLabel.mockReturnValue(undefined);
 
-                htmlUtilStub.getLabel.returns({} as HTMLLabelElement);
-                htmlUtilStub.getText.returns('label');
-                expect(new InputInfo(mockInput({})).isEmpty, 'has label').to.be.false;
-            },
-        },
-    },
-};
+                expect(new InputInfo(mockInput(props)).isEmpty).toEqual(result);
+            }));
+
+            it('returns false for label', () => {
+                mockHtmlUtil.getLabel.mockReturnValue({} as HTMLLabelElement);
+                mockHtmlUtil.getText.mockReturnValue('label');
+
+                expect(new InputInfo(mockInput({})).isEmpty).toEqual(false);
+            });
+        });
+    });
+});
+

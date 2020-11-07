@@ -1,5 +1,5 @@
 import {PageInfoMessage, InputInfo, LoginInput} from './message';
-import {getText, getContainingLabel} from './htmlUtil';
+import {getText} from './htmlUtil';
 
 function setInput(input: HTMLInputElement, value: string): void {
     input.setAttribute('value', value);
@@ -21,8 +21,6 @@ function isVisible(element: Element): boolean {
 function hasText(element: HTMLElement, value: string): boolean {
     return getText(element) === value;
 }
-
-type InputLabel = [HTMLInputElement, HTMLLabelElement];
 
 function findByLabel(text: string): HTMLInputElement | undefined {
     const label = Array.from(document.querySelectorAll('label')).filter(isVisible)
