@@ -1,5 +1,5 @@
-import * as settings from '../lib/settings';
-import * as vaultApi from '../lib/vaultApi';
+import * as settings from './settings';
+import * as vaultApi from './vaultApi';
 
 const vaultUrl = 'https://my.vault.host';
 const vaultPath = 'web/';

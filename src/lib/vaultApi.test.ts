@@ -1,5 +1,5 @@
 import * as agent from 'superagent';
-import * as vaultApi from '../lib/vaultApi';
+import * as vaultApi from './vaultApi';
 
 const vaultUrl = 'https://my.vault';
 const vaultPath = 'web';

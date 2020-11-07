@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import UrlCardList from '../../lib/components/UrlCardList';
+import UrlCardList from './UrlCardList';
 
 let element: HTMLElement;
 let pageOpener: HTMLAnchorElement;

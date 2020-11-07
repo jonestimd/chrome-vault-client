@@ -1,4 +1,4 @@
-import * as permissions from '../lib/permissions';
+import * as permissions from './permissions';
 
 const baseUrl = 'https://my.vault.host';
 

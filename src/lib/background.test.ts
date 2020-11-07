@@ -1,6 +1,6 @@
-import './types/global';
-import * as settings from '../lib/settings';
-import * as vaultApi from '../lib/vaultApi';
+import '../test/types/global';
+import * as settings from './settings';
+import * as vaultApi from './vaultApi';
 
 interface AlarmStub extends Record<string, any> {
     onAlarm: {
@@ -45,7 +45,7 @@ describe('background', () => {
             },
         };
         jest.isolateModules(() => {
-            require('../lib/background');
+            require('./background');
         });
     });
     describe('onInstalled', () => {

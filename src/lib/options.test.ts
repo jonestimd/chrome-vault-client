@@ -1,21 +1,21 @@
-import './types/global';
+import '../test/types/global';
 import {JSDOM} from 'jsdom';
-import * as settings from '../lib/settings';
-import * as permissions from '../lib/permissions';
-import * as vaultApi from '../lib/vaultApi';
+import * as settings from './settings';
+import * as permissions from './permissions';
+import * as vaultApi from './vaultApi';
 import * as fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
 import {MDCTextField} from '@material/textfield';
-import UrlCardList from '../lib/components/UrlCardList';
+import UrlCardList from './components/UrlCardList';
 import {MDCSnackbar} from '@material/snackbar';
 
-jest.mock('../lib/settings');
+jest.mock('./settings');
 jest.mock('@material/ripple');
 jest.mock('@material/snackbar');
-jest.mock('../lib/components/UrlCardList');
-jest.mock('../lib/permissions');
-jest.mock('../lib/vaultApi');
+jest.mock('./components/UrlCardList');
+jest.mock('./permissions');
+jest.mock('./vaultApi');
 
 const MockTextField = MDCTextField as jest.MockedClass<typeof MDCTextField>;
 const MockUrlCardList = UrlCardList as jest.MockedClass<typeof UrlCardList>;
@@ -42,7 +42,7 @@ const urlPaths = {
 const loadPage = async () => {
     global.window = new JSDOM(html).window as any;
     global.document = window.document;
-    jest.isolateModules(() => require('../lib/options'));
+    jest.isolateModules(() => require('./options'));
     await nextTick();
 };
 

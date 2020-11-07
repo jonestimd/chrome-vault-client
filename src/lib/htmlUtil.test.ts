@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import * as htmlUtil from '../lib/htmlUtil';
+import * as htmlUtil from './htmlUtil';
 
 function loadPage(body: string) {
     global.document = new JSDOM(`<html><body>${body}</body></html>`).window.document;

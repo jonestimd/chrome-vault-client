@@ -1,7 +1,7 @@
-import * as htmlUtil from '../lib/htmlUtil';
-import {InputInfo} from '../lib/message';
+import * as htmlUtil from './htmlUtil';
+import {InputInfo} from './message';
 
-jest.mock('../lib/htmlUtil');
+jest.mock('./htmlUtil');
 
 const mockHtmlUtil: {
     getLabel: jest.MockedFunction<typeof htmlUtil['getLabel']>;

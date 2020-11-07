@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import {LoginInput, InputInfo} from '../lib/message';
+import {LoginInput, InputInfo} from './message';
 
 const windowUrl = 'https://some.site';
 const username = 'site user';
@@ -25,9 +25,7 @@ function testSetInputByAttribute(loginInput: LoginInput, inputHtml: string) {
     const valueSetter = mockValue(input, loginInput.value);
     const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
     getClientRects.mockReturnValue([{}] as any);
-    jest.isolateModules(() => {
-        require('../lib/contentScript');
-    });
+    jest.isolateModules(() => require('./contentScript'));
 
     chrome.runtime.onMessage.addListener.mock.calls[0][0]([loginInput]);
 
@@ -46,9 +44,7 @@ function testSetInputByValue(loginInput: LoginInput, inputHtml: string) {
     const valueSetter = mockValue(input);
     const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
     getClientRects.mockReturnValue([{}] as any);
-    jest.isolateModules(() => {
-        require('../lib/contentScript');
-    });
+    jest.isolateModules(() => require('./contentScript'));
 
     chrome.runtime.onMessage.addListener.mock.calls[0][0]([loginInput]);
 
@@ -87,9 +83,7 @@ function testSetInputWithLabel(field: string, value: string, body: string) {
     const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
     jest.spyOn(document.querySelector('input'), 'getClientRects').mockReturnValue(new MockRectList(1));
     jest.spyOn(document.querySelector('label'), 'getClientRects').mockReturnValue(new MockRectList(1));
-    jest.isolateModules(() => {
-        require('../lib/contentScript');
-    });
+    jest.isolateModules(() => require('./contentScript'));
 
     chrome.runtime.onMessage.addListener.mock.calls[0][0]([{label: field, value}]);
 
@@ -115,9 +109,7 @@ describe('contentScript', () => {
     it('does not send message if no username or password inputs', () => {
         global.document = new JSDOM('<html></html>').window.document;
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         expect(chrome.runtime.sendMessage).not.toBeCalled();
     });
@@ -125,9 +117,7 @@ describe('contentScript', () => {
         global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
         jest.spyOn(document.getElementById('username'), 'getClientRects').mockReturnValue(new MockRectList(1));
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('username')];
         expect(chrome.runtime.sendMessage).toBeCalledTimes(1);
@@ -139,9 +129,7 @@ describe('contentScript', () => {
         jest.spyOn(document.querySelector('label'), 'getClientRects').mockReturnValue(new MockRectList(1));
         jest.spyOn(document.querySelector('input'), 'getClientRects').mockReturnValue(new MockRectList(1));
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('loginId')];
         expect(chrome.runtime.sendMessage).toBeCalledTimes(1);
@@ -151,9 +139,7 @@ describe('contentScript', () => {
         global.document = new JSDOM('<html><input type="password"/></html>').window.document;
         jest.spyOn(document.querySelector('input'), 'getClientRects').mockReturnValue(new MockRectList(1));
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         const inputs = [new InputInfo(document.querySelector('input'))];
         expect(chrome.runtime.sendMessage).toBeCalledTimes(1);
@@ -163,9 +149,7 @@ describe('contentScript', () => {
         global.document = new JSDOM('<html><input id="email" type="text"/></html>').window.document;
         jest.spyOn(document.querySelector('input'), 'getClientRects').mockReturnValue(new MockRectList(1));
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('email')];
         expect(chrome.runtime.sendMessage).toBeCalledTimes(1);
@@ -178,9 +162,7 @@ describe('contentScript', () => {
         jest.spyOn(document.querySelector('strong'), 'getClientRects').mockReturnValue(new MockRectList(1));
         jest.spyOn(document.querySelector('input'), 'getClientRects').mockReturnValue(new MockRectList(1));
 
-        jest.isolateModules(() => {
-            require('../lib/contentScript');
-        });
+        jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('abc')];
         expect(chrome.runtime.sendMessage).toBeCalledTimes(1);
@@ -195,9 +177,7 @@ describe('contentScript', () => {
         });
         it('does nothing if message not provided', () => {
             global.document = new JSDOM('<html></html>').window.document;
-            jest.isolateModules(() => {
-                require('../lib/contentScript');
-            });
+            jest.isolateModules(() => require('./contentScript'));
 
             chrome.runtime.onMessage.addListener.mock.calls[0][0]();
         });
@@ -207,9 +187,7 @@ describe('contentScript', () => {
             const valueSetter = mockValue(input, username);
             const {dispatchEvent, setAttribute, getClientRects} = stubEach(input, 'dispatchEvent', 'setAttribute', 'getClientRects');
             getClientRects.mockReturnValue([] as any);
-            jest.isolateModules(() => {
-                require('../lib/contentScript');
-            });
+            jest.isolateModules(() => require('./contentScript'));
 
             chrome.runtime.onMessage.addListener.mock.calls[0][0]({username});
 

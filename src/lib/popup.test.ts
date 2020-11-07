@@ -1,21 +1,21 @@
 import {JSDOM} from 'jsdom';
-import * as settings from '../lib/settings';
-import * as vaultApi from '../lib/vaultApi';
+import * as settings from './settings';
+import * as vaultApi from './vaultApi';
 import * as fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
-import {InputInfoProps} from '../lib/message';
-const {Secret} = jest.requireActual('../lib/vaultApi') as typeof vaultApi;
+import {InputInfoProps} from './message';
+const {Secret} = jest.requireActual('./vaultApi') as typeof vaultApi;
 
-jest.mock('../lib/settings');
-jest.mock('../lib/vaultApi');
+jest.mock('./settings');
+jest.mock('./vaultApi');
 
 const html = fs.readFileSync(path.join(__dirname, '../views/popup.html'));
 
 const loadPage = () => {
     global.window = new JSDOM(html).window as any;
     global.document = window.document;
-    jest.isolateModules(() => require('../lib/popup'));
+    jest.isolateModules(() => require('./popup'));
 };
 
 const vaultUrl = 'https://my.vault';
