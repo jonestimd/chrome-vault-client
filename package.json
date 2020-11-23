@@ -30,12 +30,6 @@
         "coverageProvider": "v8",
         "testEnvironment": "node"
     },
-    "mocha": {
-        "require": "ts-node/register",
-        "ui": "exports",
-        "file": "src/test/setup.js",
-        "recursive": true
-    },
     "devDependencies": {
         "@types/chrome": "^0.0.126",
         "@types/jsdom": "^12.2.3",
