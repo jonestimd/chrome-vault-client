@@ -7,7 +7,8 @@ module.exports = [{
       options: './src/lib/options.ts',
       popup: './src/lib/popup.ts',
       contentScript: './src/lib/contentScript.ts',
-      background: './src/lib/background.ts',
+      'chrome-background': './src/lib/chrome/background.ts',
+      'firefox-background': './src/lib/firefox/background.ts',
     },
     output: {
       path: path.resolve(__dirname, 'build'),

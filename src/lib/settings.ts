@@ -34,7 +34,7 @@ export function clearToken(): Promise<void> {
     });
 }
 
-export async function cacheUrlPaths(): Promise<vaultApi.UrlPaths> {
+export async function cacheUrlPaths(): Promise<vaultApi.UrlPaths | undefined> {
     const {vaultUrl, vaultPath, token} = await load();
     if (vaultUrl) {
         const urlPaths = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
@@ -42,4 +42,30 @@ export async function cacheUrlPaths(): Promise<vaultApi.UrlPaths> {
             chrome.storage.local.set({urlPaths}, () => resolve(urlPaths));
         });
     }
+}
+
+function toUrl(url: string): URL {
+    try {
+        return new URL(url);
+    } catch (err) { // just the hostname
+        return new URL(`https://` + url);
+    }
+}
+
+export async function uniqueUrls(): Promise<URL[]> {
+    return toUniqueUrls(await cacheUrlPaths());
+}
+
+export function toUniqueUrls(urlPaths?: vaultApi.UrlPaths): URL[] {
+    if (urlPaths) {
+        const urlStrings = new Map<string, URL>();
+        Object.values(urlPaths).forEach((secrets) => {
+            secrets.forEach((secret) => {
+                const url = toUrl(secret.url);
+                if (!urlStrings.has(url.toString())) urlStrings.set(url.toString(), url);
+            });
+        });
+        return Array.from(urlStrings.values());
+    }
+    return [];
 }

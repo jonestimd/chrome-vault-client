@@ -1,28 +1,11 @@
 'use strict';
-import * as settings from './settings';
-import * as vaultApi from './vaultApi';
-import {refreshTokenAlarm} from './alarms';
+import * as settings from '../settings';
+import * as vaultApi from '../vaultApi';
+import {refreshTokenAlarm} from '../alarms';
 import PageStateUrlDetails = chrome.declarativeContent.PageStateUrlDetails;
 
-function toUrl(url: string): URL {
-    try {
-        return new URL(url);
-    } catch (err) { // just the hostname
-        return new URL(`https://` + url);
-    }
-}
-
-function uniqueUrls(urlPaths: vaultApi.UrlPaths): URL[] {
-    const urlStrings: string[] = [];
-    return Object.values(urlPaths).reduce((urls: URL[], secrets) => {
-        return urls.concat(
-            secrets.map(secret => toUrl(secret.url)).filter(url => !urlStrings.includes(url.toString()) && urlStrings.push(url.toString()))
-        );
-    }, []);
-}
-
-function getUrlRule(urlPaths: vaultApi.UrlPaths): chrome.events.Rule {
-    const conditions = uniqueUrls(urlPaths).map(url => {
+function getUrlRule(urls: URL[]): chrome.events.Rule {
+    const conditions = urls.map(url => {
         const pageUrl: PageStateUrlDetails = {hostEquals: url.hostname, schemes: [url.protocol.replace(':', '')]};
         if (url.port) pageUrl.ports = [parseInt(url.port)];
         if (url.pathname.length > 1) pageUrl.pathPrefix = url.pathname;
@@ -32,16 +15,16 @@ function getUrlRule(urlPaths: vaultApi.UrlPaths): chrome.events.Rule {
     return {conditions, actions: [new chrome.declarativeContent.ShowPageAction()]};
 }
 
-function setPageRules(urlPaths: vaultApi.UrlPaths) {
+function setPageRules(urls?: URL[]) {
     chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
-        if (urlPaths) chrome.declarativeContent.onPageChanged.addRules([getUrlRule(urlPaths)]);
+        if (urls) chrome.declarativeContent.onPageChanged.addRules([getUrlRule(urls)]);
     });
 }
 
 chrome.runtime.onInstalled.addListener(async function () {
     try {
-        const urlPaths = await settings.cacheUrlPaths();
-        setPageRules(urlPaths);
+        const urls = await settings.uniqueUrls();
+        setPageRules(urls);
     } catch (err) {
         if (err.status !== 403) console.log(err.message);
     }
@@ -49,7 +32,7 @@ chrome.runtime.onInstalled.addListener(async function () {
 
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'local' && changes.urlPaths) {
-        setPageRules(changes.urlPaths.newValue);
+        setPageRules(settings.toUniqueUrls(changes.urlPaths.newValue));
     }
 });
 

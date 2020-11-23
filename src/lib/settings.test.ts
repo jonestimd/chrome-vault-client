@@ -18,6 +18,8 @@ let chromeStorage: {
     }
 };
 
+const urlPath = (path: string, url: string, keys: string[] = []) => ({path, url, keys});
+
 describe('settings', () => {
     beforeEach(() => {
         vaultApiStub = {
@@ -79,7 +81,7 @@ describe('settings', () => {
             expect(vaultApiStub.getUrlPaths).not.toBeCalled();
         });
         it('saves result from vaultApi.getUrlPaths', async () => {
-            const urlPaths = {'https://some.web.site': [{path: '/vault/secret/path', url: '', keys: <string[]>[]}]};
+            const urlPaths = {'https://some.web.site': [urlPath('/vault/secret/path', '')]};
             chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({vaultUrl, vaultPath, token}));
             vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
 
@@ -90,6 +92,51 @@ describe('settings', () => {
             expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({urlPaths});
             expect(vaultApiStub.getUrlPaths).toBeCalledTimes(1);
             expect(vaultApiStub.getUrlPaths).toBeCalledWith(vaultUrl, vaultPath, token);
+        });
+    });
+    describe('uniqueUrls', () => {
+        beforeEach(() => {
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({vaultUrl, vaultPath, token}));
+        });
+        it('returns empty array if no vaultUrl', async () => {
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({}));
+
+            const result = await settings.uniqueUrls();
+
+            expect(result).toEqual([]);
+            expect(vaultApiStub.getUrlPaths).not.toBeCalled();
+        });
+        it('caches URLs and converts secret URL', async () => {
+            const urlPaths = {'https://my-bank.web.site': [urlPath('', 'https://my-bank.com/login')]};
+            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+
+            const result = await settings.uniqueUrls();
+
+            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set).toBeCalledWith({urlPaths}, expect.any(Function));
+            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site'][0].url)]);
+        });
+        it('returns unique secret URLs', async () => {
+            const urlPaths = {
+                'https://my-bank.web.site': [
+                    urlPath('/my-account', 'https://my-bank.com/login'),
+                    urlPath('/spouse-account', 'https://my-bank.com/login'),
+                ],
+            };
+            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+
+            const result = await settings.uniqueUrls();
+
+            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site'][0].url)]);
+        });
+        it('defaults protocol to https', async () => {
+            const hostname = 'my-bank.com';
+            const urlPaths = {'https://my-bank.web.site': [urlPath('', hostname)]};
+            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+
+            const result = await settings.uniqueUrls();
+
+            expect(result).toEqual([new URL('https://' + hostname)]);
         });
     });
 });

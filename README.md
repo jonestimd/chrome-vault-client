@@ -44,3 +44,11 @@ When the URL of the active tab matches the `url` property of at least one secret
 toolbar will be enabled.  To fill in the login form, click on the extension's button and then click on one of the buttons
 in the popup.  The popup will include a button for each secret that matched the URL in the current tab.  If your Vault
 token has expired then you will need to provide your Vault password in the popup so the extension can get a new token.
+
+## Firefox
+* Requires enabling CORS on Vault
+
+```sh
+vault login ...
+vault write /sys/config/cors enabled=true allowed_origins=*
+```

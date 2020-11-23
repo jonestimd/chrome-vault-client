@@ -1,6 +1,6 @@
-import '../test/types/global';
-import * as settings from './settings';
-import * as vaultApi from './vaultApi';
+import '../../test/types/global';
+import * as settings from '../settings';
+import * as vaultApi from '../vaultApi';
 
 interface AlarmStub extends Record<string, any> {
     onAlarm: {
@@ -24,7 +24,7 @@ const getInstalledListener = () => chrome.runtime.onInstalled.addListener.mock.c
 const getStorageListener = () => storage.onChanged.addListener.mock.calls[0][0];
 const getAlarmListener = () => alarms.onAlarm.addListener.mock.calls[0][0];
 
-describe('background', () => {
+describe('chrome/background', () => {
     beforeEach(() => {
         global.chrome.declarativeContent = {
             onPageChanged: {
@@ -50,36 +50,24 @@ describe('background', () => {
     });
     describe('onInstalled', () => {
         it('handles error from Vault', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockRejectedValue({message: 'not logged in'});
+            jest.spyOn(settings, 'uniqueUrls').mockRejectedValue({message: 'not logged in'});
 
             await getInstalledListener()();
 
-            expect(settings.cacheUrlPaths).toBeCalledTimes(1);
+            expect(settings.uniqueUrls).toBeCalledTimes(1);
             expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
             expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
         });
         it('clears page rules if no cached URLs', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue(undefined);
+            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue(undefined);
 
             await getInstalledListener()();
 
             expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
             expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
         });
-        it('adds page rule for hostname', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'some.site.login', path: '', keys: []}]});
-
-            await getInstalledListener()();
-
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledWith({pageUrl: {hostEquals: 'some.site.login', schemes: ['https']}});
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
-        });
         it('adds page rule for scheme and hostname', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'http://some.site.com', path: '', keys: []}]});
+            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('http://some.site.com')]);
 
             await getInstalledListener()();
 
@@ -91,7 +79,7 @@ describe('background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and port', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'https://some.site.com:8888', path: '', keys: []}]});
+            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com:8888')]);
 
             await getInstalledListener()();
 
@@ -104,7 +92,7 @@ describe('background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and path prefix', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths').mockResolvedValue({'some.site.com': [{url: 'https://some.site.com/account', path: '', keys: []}]});
+            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com/account')]);
 
             await getInstalledListener()();
 
@@ -117,8 +105,7 @@ describe('background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname, path prefix and query', async () => {
-            jest.spyOn(settings, 'cacheUrlPaths')
-                .mockResolvedValue({'some.site.com': [{url: 'https://some.site.com/account?login=true', path: '', keys: []}]});
+            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com/account?login=true')]);
 
             await getInstalledListener()();
 
