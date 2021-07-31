@@ -10,9 +10,10 @@ let chromePermissions: PermissionsStub;
 
 describe('permissions', () => {
     beforeEach(() => {
-        global.chrome.permissions = chromePermissions = {
+        chromePermissions = {
             request: jest.fn(),
         };
+        global.chrome.permissions = chromePermissions as unknown as typeof chrome.permissions;
     });
     describe('requestOrigin', () => {
         it('requests access if not already granted', async () => {
