@@ -30,11 +30,11 @@ describe('chrome/background', () => {
             onPageChanged: {
                 addRules: jest.fn(),
                 removeRules: jest.fn().mockImplementation((x, cb) => cb()),
-            },
+            } as unknown as typeof chrome.declarativeContent.onPageChanged,
             PageStateMatcher: jest.fn().mockReturnValue(matcher),
             ShowPageAction: jest.fn().mockReturnValue(action),
-        };
-        global.chrome.storage = storage = {
+        } as unknown as typeof chrome.declarativeContent;
+        storage = {
             local: {
                 get: jest.fn(),
                 set: jest.fn(),
@@ -44,6 +44,7 @@ describe('chrome/background', () => {
                 addListener: jest.fn(),
             },
         };
+        global.chrome.storage = storage as typeof chrome.storage;
         jest.isolateModules(() => {
             require('./background');
         });

@@ -23,8 +23,8 @@ module.exports = [{
             { loader: 'file-loader', options: {name: 'bundle.css'} },
             { loader: 'extract-loader' },
             { loader: 'css-loader' },
-            { loader: 'postcss-loader', options: {plugins: () => [autoprefixer()]} },
-            { loader: 'sass-loader', options: {includePaths: ['./node_modules']} },
+            { loader: 'postcss-loader', options: {postcssOptions: {plugins: () => [autoprefixer()]}} },
+            { loader: 'sass-loader', options: {sassOptions: {includePaths: ['./node_modules']}} },
           ],
         },
         {

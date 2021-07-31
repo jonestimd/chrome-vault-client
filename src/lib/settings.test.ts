@@ -14,7 +14,7 @@ let chromeStorage: {
     local: {
         get: jest.MockedFunction<typeof chrome.storage.local['get']>,
         set: jest.MockedFunction<typeof chrome.storage.local['set']>,
-        remove: jest.MockedFunction<typeof chrome.storage.local['remove']>
+        remove: jest.MockedFunction<typeof chrome.storage.local['remove']>,
     }
 };
 
@@ -25,13 +25,14 @@ describe('settings', () => {
         vaultApiStub = {
             getUrlPaths: jest.spyOn(vaultApi, 'getUrlPaths').mockResolvedValue(undefined),
         };
-        global.chrome.storage = chromeStorage = {
+        chromeStorage = {
             local: {
                 get: jest.fn(),
                 set: jest.fn().mockImplementation((data, cb) => cb()),
                 remove: jest.fn().mockImplementation((keys, cb) => cb()),
             },
         };
+        global.chrome.storage = chromeStorage as unknown as typeof chrome.storage;
     });
     describe('load', () => {
         it('returns stored settings', async () => {

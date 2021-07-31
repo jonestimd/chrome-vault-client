@@ -1,7 +1,6 @@
 /build/
 /web-ext-artifacts/
 /node_modules/
-/.vscode/
 /coverage/
 *.crx
 *.pem

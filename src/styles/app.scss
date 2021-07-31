@@ -1,3 +1,5 @@
+@use 'sass:math';
+
 $mdc-theme-accent: rgb(84, 110, 122) !default;
 
 @import "@material/typography/mdc-typography";
@@ -45,7 +47,7 @@ $progress-circular-size: $progress-circular-height + 2 * $progress-circular-spin
   height: $progress-circular-size;
   width: $progress-circular-size;
   position: relative;
-  top: calc(50% - #{$progress-circular-size / 2});
+  top: calc(50% - #{math.div($progress-circular-size, 2)});
   margin: auto;
   padding: 10px;
   border-radius: 50%;
@@ -65,7 +67,7 @@ $progress-circular-size: $progress-circular-height + 2 * $progress-circular-spin
   overflow: hidden;
   position: absolute;
   top: 0;
-  width: ($progress-circular-size / 2);
+  width: (math.div($progress-circular-size, 2));
 }
 
 .progress-circular-left {
@@ -86,14 +88,14 @@ $progress-circular-size: $progress-circular-height + 2 * $progress-circular-spin
   width: $progress-circular-height;
 
   .progress-circular-left & {
-    animation: progress-circular-spinner-left ($progress-circular-animation-duration / 4)
+    animation: progress-circular-spinner-left math.div($progress-circular-animation-duration, 4)
       $transition-timing-function-standard infinite;
     border-right-color: transparent;
     left: 0;
   }
 
   .progress-circular-right & {
-    animation: progress-circular-spinner-right ($progress-circular-animation-duration / 4)
+    animation: progress-circular-spinner-right math.div($progress-circular-animation-duration, 4)
       $transition-timing-function-standard infinite;
     border-left-color: transparent;
     right: 0;
@@ -101,7 +103,7 @@ $progress-circular-size: $progress-circular-height + 2 * $progress-circular-spin
 }
 
 .progress-circular-wrapper {
-  animation: progress-circular-wrapper-rotate ($progress-circular-animation-duration / 2) linear infinite;
+  animation: progress-circular-wrapper-rotate math.div($progress-circular-animation-duration, 2) linear infinite;
 }
 
 @keyframes progress-circular-inner-rotate {

@@ -100,10 +100,6 @@ const getInputInfoById = (id: string) => new InputInfo(document.getElementById(i
 
 describe('contentScript', () => {
     beforeEach(() => {
-        global.chrome.runtime = {
-            onMessage: {addListener: jest.fn()},
-            sendMessage: jest.fn(),
-        };
         global.window = {location: {href: windowUrl}} as any;
     });
     it('does not send message if no username or password inputs', () => {
