@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 global.chrome = {
     alarms: {
         create: jest.fn(),
@@ -8,15 +9,20 @@ global.chrome = {
     runtime: {
         onInstalled: {
             addListener: jest.fn(),
-        } as typeof chrome.runtime['onInstalled'],
+        } as unknown as typeof chrome.runtime['onInstalled'],
         onMessage: {
             addListener: jest.fn(),
-        } as typeof chrome.runtime['onMessage'],
+        } as unknown as typeof chrome.runtime['onMessage'],
         sendMessage: jest.fn(),
+        getPlatformInfo: jest.fn().mockResolvedValue({os: 'Linux'}),
     } as unknown as typeof chrome.runtime,
     tabs: {
         sendMessage: jest.fn(),
         executeScript: jest.fn(),
+        getCurrent: jest.fn().mockReturnValue({id: 42}),
+        onCreated: {
+            addListener: jest.fn(),
+        },
     } as unknown as typeof chrome.tabs,
 } as typeof chrome;
 global.Node = {

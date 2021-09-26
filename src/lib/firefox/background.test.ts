@@ -1,6 +1,6 @@
 import '../../test/types/global';
-import * as settings from '../settings';
-import * as vaultApi from '../vaultApi';
+import type * as settings from '../settings';
+import type * as vaultApi from '../vaultApi';
 
 interface AlarmStub extends Record<string, any> {
     onAlarm: {
@@ -8,52 +8,57 @@ interface AlarmStub extends Record<string, any> {
     }
 }
 
+let settingsStub: typeof settings;
+let vaultStub: typeof vaultApi;
+
 const alarms = chrome.alarms as AlarmStub;
 const getAlarmListener = () => alarms.onAlarm.addListener.mock.calls[0][0];
 
 const vaultUrl = 'https://my.vault';
 const token = 'the token';
 
-describe('firefox/background', () => {
-    beforeEach(() => {
-        jest.isolateModules(() => {
-            require('./background');
-        });
+const load = (settingsResult?: settings.Settings, refresh = true) => {
+    jest.isolateModules(() => {
+        settingsStub = jest.requireActual<typeof settings>('../settings');
+        vaultStub = jest.requireActual<typeof vaultApi>('../vaultApi');
+        jest.spyOn(settingsStub, 'clearToken').mockResolvedValue(undefined);
+        if (settingsResult) jest.spyOn(settingsStub, 'load').mockResolvedValue(settingsResult);
+        else jest.spyOn(settingsStub, 'load').mockRejectedValue(new Error());
+        jest.spyOn(vaultStub, 'refreshToken').mockResolvedValue(refresh);
+        require('./background');
     });
+};
+
+describe('firefox/background', () => {
     describe('onAlarm', () => {
-        beforeEach(() => {
-            jest.spyOn(settings, 'clearToken').mockResolvedValue(undefined);
-            jest.spyOn(settings, 'load').mockResolvedValue(undefined);
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(undefined);
-        });
         it('ignores unknown alarm', async () => {
+            load();
+
             await getAlarmListener()({name: 'unknown alamm'});
 
-            expect(settings.load).not.toBeCalled();
-            expect(vaultApi.refreshToken).not.toBeCalled();
-            expect(settings.clearToken).not.toBeCalled();
+            expect(settingsStub.load).not.toBeCalled();
+            expect(vaultStub.refreshToken).not.toBeCalled();
+            expect(settingsStub.clearToken).not.toBeCalled();
         });
         it('renews token', async () => {
-            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(true);
+            load({vaultUrl, token});
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settings.load).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settings.clearToken).not.toBeCalled();
+            expect(settingsStub.load).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).not.toBeCalled();
         });
         it('clears token if renewal fails', async () => {
-            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(false);
+            load({vaultUrl, token}, false);
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settings.load).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settings.clearToken).toBeCalledTimes(1);
+            expect(settingsStub.load).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).toBeCalledTimes(1);
         });
     });
 });

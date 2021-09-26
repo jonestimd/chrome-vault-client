@@ -15,10 +15,15 @@ function getUrlRule(urls: URL[]): chrome.events.Rule {
     return {conditions, actions: [new chrome.declarativeContent.ShowPageAction()]};
 }
 
-function setPageRules(urls?: URL[]) {
+function setPageRules(urls: URL[]) {
     chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
-        if (urls) chrome.declarativeContent.onPageChanged.addRules([getUrlRule(urls)]);
+        if (urls.length) chrome.declarativeContent.onPageChanged.addRules([getUrlRule(urls)]);
     });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isRequestError(err: any): err is {status: number, message: string} {
+    return typeof err.status === 'number';
 }
 
 chrome.runtime.onInstalled.addListener(async function () {
@@ -26,7 +31,7 @@ chrome.runtime.onInstalled.addListener(async function () {
         const urls = await settings.uniqueUrls();
         setPageRules(urls);
     } catch (err) {
-        if (err.status !== 403) console.log(err.message);
+        if (isRequestError(err) && err.status !== 403) console.log(err.message);
     }
 });
 
@@ -39,7 +44,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
 chrome.alarms.onAlarm.addListener(async function (alarm) {
     if (alarm.name === refreshTokenAlarm) {
         const {vaultUrl, token} = await settings.load();
-        if (!await vaultApi.refreshToken(vaultUrl, token)) {
+        if (!vaultUrl || !token || !await vaultApi.refreshToken(vaultUrl, token)) {
             await settings.clearToken();
         }
     }

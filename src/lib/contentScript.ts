@@ -27,7 +27,8 @@ function findByLabel(text: string): HTMLInputElement | undefined {
         .find(label => hasText(label, text));
     if (label) {
         if (label.getAttribute('for')) {
-            return document.getElementById(label.getAttribute('for')) as HTMLInputElement;
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return document.getElementById(label.getAttribute('for')!) as HTMLInputElement;
         }
         return Array.from(label.querySelectorAll('input')).filter(isVisible)[0];
     }

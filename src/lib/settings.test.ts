@@ -23,7 +23,7 @@ const urlPath = (path: string, url: string, keys: string[] = []) => ({path, url,
 describe('settings', () => {
     beforeEach(() => {
         vaultApiStub = {
-            getUrlPaths: jest.spyOn(vaultApi, 'getUrlPaths').mockResolvedValue(undefined),
+            getUrlPaths: jest.spyOn(vaultApi, 'getUrlPaths').mockRejectedValue(new Error()),
         };
         chromeStorage = {
             local: {

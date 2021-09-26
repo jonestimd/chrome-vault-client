@@ -7,6 +7,7 @@ export interface LoginInput {
 }
 
 enum InputType {text, email, tel, password}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inputTypes = Object.keys(InputType).filter(k => typeof InputType[k as any] === 'number');
 
 export interface InputInfoProps {

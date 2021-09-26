@@ -1,4 +1,4 @@
-export function getLabel(input: HTMLInputElement): HTMLLabelElement {
+export function getLabel(input: HTMLInputElement): HTMLLabelElement | undefined {
     const label = input.id && document.querySelector(`label[for="${input.id}"]`);
     if (label) return label as HTMLLabelElement;
     else return getContainingLabel(input);
@@ -14,7 +14,7 @@ export function getText(element: Element): string {
     const ignoredTags = ['SCRIPT', 'STYLE', 'BUTTON', 'SELECT'];
     const texts: string[] = [];
     element.childNodes.forEach(child => {
-        if (child.nodeName === '#text') texts.push(child.textContent.trim());
+        if (child.nodeName === '#text') texts.push(child.textContent?.trim() ?? '');
         else if (child.nodeType === Node.ELEMENT_NODE && !ignoredTags.includes(child.nodeName)) {
             if ((child as Element).getClientRects().length > 0) texts.push(getText(child as Element));
         }

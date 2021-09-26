@@ -12,7 +12,8 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/node_modules/.bin/jest",
-            "args": ["--coverage=off", "--runInBand"]
+            "outputCapture": "console",
+            "args": ["--coverage=off", "--runInBand", "vault"]
         }
     ]
 }

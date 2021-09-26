@@ -3,10 +3,7 @@ import {InputInfo} from './message';
 
 jest.mock('./htmlUtil');
 
-const mockHtmlUtil: {
-    getLabel: jest.MockedFunction<typeof htmlUtil['getLabel']>;
-    getText: jest.MockedFunction<typeof htmlUtil['getText']>;
-} = htmlUtil as any;
+const mockHtmlUtil = htmlUtil as jest.Mocked<typeof htmlUtil>;
 
 function mockInput(props: {type?: string, id?: string, name?: string, placeholder?: string}, rect?: object): HTMLInputElement {
     const element = props as HTMLInputElement;

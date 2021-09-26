@@ -55,8 +55,8 @@ describe('vaultApi', () => {
         });
     });
     describe('login', () => {
-        it('returns auth object', async () => {
-            const auth = {client_token: 'the token'};
+        it('does not renew token if lease duration < 60 seconds', async () => {
+            const auth = {client_token: 'the token', lease_duration: 59};
             mockAgent.post.mockResolvedValue({body: {auth}} as any);
 
             const result = await vaultApi.login(vaultUrl, username, password);
@@ -64,7 +64,6 @@ describe('vaultApi', () => {
             expect(result).toEqual(auth);
             expect(agent.post).toBeCalledTimes(1);
             expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/userpass/login/${username}`, {password});
-            // token not renewable TODO separate test
             expect(chrome.alarms.create).not.toBeCalled();
         });
         it('sets alarm to renew the token', async () => {
@@ -86,12 +85,10 @@ describe('vaultApi', () => {
             expect(result).toEqual(auth);
             expect(chrome.alarms.create).not.toBeCalled();
         });
-        it('returns undefined if response does not contain auth object', async () => {
+        it('throws error if response does not contain auth object', async () => {
             mockAgent.post.mockResolvedValue({body: {}} as any);
 
-            const result = await vaultApi.login('url', 'user', 'password');
-
-            expect(result).toBeUndefined();
+            await expect(vaultApi.login('url', 'user', 'password')).rejects.toThrow('Login failed');
         });
         it('throws error with Vault message', async () => {
             const errors = ['invalid username or password'];
@@ -175,11 +172,11 @@ describe('vaultApi', () => {
 
             const result = await vaultApi.getSecret(vaultUrl, token, path);
 
-            expect(result.url).toEqual(data.url);
-            expect(result.siteHost).toEqual('hostname:8080');
-            expect(result.get('user')).toEqual(data.username);
-            expect(result.password).toEqual(data.password);
-            expect(result.get('email')).toEqual(data.email);
+            expect(result?.url).toEqual(data.url);
+            expect(result?.siteUrl).toEqual(data.url);
+            expect(result?.get('username')).toEqual(data.username);
+            expect(result?.password).toEqual(data.password);
+            expect(result?.get('email')).toEqual(data.email);
             expect(agent.get).toBeCalledTimes(1);
             expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${path}`);
             expect(request.set).toBeCalledTimes(1);
@@ -223,10 +220,10 @@ describe('vaultApi', () => {
             const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
 
             expect(result).toEqual({
-                url1: [{path: 'web/secret1', url: 'url1', keys: ['user']}],
-                url2: [{path: 'web/secret2', url: 'url2', keys: ['password']}],
-                url3: [{path: 'web/secret3', url: 'url3', keys: ['note']}],
-                url4: [{path: 'web/secret4', url: 'url4', keys: ['email', 'user', 'password']}],
+                'https://url1': [{path: 'web/secret1', url: 'https://url1', keys: ['username']}],
+                'https://url2': [{path: 'web/secret2', url: 'https://url2', keys: ['password']}],
+                'https://url3': [{path: 'web/secret3', url: 'https://url3', keys: ['note']}],
+                'https://url4': [{path: 'web/secret4', url: 'https://url4', keys: ['username', 'password', 'email']}],
             });
             expect(agent.get).toBeCalledTimes(5);
             expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret1`);
@@ -235,22 +232,22 @@ describe('vaultApi', () => {
             expect(getRequest.set).toBeCalledTimes(5);
             expect(getRequest.set).toBeCalledWith(authHeader, token);
         });
-        it('groups data by hostname and port', async () => {
+        it('groups data by url', async () => {
             agentRequest().set.mockResolvedValue({body: {data: {keys: ['secret1', 'secret2', 'secret3', 'secret4']}}});
             const getRequest = agentRequest('get');
-            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'https://host1/path1', username: 'host1 user'}));
+            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'https://host1', username: 'host1 user'}));
             getRequest.set.mockResolvedValueOnce(secretResponse({url: 'host2', password: 'host2 password'}));
-            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'http://host1/path2', username: 'host1 user2', password: 'host1 password2'}));
-            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'http://host1:8080/path3', username: 'host1 user3', password: 'host1 password3'}));
+            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'host1', username: 'host1 user2', password: 'host1 password2'}));
+            getRequest.set.mockResolvedValueOnce(secretResponse({url: 'https://host1:8080', username: 'host1 user3', password: 'host1 password3'}));
 
             const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
 
             expect(result).toEqual({
-                host1: [
-                    {path: 'web/secret1', url: 'https://host1/path1', keys: ['user']},
-                    {path: 'web/secret3', url: 'http://host1/path2', keys: ['user', 'password']}],
-                'host1:8080': [{path: 'web/secret4', url: 'http://host1:8080/path3', keys: ['user', 'password']}],
-                host2: [{path: 'web/secret2', url: 'host2', keys: ['password']}],
+                'https://host1': [
+                    {path: 'web/secret1', url: 'https://host1', keys: ['username']},
+                    {path: 'web/secret3', url: 'https://host1', keys: ['username', 'password']}],
+                'https://host1:8080': [{path: 'web/secret4', url: 'https://host1:8080', keys: ['username', 'password']}],
+                'https://host2': [{path: 'web/secret2', url: 'https://host2', keys: ['password']}],
             });
             expect(agent.get).toBeCalledTimes(4);
             expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`);
@@ -273,9 +270,9 @@ describe('vaultApi', () => {
             const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
 
             expect(result).toEqual({
-                url1: [{path: 'web/secret1', url: 'url1', keys: ['email', 'user']}],
-                url2: [{path: 'web/nested/secret2', url: 'url2', keys: ['password']}],
-                url3: [{path: 'web/nested/secret3', url: 'url3', keys: ['user', 'password']}],
+                'https://url1': [{path: 'web/secret1', url: 'https://url1', keys: ['username', 'email']}],
+                'https://url2': [{path: 'web/nested/secret2', url: 'https://url2', keys: ['password']}],
+                'https://url3': [{path: 'web/nested/secret3', url: 'https://url3', keys: ['username', 'password']}],
             });
             expect(agent).toBeCalledTimes(2);
             expect(agent).toBeCalledWith('LIST', `${vaultUrl}/v1/secret/metadata/web`);

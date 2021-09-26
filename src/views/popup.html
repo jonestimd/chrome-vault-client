@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <link rel="stylesheet" href="bundle.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
@@ -8,18 +9,15 @@ div.buttons {
     display: grid;
     grid-row-gap: 5px;
 }
-h2 {
-    border-bottom: 1px solid;
-}
 .settings-data {
     font-size: medium;
+    margin-bottom: 10px;
 }
 label {
     font-weight: bold;
 }
-div.mdc-text-field {
+.mdc-text-field {
     min-width: 20em;
-    margin-top: 10px;
     width: 100%;
 }
 #status {
@@ -69,26 +67,78 @@ div.mdc-text-field {
     overflow: hidden;
     transition: height .35s ease-in-out;
 }
+.section .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
+    border-bottom: 1px solid;
+}
+.section .header h2 {
+    flex-grow: 1;
+    margin: 0;
+}
+.section .mdc-list {
+    max-height: 10em;
+    overflow-y: scroll;
+}
+ul.mdc-list > li {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+ul em {
+    background-color: yellow;
+}
 </style>
 </head>
 <body class="mdc-typography">
-    <div class="buttons" style="white-space: nowrap">
+    <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate">
+        <div class="mdc-linear-progress__buffer">
+          <div class="mdc-linear-progress__buffer-bar"></div>
+          <div class="mdc-linear-progress__buffer-dots"></div>
+        </div>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
+        </div>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
+        </div>
     </div>
+    <div class="buttons" style="white-space: nowrap"></div>
     <div>
         <h2>Vault credentials</h2>
         <div class="settings-data">
             <label>Username:  </label><span id="username"></span>
         </div>
-        <div class="mdc-text-field">
-            <input type="password" class="mdc-text-field__input" id="password" autofocus/>
-            <div class="mdc-line-ripple"></div>
-            <label class="mdc-floating-label" for="password">Password</label>
-        </div>
+        <label class="mdc-text-field mdc-text-field--filled">
+            <span class="mdc-text-field__ripple"></span>
+            <span class="mdc-floating-label" id="my-label-id">Password</span>
+            <input class="mdc-text-field__input" type="password" id="password" autofocus>
+            <span class="mdc-line-ripple"></span>
+        </label>
         <p id="status"></p>
         <div id="page-inputs-switch"><i class="material-icons">arrow_right</i><span>Page Inputs</span></div>
         <div class="collapse" style="height: 0;">
             <div id="page-inputs"><h3>No inputs found</h3></div>
         </div>
+    </div>
+    <div class="section">
+        <div class="header">
+            <h2 class="mdc-typography--headline6">Saved URLs</h2>
+            <div class="buttons">
+                <button id="reload" class="mdc-icon-button material-icons small">
+                    <div class="mdc-icon-button__ripple"></div>
+                    refresh
+                </button>
+            </div>
+        </div>
+        <label class="mdc-text-field mdc-text-field--filled">
+            <span class="mdc-text-field__ripple"></span>
+            <span class="mdc-floating-label" id="my-label-id">Filter URLs</span>
+            <input class="mdc-text-field__input" id="vault-filter">
+            <span class="mdc-line-ripple"></span>
+        </label>
+        <ul class="mdc-list mdc-list--two-line" id="saved-urls">
+        </ul>
     </div>
 </body>
 <script src="popup.js"></script>

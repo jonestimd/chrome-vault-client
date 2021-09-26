@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Type definitions for SuperAgent 5.0
 // Project: https://github.com/visionmedia/superagent
 // Definitions by: Nico Zelaya <https://github.com/NicoZelaya>
@@ -16,7 +17,6 @@
 import * as fs from 'fs';
 import * as https from 'https';
 import * as stream from 'stream';
-import * as cookiejar from 'cookiejar';
 
 type CallbackHandler = (err: any, res: request.Response) => void;
 
@@ -53,7 +53,7 @@ declare namespace request {
     }
 
     interface SuperAgent<Req extends SuperAgentRequest> extends stream.Stream {
-        jar: cookiejar.CookieJar;
+        jar: unknown;
         attachCookies(req: Req): void;
         checkout(url: string, callback?: CallbackHandler): Req;
         connect(url: string, callback?: CallbackHandler): Req;

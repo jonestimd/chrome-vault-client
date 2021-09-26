@@ -6,7 +6,4 @@ module.exports = [{
         minimize: false,
     },
     devtool: 'inline-source-map',
-    optimization: {
-        minimize: false,
-    },
 }];

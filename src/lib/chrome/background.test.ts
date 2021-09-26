@@ -1,6 +1,6 @@
 import '../../test/types/global';
-import * as settings from '../settings';
-import * as vaultApi from '../vaultApi';
+import type * as settings from '../settings';
+import type * as vaultApi from '../vaultApi';
 
 interface AlarmStub extends Record<string, any> {
     onAlarm: {
@@ -12,20 +12,31 @@ interface StorageStub extends Record<string, any> {
         addListener: jest.MockedFunction<any>;
     }
 }
+let settingsStub: typeof settings;
+let vaultStub: typeof vaultApi;
 let storage: StorageStub;
 const alarms = chrome.alarms as AlarmStub;
+const mockRuntime = chrome.runtime as IMockChromeRuntime;
 
 const vaultUrl = 'https://my.vault';
 const token = 'the token';
 const action = {name: 'show page'};
 const matcher = {name: 'url matcher'};
 
-const getInstalledListener = () => chrome.runtime.onInstalled.addListener.mock.calls[0][0];
+const getInstalledListener = () => mockRuntime.onInstalled.addListener.mock.calls[0][0];
 const getStorageListener = () => storage.onChanged.addListener.mock.calls[0][0];
 const getAlarmListener = () => alarms.onAlarm.addListener.mock.calls[0][0];
 
-describe('chrome/background', () => {
-    beforeEach(() => {
+const load = (uniqueUrls: URL[] | string, loadSettings?: settings.Settings, refresh = true) => {
+    jest.isolateModules(() => {
+        settingsStub = jest.requireActual<typeof settings>('../settings');
+        vaultStub = jest.requireActual<typeof vaultApi>('../vaultApi');
+        jest.spyOn(settingsStub, 'clearToken').mockResolvedValue(undefined);
+        if (typeof uniqueUrls === 'string') jest.spyOn(settingsStub, 'uniqueUrls').mockRejectedValue({message: uniqueUrls});
+        else jest.spyOn(settingsStub, 'uniqueUrls').mockResolvedValue(uniqueUrls);
+        if (loadSettings) jest.spyOn(settingsStub, 'load').mockResolvedValue(loadSettings);
+        else jest.spyOn(settingsStub, 'load').mockRejectedValue(new Error());
+        jest.spyOn(vaultStub, 'refreshToken').mockResolvedValue(refresh);
         global.chrome.declarativeContent = {
             onPageChanged: {
                 addRules: jest.fn(),
@@ -45,22 +56,23 @@ describe('chrome/background', () => {
             },
         };
         global.chrome.storage = storage as typeof chrome.storage;
-        jest.isolateModules(() => {
-            require('./background');
-        });
+        require('./background');
     });
+};
+
+describe('chrome/background', () => {
     describe('onInstalled', () => {
         it('handles error from Vault', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockRejectedValue({message: 'not logged in'});
+            load('not logged in');
 
             await getInstalledListener()();
 
-            expect(settings.uniqueUrls).toBeCalledTimes(1);
+            expect(settingsStub.uniqueUrls).toBeCalledTimes(1);
             expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
             expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
         });
         it('clears page rules if no cached URLs', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue(undefined);
+            load([]);
 
             await getInstalledListener()();
 
@@ -68,7 +80,7 @@ describe('chrome/background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
         });
         it('adds page rule for scheme and hostname', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('http://some.site.com')]);
+            load([new URL('http://some.site.com')]);
 
             await getInstalledListener()();
 
@@ -80,7 +92,7 @@ describe('chrome/background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and port', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com:8888')]);
+            load([new URL('https://some.site.com:8888')]);
 
             await getInstalledListener()();
 
@@ -93,7 +105,7 @@ describe('chrome/background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and path prefix', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com/account')]);
+            load([new URL('https://some.site.com/account')]);
 
             await getInstalledListener()();
 
@@ -106,7 +118,7 @@ describe('chrome/background', () => {
             expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname, path prefix and query', async () => {
-            jest.spyOn(settings, 'uniqueUrls').mockResolvedValue([new URL('https://some.site.com/account?login=true')]);
+            load([new URL('https://some.site.com/account?login=true')]);
 
             await getInstalledListener()();
 
@@ -128,16 +140,22 @@ describe('chrome/background', () => {
     });
     describe('storage.onChanged', () => {
         it('ignores message for sync storage change', async () => {
+            load([]);
+
             await getStorageListener()({urlPaths: {}}, 'sync');
 
             expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
         });
         it('ignores message if urlPaths did not change', async () => {
+            load([]);
+
             await getStorageListener()({vaultUrl: 'new url'}, 'local');
 
             expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
         });
         it('updates page rules when urlPaths changes', async () => {
+            load([]);
+
             await getStorageListener()({urlPaths: {newValue: {'some.site.com': [{url: 'https://some.site.com'}]}}}, 'local');
 
             expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
@@ -155,39 +173,34 @@ describe('chrome/background', () => {
         });
     });
     describe('onAlarm', () => {
-        beforeEach(() => {
-            jest.spyOn(settings, 'clearToken').mockResolvedValue(undefined);
-            jest.spyOn(settings, 'load').mockResolvedValue(undefined);
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(undefined);
-        });
         it('ignores unknown alarm', async () => {
+            load([], {vaultUrl, token});
+
             await getAlarmListener()({name: 'unknown alamm'});
 
-            expect(settings.load).not.toBeCalled();
-            expect(vaultApi.refreshToken).not.toBeCalled();
-            expect(settings.clearToken).not.toBeCalled();
+            expect(settingsStub.load).not.toBeCalled();
+            expect(vaultStub.refreshToken).not.toBeCalled();
+            expect(settingsStub.clearToken).not.toBeCalled();
         });
         it('renews token', async () => {
-            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(true);
+            load([], {vaultUrl, token});
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settings.load).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settings.clearToken).not.toBeCalled();
+            expect(settingsStub.load).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).not.toBeCalled();
         });
         it('clears token if renewal fails', async () => {
-            jest.spyOn(settings, 'load').mockResolvedValue({vaultUrl, token});
-            jest.spyOn(vaultApi, 'refreshToken').mockResolvedValue(false);
+            load([], {vaultUrl, token}, false);
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settings.load).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledTimes(1);
-            expect(vaultApi.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settings.clearToken).toBeCalledTimes(1);
+            expect(settingsStub.load).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledTimes(1);
+            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).toBeCalledTimes(1);
         });
     });
 });

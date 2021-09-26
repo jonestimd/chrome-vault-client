@@ -1,5 +1,6 @@
 import * as agent from 'superagent';
 import {refreshTokenAlarm} from './alarms';
+import {getMessage} from './errors';
 import {InputInfoProps} from './message';
 
 const authHeader = 'X-Vault-Token';
@@ -11,36 +12,45 @@ export interface SecretInfo {
 }
 
 export interface UrlPaths {
-    [siteHost: string]: SecretInfo[]
+    [siteUrl: string]: SecretInfo[]
 }
 
 interface VaultError {
-    response?: {
-        body?: {errors?: string[]}
+    response: {
+        body: {errors: string[]}
     }
-    message?: string
 }
 
-export function getErrorMessage(err: VaultError): string {
-    if (err.response && err.response.body && err.response.body.errors) return err.response.body.errors.join();
-    return err.message;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isVaultError(err: any): err is VaultError {
+    return 'response' in err && 'body' in err.response && 'errors' in err.response.body;
+}
+
+export function getErrorMessage(err: unknown): string | undefined {
+    if (isVaultError(err)) return err.response.body.errors.join();
+    return getMessage(err);
 }
 
 export interface AuthToken {
-    client_token?: string
-    lease_duration?: number
+    client_token: string
+    lease_duration: number
     renewable?: boolean
 }
+
 interface AuthResponse {
     auth?: AuthToken
 }
 
 function setRenewAlarm(body: AuthResponse): AuthToken {
-    const auth = body && body.auth;
-    if (auth && auth.renewable && auth.lease_duration >= 60) {
-        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30) / 60});
+    if (body.auth?.lease_duration) {
+        const {renewable, lease_duration: leaseDuration} = body.auth;
+        if (renewable && leaseDuration >= 60) {
+            chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (leaseDuration - 30) / 60});
+        }
+        return body.auth;
     }
-    return auth;
+    console.info('no auth token', body);
+    throw new Error('Login failed');
 }
 
 export async function login(vaultUrl: string, user: string, password: string): Promise<AuthToken> {
@@ -66,20 +76,12 @@ export async function refreshToken(vaultUrl: string, token: string): Promise<boo
 export async function logout(vaultUrl: string, token: string): Promise<void> {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
 }
-function getHost(url: string): string {
-    try {
-        const {hostname, port} = new URL(url);
-        return hostname + (port ? ':' + port : '');
-    } catch (err) {
-        return url;
-    }
-}
 
-interface SecretData {
-    url?: string
+interface SecretData extends Record<string, string | undefined> {
+    url: string
     username?: string
     password?: string
-    [key: string]: string
+    'site url'?: string;
 }
 
 class Matcher {
@@ -88,10 +90,8 @@ class Matcher {
 
     constructor(input: InputInfoProps) {
         Matcher.inputKeys.forEach(key => {
-            if (input[key]) {
-                const lowerValue = input[key].toLowerCase();
-                this.conditions.push([key, (lowerKey) => lowerValue.includes(lowerKey)]);
-            }
+            const value = input[key]?.toLowerCase();
+            if (value) this.conditions.push([key, (lowerKey) => value.includes(lowerKey)]);
         });
     }
 
@@ -104,7 +104,7 @@ class Matcher {
 export interface InputMatch {
     inputProp: keyof InputInfoProps;
     key: string;
-    value: string;
+    value?: string;
 }
 
 export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boolean {
@@ -113,28 +113,32 @@ export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boole
         || input.type === 'password' && secret.keys.includes('password');
 }
 
+function asUrl(hostOrUrl: string): string {
+    return /^https?:\/\//.test(hostOrUrl) ? hostOrUrl : 'https://' + hostOrUrl;
+}
+
 export class Secret {
-    readonly url?: string
-    private siteUrl?: string
-    private readonly _data: {readonly [key: string]: string}
+    readonly url: string
+    private readonly _siteUrl?: string
+    private readonly _data: Readonly<Record<string, string | undefined>>;
     private readonly _keys: string[];
 
-    constructor({url, ['site url']: siteUrl, username, ...data}: SecretData) {
-        this.url = url;
-        this.siteUrl = siteUrl;
-        this._data = Object.assign({...data}, username && {user: username});
-        this._keys = Object.keys(this._data).filter(key => key !== 'password').concat(data.password && ['password'] || []);
+    constructor({url, 'site url': siteUrl, ...data}: SecretData) {
+        this.url = asUrl(url);
+        this._siteUrl = siteUrl && asUrl(siteUrl);
+        this._data = data;
+        this._keys = Object.keys(this._data);
     }
 
-    get siteHost(): string {
-        return this.siteUrl ? getHost(this.siteUrl) : getHost(this.url);
+    get siteUrl(): string {
+        return this._siteUrl ?? this.url;
     }
 
-    get password(): string {
+    get password(): string | undefined {
         return this._data['password'];
     }
 
-    get(key: string): string {
+    get(key: string): string | undefined {
         return this._data[key];
     }
 
@@ -151,9 +155,9 @@ export class Secret {
     }
 }
 
-export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret> {
+export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret | undefined> {
     const {body} = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
-    return new Secret(body.data.data);
+    return body.data.data.url && new Secret(body.data.data);
 }
 
 async function listSecrets(vaultUrl: string, token: string, path?: string): Promise<string[]> {
@@ -161,7 +165,7 @@ async function listSecrets(vaultUrl: string, token: string, path?: string): Prom
     return body.data.keys;
 }
 
-export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: string): Promise<UrlPaths> {
+export async function getUrlPaths(vaultUrl: string, vaultPath: string | undefined, token: string): Promise<UrlPaths> {
     const names = (await listSecrets(vaultUrl, token, vaultPath)).map(name => vaultPath ? `${vaultPath}/${name}` : name);
     const urlPaths: UrlPaths = {};
     for (let i = 0; i < names.length;) {
@@ -172,9 +176,9 @@ export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: st
         }
         else {
             const secret = await getSecret(vaultUrl, token, names[i]);
-            if (secret.url && secret.keys.length > 0) {
-                if (!urlPaths[secret.siteHost]) urlPaths[secret.siteHost] = [];
-                urlPaths[secret.siteHost].push({
+            if (secret && secret.keys.length > 0) {
+                if (!urlPaths[secret.siteUrl]) urlPaths[secret.siteUrl] = [];
+                urlPaths[secret.siteUrl].push({
                     path,
                     url: secret.url,
                     keys: secret.keys,

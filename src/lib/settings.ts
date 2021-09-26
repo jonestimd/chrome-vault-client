@@ -36,7 +36,7 @@ export function clearToken(): Promise<void> {
 
 export async function cacheUrlPaths(): Promise<vaultApi.UrlPaths | undefined> {
     const {vaultUrl, vaultPath, token} = await load();
-    if (vaultUrl) {
+    if (vaultUrl && token) {
         const urlPaths = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
         return new Promise(resolve => {
             chrome.storage.local.set({urlPaths}, () => resolve(urlPaths));

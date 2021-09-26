@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
+        "strict": true,
         "module": "commonjs",
         "lib": ["es2019", "dom"],
         "allowJs": true,
         "noImplicitAny": true,
         "sourceMap": true,
-        "target": "es5",
+        "target": "es2019",
         "outDir": "build",
         "baseUrl": ".",
         "paths": {
