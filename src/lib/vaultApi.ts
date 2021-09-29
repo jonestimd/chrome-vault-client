@@ -1,4 +1,4 @@
-import * as agent from 'superagent';
+import * as agent from './agent';
 import {refreshTokenAlarm} from './alarms';
 import {getMessage} from './errors';
 import {InputInfoProps} from './message';
@@ -55,7 +55,7 @@ function setRenewAlarm(body: AuthResponse): AuthToken {
 
 export async function login(vaultUrl: string, user: string, password: string): Promise<AuthToken> {
     try {
-        const {body} = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, {password});
+        const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/userpass/login/${user}`, {}, {password});
         return setRenewAlarm(body);
     } catch (err) {
         throw new Error(getErrorMessage(err));
@@ -64,7 +64,7 @@ export async function login(vaultUrl: string, user: string, password: string): P
 
 export async function refreshToken(vaultUrl: string, token: string): Promise<boolean> {
     try {
-        const {body} = await agent.post(`${vaultUrl}/v1/auth/token/renew-self`).set(authHeader, token);
+        const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
         setRenewAlarm(body);
         return true;
     } catch (err) {
@@ -74,7 +74,7 @@ export async function refreshToken(vaultUrl: string, token: string): Promise<boo
 }
 
 export async function logout(vaultUrl: string, token: string): Promise<void> {
-    await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
+    await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
 }
 
 interface SecretData extends Record<string, string | undefined> {
@@ -84,15 +84,27 @@ interface SecretData extends Record<string, string | undefined> {
     'site url'?: string;
 }
 
+interface SecretResponse {
+    data: {
+        data: SecretData;
+    }
+}
+
+interface SecretsList {
+    data: {
+        keys: string[];
+    }
+}
+
 class Matcher {
-    private static readonly inputKeys: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
+    private static readonly inputProps: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
     private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = []
 
     constructor(input: InputInfoProps) {
-        Matcher.inputKeys.forEach(key => {
-            const value = input[key]?.toLowerCase();
-            if (value) this.conditions.push([key, (lowerKey) => value.includes(lowerKey)]);
-        });
+        for (const prop of Matcher.inputProps) {
+            const propValue = input[prop]?.toLowerCase();
+            if (propValue) this.conditions.push([prop, (secretProp) => propValue.includes(secretProp)]);
+        }
     }
 
     find(lowerKey: string): keyof InputInfoProps | void {
@@ -156,12 +168,12 @@ export class Secret {
 }
 
 export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret | undefined> {
-    const {body} = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
-    return body.data.data.url && new Secret(body.data.data);
+    const body = await agent.get<SecretResponse>(`${vaultUrl}/v1/secret/data/${path}`, {}, {[authHeader]: token});
+    return body.data.data.url ? new Secret(body.data.data) : undefined;
 }
 
 async function listSecrets(vaultUrl: string, token: string, path?: string): Promise<string[]> {
-    const {body} = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
+    const body = await agent.list<SecretsList>(`${vaultUrl}/v1/secret/metadata/${path || ''}`, {[authHeader]: token});
     return body.data.keys;
 }
 
