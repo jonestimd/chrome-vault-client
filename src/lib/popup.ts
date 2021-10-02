@@ -18,6 +18,7 @@ import * as vaultApi from './vaultApi';
 import {PageInfoMessage, InputInfo, LoginInput} from './message';
 import {getMessage, getStatus} from './errors';
 import UrlList from './components/UrlList';
+import {createSpan} from './html';
 
 async function login(vaultUrl: string, username: string) {
     if (await permissions.requestOrigin(vaultUrl)) {
@@ -34,11 +35,11 @@ async function login(vaultUrl: string, username: string) {
 pageInputsSwitch.addEventListener('click', () => {
     const icon = pageInputsSwitch.querySelector('i')!;
     if (icon.innerHTML === 'arrow_right') {
-        icon.innerHTML = 'arrow_drop_down';
+        icon.replaceChildren('arrow_drop_down');
         pageInputs.parentElement!.style.height = pageInputs.clientHeight + 'px';
     }
     else {
-        icon.innerHTML = 'arrow_right';
+        icon.replaceChildren('arrow_right');
         pageInputs.parentElement!.style.height = '0';
     }
 });
@@ -64,7 +65,7 @@ function findVaultPaths(urlPaths: vaultApi.UrlPaths, pageUrlString: string): vau
 }
 
 function showStatus(text: string) {
-    statusArea.innerText = text;
+    statusArea.replaceChildren(text);
 }
 
 class SecretAccessor {
@@ -122,7 +123,7 @@ filterInput.listen('input', () => {
 
 const reloadButton = document.getElementById('reload') as HTMLButtonElement;
 settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
-    document.querySelector<HTMLElement>('#username')!.innerText = vaultUser ?? '';
+    document.querySelector<HTMLElement>('#username')!.replaceChildren(vaultUser ?? '');
     showUrlPaths(urlPaths);
     reloadButton.addEventListener('click', async () => {
         try {
@@ -149,14 +150,14 @@ settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
 
 chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, sender: chrome.runtime.MessageSender) {
     const {vaultUrl, vaultUser, token, urlPaths} = await settings.load();
-    document.querySelector<HTMLElement>('#username')!.innerText = vaultUser ?? '';
+    document.querySelector<HTMLElement>('#username')!.replaceChildren(vaultUser ?? '');
     const secretInfos = findVaultPaths(urlPaths!, message.url);
     let vaultToken = token;
 
     const accessor = await SecretAccessor.newAccessor(vaultUrl!, secretInfos.map(secretInfo => secretInfo.path), vaultToken!);
 
     if (message.inputs.length > 0) {
-        pageInputs.innerHTML = '';
+        pageInputs.replaceChildren();
         message.inputs.forEach(input => {
             const div = pageInputs.appendChild(document.createElement('div'));
             div.classList.add('input-info');
@@ -165,7 +166,7 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
                 if (input[prop]) {
                     const row = div.appendChild(document.createElement('div'));
                     row.classList.add('row');
-                    row.innerHTML = `<span class="label">${prop}</span><span>${input[prop]}</span>`;
+                    row.replaceChildren(createSpan({text: prop, className: 'label'}), createSpan({text: input[prop] as string}));
                 }
             }
 
@@ -174,14 +175,14 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
     }
 
     const buttonDiv = document.querySelector('div.buttons')!;
-    buttonDiv.innerHTML = '';
+    buttonDiv.replaceChildren();
     const buttons = secretInfos.map(secretInfo => {
         const matchingInputs = message.inputs.filter(input => vaultApi.hasSecretValue(input, secretInfo));
         const name = secretInfo.path.replace(/^.*\//, '');
         const button = document.createElement('button');
         button.className = 'mdc-button mdc-button--raised';
         button.setAttribute(inputCountAttr, String(matchingInputs.length));
-        button.innerHTML = `<span class="mdc-button__label">${name}</span>`;
+        button.replaceChildren(createSpan({text: name, className: 'mdc-button__label'}));
         buttonDiv.appendChild(button);
         button.addEventListener('click', async () => {
             if (!accessor.secrets[secretInfo.path] && passwordInput.value.length > 0) {

@@ -81,53 +81,51 @@ async function testFillButtonEnabled(field: string) {
     expect(button.disabled).toEqual(false);
     expect(vaultApi.getSecret).toBeCalledTimes(1);
     expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
-    expect(document.getElementById('status')?.innerText).toEqual('');
+    expect(document.getElementById('status')?.innerHTML).toEqual('');
 }
 
 describe('popup', () => {
-    it('executes content script', () => {
+    it('executes content script', async () => {
         settingsStub.load.mockResolvedValue({});
 
-        loadPage();
+        await loadPage();
 
         expect(chrome.tabs.executeScript).toBeCalledTimes(1);
         expect(chrome.tabs.executeScript).toBeCalledWith({file: 'contentScript.js', allFrames: true});
     });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
-        loadPage();
+        await loadPage();
 
         await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
 
-        expect(document.getElementById('username')?.innerText).toEqual(vaultUser);
+        expect(document.getElementById('username')?.innerHTML).toEqual(vaultUser);
     });
     it('displays message for no inputs', async () => {
         settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
         vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-        loadPage();
+        await loadPage();
 
         await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
 
         expect(document.getElementById('page-inputs')?.innerHTML).toEqual('<h3>No inputs found</h3>');
     });
     it('displays saved URLs', async () => {
-        // mockSettings.load.mockResolvedValue({urlPaths});
+        settingsStub.load.mockResolvedValue({urlPaths});
 
-        // await loadPage();
+        await loadPage();
 
-        // expect(urlCardList('saved-urls').removeAll).toBeCalledTimes(1);
-        // expect(urlCardList('saved-urls').addItem).toBeCalledTimes(2);
-        // expect(urlCardList('saved-urls').addItem).toBeCalledWith('my.bank.com', ['https://my.bank.com'], ['/secret/my-bank']);
-        // expect(urlCardList('saved-urls').addItem).toBeCalledWith('my.utility.com',
-        //     ['https://my.utility.com/path1', 'https://my.utility.com/path2'],
-        //     ["/secret/my-utility/user1", "/secret/my-utility/user2"]);
+        expect(urlList('saved-urls').removeAll).toBeCalledTimes(1);
+        expect(urlList('saved-urls').addItem).toBeCalledTimes(2);
+        expect(urlList('saved-urls').addItem).toBeCalledWith('my.bank.com', urlPaths['my.bank.com']);
+        expect(urlList('saved-urls').addItem).toBeCalledWith('my.utility.com', urlPaths['my.utility.com']);
     });
     describe('page-inputs-switch', () => {
         it('expands page-inputs', async () => {
             const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text'}];
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-            loadPage();
+            await loadPage();
             await messageCallback()({url: pageUrl, inputs}, sender, sendResponse);
             const pageInputs = document.getElementById('page-inputs');
             jest.spyOn(pageInputs!, 'clientHeight', 'get').mockReturnValue(123);
@@ -151,7 +149,7 @@ describe('popup', () => {
             const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder'}];
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'custom')]}});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-            loadPage();
+            await loadPage();
 
             await messageCallback()({url: pageUrl, inputs}, sender, sendResponse);
 
@@ -169,7 +167,7 @@ describe('popup', () => {
         it('disables button when page contains no fields', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-            loadPage();
+            await loadPage();
 
             await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
 
@@ -179,7 +177,7 @@ describe('popup', () => {
         it('disables button when not logged in and password is empty', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
-            loadPage();
+            await loadPage();
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}]}, sender, sendResponse);
 
@@ -188,12 +186,12 @@ describe('popup', () => {
             expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
             expect(vaultApi.getSecret).toBeCalledTimes(1);
             expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
-            expect(document.getElementById('status')?.innerText).toEqual('Invalid token');
+            expect(document.getElementById('status')?.innerHTML).toEqual('Invalid token');
         });
         it('enables fill buttons when not logged in and password is not empty', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
-            loadPage();
+            await loadPage();
             getInput('#password').value = password;
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
@@ -204,23 +202,23 @@ describe('popup', () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username', 'password')]}});
             vaultApiStub.getSecret.mockRejectedValue({message: 'bad request'});
             vaultApiStub.getErrorMessage.mockReturnValue('formatted errors');
-            loadPage();
+            await loadPage();
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
 
             expect(vaultApi.getSecret).toBeCalledTimes(1);
             expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
-            expect(document.getElementById('status')?.innerText).toEqual('Error: formatted errors');
+            expect(document.getElementById('status')?.innerHTML).toEqual('Error: formatted errors');
             expect(getButton('div.buttons button').disabled).toEqual(true);
         });
         it('displays message for invalid Vault token', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username', 'password')]}});
-            loadPage();
+            await loadPage();
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}]}, sender, sendResponse);
 
             expect(vaultApi.getSecret).not.toBeCalled();
-            expect(document.getElementById('status')?.innerText).toEqual('Need a Vault token');
+            expect(document.getElementById('status')?.innerHTML).toEqual('Need a Vault token');
             expect(getButton('div.buttons button').disabled).toEqual(true);
         });
     });
@@ -231,7 +229,7 @@ describe('popup', () => {
             settingsStub.load.mockResolvedValue({vaultUser, token, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl, 'username')]}});
             vaultApiStub.getSecret.mockResolvedValue(secret);
             vaultApiStub.hasSecretValue.mockReturnValue(true);
-            loadPage();
+            await loadPage();
             await messageCallback()({url: pageUrl, inputs: [{name: 'username'}, {label: 'password', type: 'password'}]}, sender, sendResponse);
 
             getButton('div.buttons button').click();
@@ -248,7 +246,7 @@ describe('popup', () => {
             vaultApiStub.getSecret.mockResolvedValueOnce(new Secret({url: '', username: 'site user', password: 'site password'}));
             vaultApiStub.hasSecretValue.mockReturnValue(true);
             vaultApiStub.login.mockResolvedValue({client_token: 'new token', lease_duration: 30});
-            loadPage();
+            await loadPage();
             getInput('#password').value = password;
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
 
@@ -264,7 +262,7 @@ describe('popup', () => {
             expect(chrome.tabs.sendMessage).toBeCalledWith(sender.tab?.id, [
                 {selector: 'input[id="username"]', value: 'site user'},
                 {selector: 'input[type="password"]', value: 'site password'}]);
-            expect(document.getElementById('status')?.innerText).toEqual('');
+            expect(document.getElementById('status')?.innerHTML).toEqual('');
         });
     });
     describe('reload button', () => {
@@ -285,7 +283,7 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(document.getElementById('status')!.innerText).toEqual('Need permission to access https://my.vault');
+            expect(document.getElementById('status')!.innerHTML).toEqual('Need permission to access https://my.vault');
             expect(document.querySelector('.progress-overlay.hidden')).toBeDefined();
         });
         it('gets token from Vault when clicked', async () => {
@@ -304,7 +302,7 @@ describe('popup', () => {
             expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
             expect(settings.saveToken).toBeCalledTimes(1);
             expect(settings.saveToken).toBeCalledWith(token);
-            expect(document.getElementById('status')!.innerText).toEqual('');
+            expect(document.getElementById('status')!.innerHTML).toEqual('');
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays error from vault', async () => {
@@ -323,7 +321,7 @@ describe('popup', () => {
             expect(vaultApi.login).toBeCalledTimes(1);
             expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
             expect(settings.save).not.toBeCalled();
-            expect(document.getElementById('status')!.innerText).toEqual(message);
+            expect(document.getElementById('status')!.innerHTML).toEqual(message);
             expect(list.removeAll).not.toBeCalled();
             expect(list.addItem).not.toBeCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
@@ -341,7 +339,7 @@ describe('popup', () => {
             expect(vaultApi.login).toBeCalledTimes(1);
             expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
             expect(settings.save).not.toBeCalled();
-            expect(document.getElementById('status')!.innerText).toEqual('Did not get a token, please verify the base URL');
+            expect(document.getElementById('status')!.innerHTML).toEqual('Did not get a token, please verify the base URL');
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('updates saved URL list', async () => {
@@ -354,7 +352,7 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(document.getElementById('status')!.innerText).toEqual('');
+            expect(document.getElementById('status')!.innerHTML).toEqual('');
             expect(list.removeAll).toBeCalledTimes(1);
             expect(list.addItem).toBeCalledTimes(2);
             expect(list.addItem).toBeCalledWith('my.bank.com', urlPaths['my.bank.com']);
@@ -372,7 +370,7 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(document.getElementById('status')!.innerText).toEqual('Need a token');
+            expect(document.getElementById('status')!.innerHTML).toEqual('Need a token');
             expect(list.removeAll).not.toBeCalled();
             expect(list.addItem).not.toBeCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();

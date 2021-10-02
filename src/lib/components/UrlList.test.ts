@@ -9,7 +9,7 @@ function getText(nodeList: NodeListOf<Element>) {
 }
 
 function checkVaultPaths(card: Element, vaultPaths: string[]) {
-    const items = card.querySelectorAll('li.vault-path');
+    const items = card.querySelectorAll('li');
     expect(getText(items)).toEqual(vaultPaths);
 }
 
@@ -78,13 +78,14 @@ describe('UrlCardList', () => {
         });
         it('highlights paths that match', () => {
             const list = new UrlList(element);
-            list.addItem('my.bank.com', secretInfos('/private1', '/private2'));
+            list.addItem('my.bank.com', secretInfos('/private1', '/private2/private3'));
             list.addItem('some.other.host', secretInfos('/secret1', '/secret2'));
 
             list.filterItems('private');
 
             expect(getText(element.querySelectorAll('.mdc-list-item:not(.hidden) a'))).toEqual(['https://my.bank.com']);
-            expect(getText(element.querySelectorAll('.mdc-list-item:not(.hidden) li'))).toEqual(['/<em>private</em>1', '/<em>private</em>2']);
+            expect(getText(element.querySelectorAll('.mdc-list-item:not(.hidden) li')))
+                .toEqual(['/<em>private</em>1', '/<em>private</em>2/<em>private</em>3']);
             expect(getText(element.querySelectorAll('.mdc-list-item.hidden a'))).toEqual(['https://some.other.host']);
         });
     });

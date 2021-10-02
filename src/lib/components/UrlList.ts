@@ -1,18 +1,36 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCList} from '@material/list';
 import {SecretInfo} from '../vaultApi';
+import {createLink, createList, createSpan} from '../html';
 
-const itemHtml = (url: string, vaultPaths: string[]) =>
-`<span class="mdc-list-item__ripple"></span>
-<span class="mdc-list-item__text">
-    <span class="mdc-list-item__primary-text"><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></span>
-    <span class="mdc-list-item__secondary-text">
-        <ul>${vaultPaths.map((path) => `<li class="vault-path">${path}</li>`).join('')}</ul>
-    </span>
-</span>`;
+function itemHtml(url: string, vaultPaths: string[]) {
+    const ripple = createSpan({className: 'mdc-list-item__ripple'});
+    const item = createSpan({className: 'mdc-list-item__text'});
+    item.appendChild(createSpan({className: 'mdc-list-item__primary-text', children: [createLink(url)]}));
+    item.appendChild(createSpan({className: 'mdc-list-item__secondary-text', children: [createList(vaultPaths)]}));
+    return [ripple, item];
+}
 
 function emphasize(element: Element | null, value: string, search: string) {
-    if (element) element.innerHTML = value.replace(RegExp(search, 'gi'), (match) => `<em>${match}</em>`);
+    if (element) {
+        const lowerValue = value.toLowerCase();
+        const children: (HTMLElement | string)[] = [];
+        for (let i = 0; i < value.length; ) {
+            const index = lowerValue.indexOf(search, i);
+            if (index >= 0) {
+                if (index > i) children.push(value.slice(i, index));
+                i = index + search.length;
+                const em = document.createElement('em');
+                em.replaceChildren(value.slice(index, i));
+                children.push(em);
+            }
+            else {
+                children.push(value.slice(i));
+                i = value.length;
+            }
+        }
+        element.replaceChildren(...children);
+    }
 }
 
 class UrlListItem {
@@ -25,20 +43,20 @@ class UrlListItem {
         this.secrets = secrets;
         this.listItem = document.createElement('li');
         this.listItem.className = 'mdc-list-item';
-        this.listItem.innerHTML = itemHtml(this.url, secrets.map((s) => s.path));
+        this.listItem.replaceChildren(...itemHtml(this.url, secrets.map((s) => s.path)));
         parent.appendChild(this.listItem);
         new MDCRipple(this.listItem);
     }
 
     private addEmphasis(search: string) {
         emphasize(this.listItem.querySelector('span a'), this.url, search);
-        this.listItem.querySelectorAll('li.vault-path').forEach((li, i) => emphasize(li, this.secrets[i].path, search));
+        this.listItem.querySelectorAll('li').forEach((li, i) => emphasize(li, this.secrets[i].path, search));
     }
 
     private removeEmphasis() {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.listItem.querySelector('span a')!.innerHTML = this.url;
-        this.listItem.querySelectorAll('li.vault-path').forEach((li, i) => li.innerHTML = this.secrets[i].path);
+        this.listItem.querySelector('span a')!.replaceChildren(this.url);
+        this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secrets[i].path));
     }
 
     remove() {
@@ -50,23 +68,29 @@ class UrlListItem {
     }
 
     private removeClass(toRemove: string) {
-        this.listItem.className = this.listItem.className.split(/ +/).filter(name => name !== toRemove).join(' ');
+        if (this.listItem.classList.contains(toRemove)) {
+            this.listItem.classList.remove(toRemove);
+            return true;
+        }
+        return false;
     }
 
     private addClass(toAdd: string) {
-        const classList = this.listItem.className.split(/ +/);
-        this.listItem.className = classList.includes(toAdd) ? this.listItem.className : `${this.listItem.className} ${toAdd}`;
+        if (this.listItem.classList.contains(toAdd)) return false;
+        this.listItem.classList.add(toAdd);
+        return true;
     }
 
     applyFilter(search: string) {
-        if (this.containsMatch(search)) this.removeClass('hidden');
-        else this.addClass('hidden');
-        this.addEmphasis(search);
+        if (this.containsMatch(search)) {
+            this.removeClass('hidden');
+            this.addEmphasis(search);
+        }
+        else if (this.addClass('hidden')) this.removeEmphasis();
     }
 
     show() {
-        this.removeClass('hidden');
-        this.removeEmphasis();
+        if (!this.removeClass('hidden')) this.removeEmphasis();
     }
 }
 
