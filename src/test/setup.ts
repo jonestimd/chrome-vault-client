@@ -20,6 +20,7 @@ global.chrome = {
         sendMessage: jest.fn(),
         executeScript: jest.fn(),
         getCurrent: jest.fn().mockReturnValue({id: 42}),
+        query: jest.fn(),
         onCreated: {
             addListener: jest.fn(),
         },

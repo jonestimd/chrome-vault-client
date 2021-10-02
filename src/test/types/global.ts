@@ -22,4 +22,13 @@ declare global {
         sendMessage: jest.MockedFunction<any>;
         getPlatformInfo: jest.MockedFunction<any>;
     }
+
+    interface IMockTabs {
+        sendMessage: jest.MockedFunction<any>,
+        executeScript: jest.MockedFunction<any>,
+        query: jest.MockedFunction<any>;
+        onCreated: {
+            addListener: jest.MockedFunction<any>;
+        };
+    }
 }

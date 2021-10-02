@@ -16,6 +16,7 @@ jest.mock('./vaultApi');
 jest.mock('./components/UrlList');
 
 const mockRuntime = chrome.runtime as IMockChromeRuntime;
+const mockTabs = chrome.tabs as IMockTabs;
 let MockTextField: typeof textfield.MDCTextField;
 
 const nextTick = promisify(setImmediate);
@@ -85,13 +86,33 @@ async function testFillButtonEnabled(field: string) {
 }
 
 describe('popup', () => {
-    it('executes content script', async () => {
+    it('executes content script for web url', async () => {
         settingsStub.load.mockResolvedValue({});
+        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
+        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([{url: 'https://example.com'}]));
 
         await loadPage();
 
         expect(chrome.tabs.executeScript).toBeCalledTimes(1);
         expect(chrome.tabs.executeScript).toBeCalledWith({file: 'contentScript.js', allFrames: true});
+    });
+    it('does not execute content script for non-web url', async () => {
+        settingsStub.load.mockResolvedValue({});
+        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
+        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([{url: 'about:debugging'}]));
+
+        await loadPage();
+
+        expect(chrome.tabs.executeScript).not.toBeCalled();
+    });
+    it('does not execute content script for no tab', async () => {
+        settingsStub.load.mockResolvedValue({});
+        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
+        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([]));
+
+        await loadPage();
+
+        expect(chrome.tabs.executeScript).not.toBeCalled();
     });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});

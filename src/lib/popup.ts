@@ -223,16 +223,13 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
     passwordInput.listen('input', updateButtons);
 });
 
-chrome.tabs.executeScript({file: 'contentScript.js', allFrames: true});
-
-async function closeOnNewTab() {
-    const isAndroid = await new Promise((resolve) => {
-        chrome.runtime.getPlatformInfo((info) => resolve(info.os.toLowerCase().includes('android')));
+chrome.runtime.getPlatformInfo((info) => {
+    const isAndroid = info.os.toLowerCase().includes('android');
+    chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
+        if (tab?.url && /^https?:/.test(tab.url)) chrome.tabs.executeScript({file: 'contentScript.js', allFrames: true});
+        chrome.tabs.onCreated.addListener(() => {
+            if (isAndroid) tab?.id && chrome.tabs.remove(tab.id);
+            else window.close();
+        });
     });
-    const tab = await chrome.tabs.getCurrent();
-    chrome.tabs.onCreated.addListener(() => {
-        if (isAndroid) tab.id && chrome.tabs.remove(tab.id);
-        else window.close();
-    });
-}
-closeOnNewTab();
+});

@@ -13,7 +13,7 @@
         "build:dev": "npm run build -- --config webpack-dev.config.js",
         "build": "webpack --node-env production",
         "postbuild": "cp -r src/views/* src/images/ build",
-        "package:chrome": "cp src/manifest.chrome.json build/manifest.json && google-chrome --pack-extension=build && mv build.crx vault-client.crx && mv build.pem vault-client.pem",
+        "package:chrome": "cp src/manifest.chrome.json build/manifest.json # && google-chrome --pack-extension=build && mv build.crx vault-client.crx && mv build.pem vault-client.pem",
         "package:firefox": "cp src/manifest.firefox.json build/manifest.json && cd build && zip -r -FS ../vault-client.zip *",
         "package": "npm run build && npm run package:chrome && npm run package:firefox",
         "presign": "npm run build && cp src/manifest.firefox.json build/manifest.json",
