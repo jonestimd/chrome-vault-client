@@ -24,7 +24,7 @@ describe('UrlCardList', () => {
         global.document = window.document;
         element = document.querySelector('#saved-urls')!;
         pageOpener = document.getElementById('page-opener') as HTMLAnchorElement;
-        jest.spyOn(pageOpener, 'click').mockImplementation(() => {});
+        jest.spyOn(pageOpener, 'click').mockImplementation(() => { });
     });
     afterEach(() => {
         global.window = {} as any;
@@ -38,9 +38,9 @@ describe('UrlCardList', () => {
 
             const items = element.querySelectorAll('.mdc-list-item');
             expect(items).toHaveLength(1);
-            expect(items[0].querySelector('a')?.innerHTML).toEqual('https://my.bank.com');
-            expect(items[0].querySelector('a')?.getAttribute('href')).toEqual('https://my.bank.com');
-            checkVaultPaths(items[0], ['/secret1', '/secret2']);
+            expect(items[0]!.querySelector('a')?.innerHTML).toEqual('https://my.bank.com');
+            expect(items[0]!.querySelector('a')?.getAttribute('href')).toEqual('https://my.bank.com');
+            checkVaultPaths(items[0]!, ['/secret1', '/secret2']);
         });
         it('defaults protocol to https', () => {
             const list = new UrlList(element);
@@ -49,9 +49,9 @@ describe('UrlCardList', () => {
 
             const items = element.querySelectorAll('.mdc-list-item');
             expect(items).toHaveLength(1);
-            expect(items[0].querySelector('a')?.innerHTML).toEqual('https://my.bank.com');
-            expect(items[0].querySelector('a')?.getAttribute('href')).toEqual('https://my.bank.com');
-            checkVaultPaths(items[0], ['/secret1']);
+            expect(items[0]!.querySelector('a')?.innerHTML).toEqual('https://my.bank.com');
+            expect(items[0]!.querySelector('a')?.getAttribute('href')).toEqual('https://my.bank.com');
+            checkVaultPaths(items[0]!, ['/secret1']);
         });
     });
     describe('filteritems', () => {

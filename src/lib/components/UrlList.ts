@@ -11,8 +11,8 @@ function itemHtml(url: string, vaultPaths: string[]) {
     return [ripple, item];
 }
 
-function emphasize(element: Element | null, value: string, search: string) {
-    if (element) {
+function emphasize(element: Element | null, value: string | undefined, search: string) {
+    if (element && value) {
         const lowerValue = value.toLowerCase();
         const children: (HTMLElement | string)[] = [];
         for (let i = 0; i < value.length;) {
@@ -50,13 +50,13 @@ class UrlListItem {
 
     private addEmphasis(search: string) {
         emphasize(this.listItem.querySelector('span a'), this.url, search);
-        this.listItem.querySelectorAll('li').forEach((li, i) => emphasize(li, this.secrets[i].path, search));
+        this.listItem.querySelectorAll('li').forEach((li, i) => emphasize(li, this.secrets[i]?.path, search));
     }
 
     private removeEmphasis() {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.listItem.querySelector('span a')!.replaceChildren(this.url);
-        this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secrets[i].path));
+        this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secrets[i]!.path));
     }
 
     remove() {

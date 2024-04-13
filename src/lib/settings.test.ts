@@ -43,7 +43,7 @@ describe('settings', () => {
 
             expect(result).toEqual(storedSettings);
             expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.get.mock.calls[0][0])
+            expect(chromeStorage.local.get.mock.calls[0]![0])
                 .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
         });
     });
@@ -52,7 +52,7 @@ describe('settings', () => {
             await settings.save(vaultUrl, vaultPath, vaultUser, token);
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({vaultUrl, vaultPath, vaultUser, token});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({vaultUrl, vaultPath, vaultUser, token});
         });
     });
     describe('saveToken', () => {
@@ -60,7 +60,7 @@ describe('settings', () => {
             await settings.saveToken(token);
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({token});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({token});
         });
     });
     describe('clearToken', () => {
@@ -68,7 +68,7 @@ describe('settings', () => {
             await settings.clearToken();
 
             expect(chromeStorage.local.remove).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.remove.mock.calls[0][0]).toEqual(['token']);
+            expect(chromeStorage.local.remove.mock.calls[0]![0]).toEqual(['token']);
         });
     });
     describe('cacheUrlPaths', () => {
@@ -90,7 +90,7 @@ describe('settings', () => {
 
             expect(result).toEqual(urlPaths);
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({urlPaths});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({urlPaths});
             expect(vaultApiStub.getUrlPaths).toHaveBeenCalledTimes(1);
             expect(vaultApiStub.getUrlPaths).toHaveBeenCalledWith(vaultUrl, vaultPath, token);
         });
@@ -115,7 +115,7 @@ describe('settings', () => {
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set).toHaveBeenCalledWith({urlPaths}, expect.any(Function));
-            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site'][0].url)]);
+            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site']![0]!.url)]);
         });
         it('returns unique secret URLs', async () => {
             const urlPaths = {
@@ -128,7 +128,7 @@ describe('settings', () => {
 
             const result = await settings.uniqueUrls();
 
-            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site'][0].url)]);
+            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site']![0]!.url)]);
         });
         it('defaults protocol to https', async () => {
             const hostname = 'my-bank.com';

@@ -194,8 +194,8 @@ chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, s
                     showStatus('Error: ' + getMessage(err));
                 }
             }
-            if (accessor.secrets[secretInfo.path]) {
-                const secretData = accessor.secrets[secretInfo.path];
+            const secretData = accessor.secrets[secretInfo.path];
+            if (secretData) {
                 const inputs = message.inputs.reduce((inputs: LoginInput[], input) => {
                     const {inputProp, key, value} = secretData.findValue(input) || {} as vaultApi.InputMatch;
                     if (inputProp && value) {

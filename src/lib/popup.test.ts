@@ -176,12 +176,12 @@ describe('popup', () => {
 
             const pageInputs = document.getElementById('page-inputs');
             expect(pageInputs?.childNodes).toHaveLength(1);
-            expect(pageInputs?.children[0].innerHTML).toEqual(
-                `<div class="row"><span class="label">type</span><span>${inputs[0].type}</span></div>` +
-                `<div class="row"><span class="label">id</span><span>${inputs[0].id}</span></div>` +
-                `<div class="row"><span class="label">name</span><span>${inputs[0].name}</span></div>` +
-                `<div class="row"><span class="label">label</span><span>${inputs[0].label}</span></div>` +
-                `<div class="row"><span class="label">placeholder</span><span>${inputs[0].placeholder}</span></div>`);
+            expect(pageInputs?.children[0]?.innerHTML).toEqual(
+                `<div class="row"><span class="label">type</span><span>${inputs[0]!.type}</span></div>` +
+                `<div class="row"><span class="label">id</span><span>${inputs[0]!.id}</span></div>` +
+                `<div class="row"><span class="label">name</span><span>${inputs[0]!.name}</span></div>` +
+                `<div class="row"><span class="label">label</span><span>${inputs[0]!.label}</span></div>` +
+                `<div class="row"><span class="label">placeholder</span><span>${inputs[0]!.placeholder}</span></div>`);
             expect(document.querySelector('#page-inputs-switch i')?.innerHTML).toEqual('arrow_right');
             expect(pageInputs?.parentElement?.style.height).toEqual('0px');
         });

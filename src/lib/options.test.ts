@@ -109,7 +109,7 @@ describe('options', () => {
             expect(vaultApi.logout).toHaveBeenCalledTimes(1);
             expect(vaultApi.logout).toHaveBeenCalledWith(vaultUrl, token);
             expect(settings.clearToken).toHaveBeenCalledTimes(1);
-            expect(MockSnackbar.mock.instances[0].open).not.toHaveBeenCalled();
+            expect(MockSnackbar.mock.instances[0]?.open).not.toHaveBeenCalled();
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
         });
         it('displays error from Vault', async () => {
@@ -124,8 +124,8 @@ describe('options', () => {
             expect(vaultApi.logout).toHaveBeenCalledTimes(1);
             expect(vaultApi.logout).toHaveBeenCalledWith(vaultUrl, token);
             expect(settings.clearToken).toHaveBeenCalledTimes(1);
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual('Error revoking token: bad request');
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('Error revoking token: bad request');
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.getElementById('status')!.innerText).toEqual('Logged in');
         });
     });
@@ -147,8 +147,8 @@ describe('options', () => {
             document.getElementById('save')!.click();
 
             await nextTick();
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual(`Need permission to access ${vaultUrl}`);
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual(`Need permission to access ${vaultUrl}`);
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('gets token from Vault when clicked', async () => {
@@ -168,7 +168,7 @@ describe('options', () => {
             expect(settings.save).toHaveBeenCalledTimes(1);
             expect(settings.save).toHaveBeenCalledWith(vaultUrl, vaultPath, vaultUser, token);
             expect(document.getElementById('status')!.innerText).toEqual('Logged in');
-            expect(MockSnackbar.mock.instances[0].open).not.toHaveBeenCalled();
+            expect(MockSnackbar.mock.instances[0]?.open).not.toHaveBeenCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays error from vault', async () => {
@@ -185,8 +185,8 @@ describe('options', () => {
             expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
             expect(settings.save).not.toHaveBeenCalled();
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual('invalid user or password');
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('invalid user or password');
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays message for response which does not contain a token', async () => {
@@ -203,8 +203,8 @@ describe('options', () => {
             expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
             expect(settings.save).not.toHaveBeenCalled();
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual('Did not get a token, please verify the base URL');
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('Did not get a token, please verify the base URL');
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays message for expired token', async () => {
@@ -217,8 +217,8 @@ describe('options', () => {
 
             await nextTick();
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual('Need a token');
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('Need a token');
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays error from Vault', async () => {
@@ -230,8 +230,8 @@ describe('options', () => {
 
             await nextTick();
             expect(document.getElementById('status')!.innerText).toEqual('Logged in');
-            expect(MockSnackbar.mock.instances[0].labelText).toEqual('bad request');
-            expect(MockSnackbar.mock.instances[0].open).toHaveBeenCalledTimes(1);
+            expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('bad request');
+            expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
     });

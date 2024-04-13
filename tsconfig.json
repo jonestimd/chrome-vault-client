@@ -5,6 +5,7 @@
         "lib": ["es2019", "dom"],
         "allowJs": true,
         "noImplicitAny": true,
+        "noUncheckedIndexedAccess": true,
         "sourceMap": true,
         "target": "es2019",
         "outDir": "build",
