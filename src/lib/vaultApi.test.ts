@@ -17,6 +17,10 @@ function mockGets(responses: Record<string, any>) {
 }
 
 describe('vaultApi', () => {
+    beforeEach(() => {
+        jest.spyOn(console, 'log').mockImplementation(() => { });
+        jest.spyOn(console, 'info').mockImplementation(() => { });
+    });
     describe('getErrorMessage', () => {
         it('returns message if response is undefined', () => {
             const message = 'some error';
@@ -43,9 +47,9 @@ describe('vaultApi', () => {
             const result = await vaultApi.login(vaultUrl, username, password);
 
             expect(result).toEqual(auth);
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/userpass/login/${username}`, {}, {password});
-            expect(chrome.alarms.create).not.toBeCalled();
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/userpass/login/${username}`, {}, {password});
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('sets alarm to renew the token', async () => {
             const auth = {renewable: true, lease_duration: 60};
@@ -54,8 +58,8 @@ describe('vaultApi', () => {
             const result = await vaultApi.login(vaultUrl, username, password);
 
             expect(result).toEqual(auth);
-            expect(chrome.alarms.create).toBeCalledTimes(1);
-            expect(chrome.alarms.create).toBeCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
+            expect(chrome.alarms.create).toHaveBeenCalledTimes(1);
+            expect(chrome.alarms.create).toHaveBeenCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
         });
         it('does not set alarm to renew the token if lease duration is less than 60s', async () => {
             const auth = {renewable: true, lease_duration: 59};
@@ -64,7 +68,7 @@ describe('vaultApi', () => {
             const result = await vaultApi.login(vaultUrl, username, password);
 
             expect(result).toEqual(auth);
-            expect(chrome.alarms.create).not.toBeCalled();
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('throws error if response does not contain auth object', async () => {
             jest.spyOn(agent, 'post').mockResolvedValue({});
@@ -85,10 +89,10 @@ describe('vaultApi', () => {
 
             expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
 
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
-            expect(chrome.alarms.create).toBeCalledTimes(1);
-            expect(chrome.alarms.create).toBeCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
+            expect(chrome.alarms.create).toHaveBeenCalledTimes(1);
+            expect(chrome.alarms.create).toHaveBeenCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
         });
         it('does not set new alarm if token is not renewable', async () => {
             const auth = {renewable: false, lease_duration: 60};
@@ -96,9 +100,9 @@ describe('vaultApi', () => {
 
             expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
 
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
-            expect(chrome.alarms.create).not.toBeCalled();
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('does not set new alarm if lease duration is less than 60s', async () => {
             const auth = {renewable: false, lease_duration: 59};
@@ -106,18 +110,18 @@ describe('vaultApi', () => {
 
             expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
 
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
-            expect(chrome.alarms.create).not.toBeCalled();
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('returns false if renewal fails', async () => {
             jest.spyOn(agent, 'post').mockRejectedValue(new Error('permission denied'));
 
             expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(false);
 
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
-            expect(chrome.alarms.create).not.toBeCalled();
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
+            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
     });
     describe('logout', () => {
@@ -126,8 +130,8 @@ describe('vaultApi', () => {
 
             await vaultApi.logout(vaultUrl, token);
 
-            expect(agent.post).toBeCalledTimes(1);
-            expect(agent.post).toBeCalledWith(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
+            expect(agent.post).toHaveBeenCalledTimes(1);
+            expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
         });
     });
     describe('getSecret', () => {
@@ -143,8 +147,8 @@ describe('vaultApi', () => {
             expect(result?.get('username')).toEqual(data.username);
             expect(result?.password).toEqual(data.password);
             expect(result?.get('email')).toEqual(data.email);
-            expect(agent.get).toBeCalledTimes(1);
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${path}`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledTimes(1);
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${path}`, {}, {[authHeader]: token});
         });
     });
     describe('getUrlPaths', () => {
@@ -154,8 +158,8 @@ describe('vaultApi', () => {
             const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
 
             expect(result).toEqual({});
-            expect(agent.list).toBeCalledTimes(1);
-            expect(agent.list).toBeCalledWith(`${vaultUrl}/v1/secret/metadata/${vaultPath}`, {[authHeader]: token});
+            expect(agent.list).toHaveBeenCalledTimes(1);
+            expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/${vaultPath}`, {[authHeader]: token});
         });
         it('accepts empty string for path', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: []}});
@@ -163,8 +167,8 @@ describe('vaultApi', () => {
             const result = await vaultApi.getUrlPaths(vaultUrl, '', token);
 
             expect(result).toEqual({});
-            expect(agent.list).toBeCalledTimes(1);
-            expect(agent.list).toBeCalledWith(`${vaultUrl}/v1/secret/metadata/`, {[authHeader]: token});
+            expect(agent.list).toHaveBeenCalledTimes(1);
+            expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/`, {[authHeader]: token});
         });
         it('returns secret path and keys for each URL', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['secret1', 'secret2', 'secret3', 'secret4', 'secret5']}});
@@ -182,10 +186,10 @@ describe('vaultApi', () => {
                 'https://url3': [{path: 'web/secret3', url: 'https://url3', keys: ['note']}],
                 'https://url4': [{path: 'web/secret4', url: 'https://url4', keys: ['username', 'password', 'email']}],
             });
-            expect(agent.get).toBeCalledTimes(5);
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret1`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret2`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret3`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledTimes(5);
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret1`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret2`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret3`, {}, {[authHeader]: token});
         });
         it('groups data by url', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['secret1', 'secret2', 'secret3', 'secret4']}});
@@ -203,11 +207,11 @@ describe('vaultApi', () => {
                 'https://host1:8080': [{path: 'web/secret4', url: 'https://host1:8080', keys: ['username', 'password']}],
                 'https://host2': [{path: 'web/secret2', url: 'https://host2', keys: ['password']}],
             });
-            expect(agent.get).toBeCalledTimes(4);
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret2`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret3`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret4`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledTimes(4);
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret2`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret3`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret4`, {}, {[authHeader]: token});
         });
         it('returns data for nested secret paths', async () => {
             jest.spyOn(agent, 'list').mockResolvedValueOnce({data: {keys: ['nested/', 'secret1']}})
@@ -225,12 +229,12 @@ describe('vaultApi', () => {
                 'https://url2': [{path: 'web/nested/secret2', url: 'https://url2', keys: ['password']}],
                 'https://url3': [{path: 'web/nested/secret3', url: 'https://url3', keys: ['username', 'password']}],
             });
-            expect(agent.list).toBeCalledWith(`${vaultUrl}/v1/secret/metadata/web`, {[authHeader]: token});
-            expect(agent.list).toBeCalledWith(`${vaultUrl}/v1/secret/metadata/web/nested/`, {[authHeader]: token});
-            expect(agent.get).toBeCalledTimes(3);
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret2`, {}, {[authHeader]: token});
-            expect(agent.get).toBeCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret3`, {}, {[authHeader]: token});
+            expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/web`, {[authHeader]: token});
+            expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/web/nested/`, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledTimes(3);
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret2`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret3`, {}, {[authHeader]: token});
         });
     });
 });

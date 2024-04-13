@@ -98,7 +98,7 @@ interface SecretsList {
 
 class Matcher {
     private static readonly inputProps: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
-    private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = []
+    private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = [];
 
     constructor(input: InputInfoProps) {
         for (const prop of Matcher.inputProps) {
@@ -130,8 +130,8 @@ function asUrl(hostOrUrl: string): string {
 }
 
 export class Secret {
-    readonly url: string
-    private readonly _siteUrl?: string
+    readonly url: string;
+    private readonly _siteUrl?: string;
     private readonly _data: Readonly<Record<string, string | undefined>>;
     private readonly _keys: string[];
 

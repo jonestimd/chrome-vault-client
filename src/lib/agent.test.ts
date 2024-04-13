@@ -21,7 +21,7 @@ describe('agent', () => {
             const result = await agent.get(url, query, headers);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(`${url}/?param=value`, {headers});
+            expect(fetch).toHaveBeenCalledWith(`${url}/?param=value`, {headers});
         });
         it('defaults to no query or headers', async () => {
             const data = {data: 'value'};
@@ -30,7 +30,7 @@ describe('agent', () => {
             const result = await agent.get(url);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(`${url}/`, {headers: {}});
+            expect(fetch).toHaveBeenCalledWith(`${url}/`, {headers: {}});
         });
         it('throws error if !ok', async () => {
             const message = 'something went wrong';
@@ -48,7 +48,7 @@ describe('agent', () => {
             const result = await agent.list(url, headers);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(url, {method: 'LIST', headers});
+            expect(fetch).toHaveBeenCalledWith(url, {method: 'LIST', headers});
         });
         it('defaults to no query or headers', async () => {
             const data = {data: 'value'};
@@ -57,7 +57,7 @@ describe('agent', () => {
             const result = await agent.list(url);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(url, {method: 'LIST', headers: {}});
+            expect(fetch).toHaveBeenCalledWith(url, {method: 'LIST', headers: {}});
         });
         it('throws error if !ok', async () => {
             const message = 'something went wrong';
@@ -75,7 +75,7 @@ describe('agent', () => {
             const result = await agent.post(url, headers);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(url, {method: 'POST', body: undefined, headers});
+            expect(fetch).toHaveBeenCalledWith(url, {method: 'POST', body: undefined, headers});
         });
         it('returns empty response', async () => {
             const headers = {auth: 'token'};
@@ -84,7 +84,7 @@ describe('agent', () => {
             const result = await agent.post(url, headers);
 
             expect(result).toEqual('');
-            expect(fetch).toBeCalledWith(url, {method: 'POST', body: undefined, headers});
+            expect(fetch).toHaveBeenCalledWith(url, {method: 'POST', body: undefined, headers});
         });
         it('stringifies body', async () => {
             const data = {data: 'value'};
@@ -95,7 +95,7 @@ describe('agent', () => {
             const result = await agent.post(url, headers, body);
 
             expect(result).toEqual(data);
-            expect(fetch).toBeCalledWith(url, {method: 'POST', body: JSON.stringify(body), headers});
+            expect(fetch).toHaveBeenCalledWith(url, {method: 'POST', body: JSON.stringify(body), headers});
         });
         it('throws error if !ok', async () => {
             const message = 'something went wrong';

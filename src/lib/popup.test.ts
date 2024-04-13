@@ -80,8 +80,8 @@ async function testFillButtonEnabled(field: string) {
     const button = document.querySelector('div.buttons button') as HTMLButtonElement;
     expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
     expect(button.disabled).toEqual(false);
-    expect(vaultApi.getSecret).toBeCalledTimes(1);
-    expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
+    expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
+    expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
     expect(document.getElementById('status')?.innerHTML).toEqual('');
 }
 
@@ -93,8 +93,8 @@ describe('popup', () => {
 
         await loadPage();
 
-        expect(chrome.tabs.executeScript).toBeCalledTimes(1);
-        expect(chrome.tabs.executeScript).toBeCalledWith({file: 'contentScript.js', allFrames: true});
+        expect(chrome.tabs.executeScript).toHaveBeenCalledTimes(1);
+        expect(chrome.tabs.executeScript).toHaveBeenCalledWith({file: 'contentScript.js', allFrames: true});
     });
     it('does not execute content script for non-web url', async () => {
         settingsStub.load.mockResolvedValue({});
@@ -103,7 +103,7 @@ describe('popup', () => {
 
         await loadPage();
 
-        expect(chrome.tabs.executeScript).not.toBeCalled();
+        expect(chrome.tabs.executeScript).not.toHaveBeenCalled();
     });
     it('does not execute content script for no tab', async () => {
         settingsStub.load.mockResolvedValue({});
@@ -112,7 +112,7 @@ describe('popup', () => {
 
         await loadPage();
 
-        expect(chrome.tabs.executeScript).not.toBeCalled();
+        expect(chrome.tabs.executeScript).not.toHaveBeenCalled();
     });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, urlPaths: {[pageUrl]: [secretInfo(vaultPath, pageUrl)]}});
@@ -136,10 +136,10 @@ describe('popup', () => {
 
         await loadPage();
 
-        expect(urlList('saved-urls').removeAll).toBeCalledTimes(1);
-        expect(urlList('saved-urls').addItem).toBeCalledTimes(2);
-        expect(urlList('saved-urls').addItem).toBeCalledWith('my.bank.com', urlPaths['my.bank.com']);
-        expect(urlList('saved-urls').addItem).toBeCalledWith('my.utility.com', urlPaths['my.utility.com']);
+        expect(urlList('saved-urls').removeAll).toHaveBeenCalledTimes(1);
+        expect(urlList('saved-urls').addItem).toHaveBeenCalledTimes(2);
+        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.bank.com', urlPaths['my.bank.com']);
+        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.utility.com', urlPaths['my.utility.com']);
     });
     describe('page-inputs-switch', () => {
         it('expands page-inputs', async () => {
@@ -205,8 +205,8 @@ describe('popup', () => {
             const button = document.querySelector('div.buttons button') as HTMLButtonElement;
             expect(button.disabled).toEqual(true);
             expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
-            expect(vaultApi.getSecret).toBeCalledTimes(1);
-            expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
+            expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
+            expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
             expect(document.getElementById('status')?.innerHTML).toEqual('Invalid token');
         });
         it('enables fill buttons when not logged in and password is not empty', async () => {
@@ -227,8 +227,8 @@ describe('popup', () => {
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
 
-            expect(vaultApi.getSecret).toBeCalledTimes(1);
-            expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
+            expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
+            expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
             expect(document.getElementById('status')?.innerHTML).toEqual('Error: formatted errors');
             expect(getButton('div.buttons button').disabled).toEqual(true);
         });
@@ -238,7 +238,7 @@ describe('popup', () => {
 
             await messageCallback()({url: pageUrl, inputs: [{id: 'username'}]}, sender, sendResponse);
 
-            expect(vaultApi.getSecret).not.toBeCalled();
+            expect(vaultApi.getSecret).not.toHaveBeenCalled();
             expect(document.getElementById('status')?.innerHTML).toEqual('Need a Vault token');
             expect(getButton('div.buttons button').disabled).toEqual(true);
         });
@@ -255,8 +255,8 @@ describe('popup', () => {
 
             getButton('div.buttons button').click();
 
-            expect(chrome.tabs.sendMessage).toBeCalledTimes(1);
-            expect(chrome.tabs.sendMessage).toBeCalledWith(sender.tab?.id, [
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(sender.tab?.id, [
                 {selector: 'input[name="username"]', value: secretData.username},
                 {label: 'password', value: secretData.password},
             ]);
@@ -274,13 +274,13 @@ describe('popup', () => {
             getButton('div.buttons button').click();
 
             await nextTick();
-            expect(vaultApi.getSecret).toBeCalledTimes(2);
-            expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, token, vaultPath);
-            expect(vaultApi.getSecret).toBeCalledWith(vaultUrl, 'new token', vaultPath);
-            expect(vaultApi.login).toBeCalledTimes(1);
-            expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
-            expect(chrome.tabs.sendMessage).toBeCalledTimes(1);
-            expect(chrome.tabs.sendMessage).toBeCalledWith(sender.tab?.id, [
+            expect(vaultApi.getSecret).toHaveBeenCalledTimes(2);
+            expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
+            expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, 'new token', vaultPath);
+            expect(vaultApi.login).toHaveBeenCalledTimes(1);
+            expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(sender.tab?.id, [
                 {selector: 'input[id="username"]', value: 'site user'},
                 {selector: 'input[type="password"]', value: 'site password'}]);
             expect(document.getElementById('status')?.innerHTML).toEqual('');
@@ -319,10 +319,10 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(vaultApi.login).toBeCalledTimes(1);
-            expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
-            expect(settings.saveToken).toBeCalledTimes(1);
-            expect(settings.saveToken).toBeCalledWith(token);
+            expect(vaultApi.login).toHaveBeenCalledTimes(1);
+            expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
+            expect(settings.saveToken).toHaveBeenCalledTimes(1);
+            expect(settings.saveToken).toHaveBeenCalledWith(token);
             expect(document.getElementById('status')!.innerHTML).toEqual('');
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
@@ -339,12 +339,12 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(vaultApi.login).toBeCalledTimes(1);
-            expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
-            expect(settings.save).not.toBeCalled();
+            expect(vaultApi.login).toHaveBeenCalledTimes(1);
+            expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
+            expect(settings.save).not.toHaveBeenCalled();
             expect(document.getElementById('status')!.innerHTML).toEqual(message);
-            expect(list.removeAll).not.toBeCalled();
-            expect(list.addItem).not.toBeCalled();
+            expect(list.removeAll).not.toHaveBeenCalled();
+            expect(list.addItem).not.toHaveBeenCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays message for empty response', async () => {
@@ -357,9 +357,9 @@ describe('popup', () => {
             document.getElementById('reload')!.click();
 
             await nextTick();
-            expect(vaultApi.login).toBeCalledTimes(1);
-            expect(vaultApi.login).toBeCalledWith(vaultUrl, vaultUser, password);
-            expect(settings.save).not.toBeCalled();
+            expect(vaultApi.login).toHaveBeenCalledTimes(1);
+            expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
+            expect(settings.save).not.toHaveBeenCalled();
             expect(document.getElementById('status')!.innerHTML).toEqual('Did not get a token, please verify the base URL');
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
@@ -374,10 +374,10 @@ describe('popup', () => {
 
             await nextTick();
             expect(document.getElementById('status')!.innerHTML).toEqual('');
-            expect(list.removeAll).toBeCalledTimes(1);
-            expect(list.addItem).toBeCalledTimes(2);
-            expect(list.addItem).toBeCalledWith('my.bank.com', urlPaths['my.bank.com']);
-            expect(list.addItem).toBeCalledWith('my.utility.com', urlPaths['my.utility.com']);
+            expect(list.removeAll).toHaveBeenCalledTimes(1);
+            expect(list.addItem).toHaveBeenCalledTimes(2);
+            expect(list.addItem).toHaveBeenCalledWith('my.bank.com', urlPaths['my.bank.com']);
+            expect(list.addItem).toHaveBeenCalledWith('my.utility.com', urlPaths['my.utility.com']);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays message for expired token', async () => {
@@ -392,8 +392,8 @@ describe('popup', () => {
 
             await nextTick();
             expect(document.getElementById('status')!.innerHTML).toEqual('Need a token');
-            expect(list.removeAll).not.toBeCalled();
-            expect(list.addItem).not.toBeCalled();
+            expect(list.removeAll).not.toHaveBeenCalled();
+            expect(list.addItem).not.toHaveBeenCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
     });
@@ -404,8 +404,8 @@ describe('popup', () => {
 
             textField('vault-filter').triggerChange('search');
 
-            expect(urlList('saved-urls').filterItems).toBeCalledTimes(1);
-            expect(urlList('saved-urls').filterItems).toBeCalledWith('search');
+            expect(urlList('saved-urls').filterItems).toHaveBeenCalledTimes(1);
+            expect(urlList('saved-urls').filterItems).toHaveBeenCalledWith('search');
         });
         it('resets cards when input is empty', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, urlPaths});
@@ -413,8 +413,8 @@ describe('popup', () => {
 
             textField('vault-filter').triggerChange('');
 
-            expect(urlList('saved-urls').showAll).toBeCalledTimes(1);
-            expect(urlList('saved-urls').showAll).toBeCalledWith();
+            expect(urlList('saved-urls').showAll).toHaveBeenCalledTimes(1);
+            expect(urlList('saved-urls').showAll).toHaveBeenCalledWith();
         });
     });
 });

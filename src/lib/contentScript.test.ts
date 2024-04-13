@@ -10,10 +10,10 @@ const mockRuntime = chrome.runtime as IMockChromeRuntime;
 
 function mockValue(input: HTMLInputElement, value?: string) {
     jest.spyOn(input, 'value', 'get').mockReturnValue(value ?? '');
-    const valueSetter = jest.spyOn(input, 'value', 'set').mockImplementation(() => {});
+    const valueSetter = jest.spyOn(input, 'value', 'set').mockImplementation(() => { });
     return valueSetter;
 }
-function stubEach<T, K extends jest.FunctionPropertyNames<T>>(input: T, ...props: K[]) {
+function stubEach<T extends {}, K extends jest.FunctionPropertyNames<T>>(input: T, ...props: K[]): Record<K, ReturnType<typeof jest.spyOn>> {
     return Object.fromEntries(props.map((prop) => {
         const spy = jest.spyOn(input, prop).mockReturnValue(undefined as any);
         return [prop, spy];
@@ -30,13 +30,13 @@ function testSetInputByAttribute(loginInput: LoginInput, inputHtml: string) {
 
     mockRuntime.onMessage.addListener.mock.calls[0][0]([loginInput]);
 
-    expect(setAttribute).toBeCalledTimes(1);
-    expect(setAttribute).toBeCalledWith('value', loginInput.value);
-    expect(Event).toBeCalledTimes(1);
-    expect(Event).toBeCalledWith("change", {bubbles: true});
-    expect(dispatchEvent).toBeCalledTimes(1);
-    expect(dispatchEvent).toBeCalledWith(event);
-    expect(valueSetter).not.toBeCalled();
+    expect(setAttribute).toHaveBeenCalledTimes(1);
+    expect(setAttribute).toHaveBeenCalledWith('value', loginInput.value);
+    expect(Event).toHaveBeenCalledTimes(1);
+    expect(Event).toHaveBeenCalledWith("change", {bubbles: true});
+    expect(dispatchEvent).toHaveBeenCalledTimes(1);
+    expect(dispatchEvent).toHaveBeenCalledWith(event);
+    expect(valueSetter).not.toHaveBeenCalled();
 }
 
 function testSetInputByValue(loginInput: LoginInput, inputHtml: string) {
@@ -49,15 +49,15 @@ function testSetInputByValue(loginInput: LoginInput, inputHtml: string) {
 
     mockRuntime.onMessage.addListener.mock.calls[0][0]([loginInput]);
 
-    expect(setAttribute).toBeCalledTimes(1);
-    expect(setAttribute).toBeCalledWith('value', loginInput.value);
-    expect(Event).toBeCalledTimes(2);
-    expect(Event).toBeCalledWith("change", {bubbles: true});
-    expect(Event).toBeCalledWith("input", {bubbles: true});
-    expect(dispatchEvent).toBeCalledTimes(2);
-    expect(dispatchEvent).toBeCalledWith(event);
-    expect(valueSetter).toBeCalledTimes(1);
-    expect(valueSetter).toBeCalledWith(loginInput.value);
+    expect(setAttribute).toHaveBeenCalledTimes(1);
+    expect(setAttribute).toHaveBeenCalledWith('value', loginInput.value);
+    expect(Event).toHaveBeenCalledTimes(2);
+    expect(Event).toHaveBeenCalledWith("change", {bubbles: true});
+    expect(Event).toHaveBeenCalledWith("input", {bubbles: true});
+    expect(dispatchEvent).toHaveBeenCalledTimes(2);
+    expect(dispatchEvent).toHaveBeenCalledWith(event);
+    expect(valueSetter).toHaveBeenCalledTimes(1);
+    expect(valueSetter).toHaveBeenCalledWith(loginInput.value);
 }
 
 class MockRectList {
@@ -82,19 +82,19 @@ function testSetInputWithLabel(field: string, value: string, body: string) {
     const input = document.querySelector<HTMLInputElement>('input')!;
     const valueSetter = mockValue(input, value);
     const {dispatchEvent, setAttribute} = stubEach(input, 'dispatchEvent', 'setAttribute');
-    jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1));
-    jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+    jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
+    jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
     jest.isolateModules(() => require('./contentScript'));
 
     mockRuntime.onMessage.addListener.mock.calls[0][0]([{label: field, value}]);
 
-    expect(setAttribute).toBeCalledTimes(1);
-    expect(setAttribute).toBeCalledWith('value', value);
-    expect(Event).toBeCalledTimes(1);
-    expect(Event).toBeCalledWith("change", {bubbles: true});
-    expect(dispatchEvent).toBeCalledTimes(1);
-    expect(dispatchEvent).toBeCalledWith(event);
-    expect(valueSetter).not.toBeCalled();
+    expect(setAttribute).toHaveBeenCalledTimes(1);
+    expect(setAttribute).toHaveBeenCalledWith('value', value);
+    expect(Event).toHaveBeenCalledTimes(1);
+    expect(Event).toHaveBeenCalledWith("change", {bubbles: true});
+    expect(dispatchEvent).toHaveBeenCalledTimes(1);
+    expect(dispatchEvent).toHaveBeenCalledWith(event);
+    expect(valueSetter).not.toHaveBeenCalled();
 }
 
 const getInputInfoById = (id: string) => new InputInfo(document.getElementById(id) as HTMLInputElement);
@@ -108,62 +108,62 @@ describe('contentScript', () => {
 
         jest.isolateModules(() => require('./contentScript'));
 
-        expect(mockRuntime.sendMessage).not.toBeCalled();
+        expect(mockRuntime.sendMessage).not.toHaveBeenCalled();
     });
     it('sends message with username true if input id matches', () => {
         global.document = new JSDOM('<html><input type="text" id="username"/></html>').window.document;
-        jest.spyOn(document.getElementById('username')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+        jest.spyOn(document.getElementById('username')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
 
         jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('username')];
-        expect(mockRuntime.sendMessage).toBeCalledTimes(1);
-        expect(mockRuntime.sendMessage).toBeCalledWith({url: windowUrl, inputs});
+        expect(mockRuntime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(mockRuntime.sendMessage).toHaveBeenCalledWith({url: windowUrl, inputs});
     });
     it('sends message with username true if input label matches', () => {
         global.document = new JSDOM('<html><label for="loginId">Username</label>'
             + '<input type="text" id="loginId" name="login.user"/></html>').window.document;
-        jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1));
-        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+        jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
+        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
 
         jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('loginId')];
-        expect(mockRuntime.sendMessage).toBeCalledTimes(1);
-        expect(mockRuntime.sendMessage).toBeCalledWith({url: windowUrl, inputs});
+        expect(mockRuntime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(mockRuntime.sendMessage).toHaveBeenCalledWith({url: windowUrl, inputs});
     });
     it('sends message with password true if input exists', () => {
         global.document = new JSDOM('<html><input type="password"/></html>').window.document;
-        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
 
         jest.isolateModules(() => require('./contentScript'));
 
         const inputs = [new InputInfo(document.querySelector('input')!)];
-        expect(mockRuntime.sendMessage).toBeCalledTimes(1);
-        expect(mockRuntime.sendMessage).toBeCalledWith({url: windowUrl, inputs});
+        expect(mockRuntime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(mockRuntime.sendMessage).toHaveBeenCalledWith({url: windowUrl, inputs});
     });
     it('sends message with email true if input exists', () => {
         global.document = new JSDOM('<html><input id="email" type="text"/></html>').window.document;
-        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
 
         jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('email')];
-        expect(mockRuntime.sendMessage).toBeCalledTimes(1);
-        expect(mockRuntime.sendMessage).toBeCalledWith({url: windowUrl, inputs});
+        expect(mockRuntime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(mockRuntime.sendMessage).toHaveBeenCalledWith({url: windowUrl, inputs});
     });
     it('sends message with email if input label matches', () => {
         global.document = new JSDOM('<html><label for="abc"><p><strong>Email</strong></p></label><input type="text" id="abc"/></html>').window.document;
-        jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1));
-        jest.spyOn(document.querySelector('p')!, 'getClientRects').mockReturnValue(new MockRectList(1));
-        jest.spyOn(document.querySelector('strong')!, 'getClientRects').mockReturnValue(new MockRectList(1));
-        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1));
+        jest.spyOn(document.querySelector('label')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
+        jest.spyOn(document.querySelector('p')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
+        jest.spyOn(document.querySelector('strong')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
+        jest.spyOn(document.querySelector('input')!, 'getClientRects').mockReturnValue(new MockRectList(1) as any);
 
         jest.isolateModules(() => require('./contentScript'));
 
         const inputs: InputInfo[] = [getInputInfoById('abc')];
-        expect(mockRuntime.sendMessage).toBeCalledTimes(1);
-        expect(mockRuntime.sendMessage).toBeCalledWith({url: windowUrl, inputs});
+        expect(mockRuntime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(mockRuntime.sendMessage).toHaveBeenCalledWith({url: windowUrl, inputs});
     });
     describe('message listener', () => {
         beforeEach(() => {
@@ -188,10 +188,10 @@ describe('contentScript', () => {
 
             mockRuntime.onMessage.addListener.mock.calls[0][0]([{selector: '#username', value: username}]);
 
-            expect(setAttribute).not.toBeCalled();
-            expect(Event).not.toBeCalled();
-            expect(dispatchEvent).not.toBeCalled();
-            expect(valueSetter).not.toBeCalled();
+            expect(setAttribute).not.toHaveBeenCalled();
+            expect(Event).not.toHaveBeenCalled();
+            expect(dispatchEvent).not.toHaveBeenCalled();
+            expect(valueSetter).not.toHaveBeenCalled();
         });
         it('populates username field using setAttribute', () => {
             testSetInputByAttribute({selector: 'input[id="username"]', value: username}, '<input type="text" id="username"/>');

@@ -21,7 +21,7 @@ describe('permissions', () => {
 
             expect(await permissions.requestOrigin(baseUrl)).toEqual(true);
 
-            expect(chromePermissions.request).toBeCalledTimes(1);
+            expect(chromePermissions.request).toHaveBeenCalledTimes(1);
             expect(chromePermissions.request.mock.calls[0][0]).toEqual({origins: [baseUrl + '/*']});
         });
         it('allows trailing / on url', async () => {
@@ -29,7 +29,7 @@ describe('permissions', () => {
 
             expect(await permissions.requestOrigin(baseUrl + '/')).toEqual(true);
 
-            expect(chromePermissions.request).toBeCalledTimes(1);
+            expect(chromePermissions.request).toHaveBeenCalledTimes(1);
             expect(chromePermissions.request.mock.calls[0][0]).toEqual({origins: [baseUrl + '/*']});
         });
         it('returns granted flag', async () => {

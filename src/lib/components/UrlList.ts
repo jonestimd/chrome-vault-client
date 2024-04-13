@@ -15,7 +15,7 @@ function emphasize(element: Element | null, value: string, search: string) {
     if (element) {
         const lowerValue = value.toLowerCase();
         const children: (HTMLElement | string)[] = [];
-        for (let i = 0; i < value.length; ) {
+        for (let i = 0; i < value.length;) {
             const index = lowerValue.indexOf(search, i);
             if (index >= 0) {
                 if (index > i) children.push(value.slice(i, index));
@@ -34,8 +34,8 @@ function emphasize(element: Element | null, value: string, search: string) {
 }
 
 class UrlListItem {
-    private url: string
-    private secrets: SecretInfo[]
+    private url: string;
+    private secrets: SecretInfo[];
     private listItem: HTMLLIElement;
 
     constructor(parent: HTMLElement, url: string, secrets: SecretInfo[]) {

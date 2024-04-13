@@ -36,29 +36,29 @@ describe('firefox/background', () => {
 
             await getAlarmListener()({name: 'unknown alamm'});
 
-            expect(settingsStub.load).not.toBeCalled();
-            expect(vaultStub.refreshToken).not.toBeCalled();
-            expect(settingsStub.clearToken).not.toBeCalled();
+            expect(settingsStub.load).not.toHaveBeenCalled();
+            expect(vaultStub.refreshToken).not.toHaveBeenCalled();
+            expect(settingsStub.clearToken).not.toHaveBeenCalled();
         });
         it('renews token', async () => {
             load({vaultUrl, token});
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settingsStub.load).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settingsStub.clearToken).not.toBeCalled();
+            expect(settingsStub.load).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).not.toHaveBeenCalled();
         });
         it('clears token if renewal fails', async () => {
             load({vaultUrl, token}, false);
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settingsStub.load).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settingsStub.clearToken).toBeCalledTimes(1);
+            expect(settingsStub.load).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).toHaveBeenCalledTimes(1);
         });
     });
 });

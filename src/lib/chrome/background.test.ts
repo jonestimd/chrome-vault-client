@@ -67,65 +67,65 @@ describe('chrome/background', () => {
 
             await getInstalledListener()();
 
-            expect(settingsStub.uniqueUrls).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
-            expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
+            expect(settingsStub.uniqueUrls).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toHaveBeenCalled();
+            expect(chrome.declarativeContent.onPageChanged.addRules).not.toHaveBeenCalled();
         });
         it('clears page rules if no cached URLs', async () => {
             load([]);
 
             await getInstalledListener()();
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).not.toBeCalled();
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).not.toHaveBeenCalled();
         });
         it('adds page rule for scheme and hostname', async () => {
             load([new URL('http://some.site.com')]);
 
             await getInstalledListener()();
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', schemes: ['http']}});
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledWith({pageUrl: {hostEquals: 'some.site.com', schemes: ['http']}});
+            expect(chrome.declarativeContent.ShowPageAction).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and port', async () => {
             load([new URL('https://some.site.com:8888')]);
 
             await getInstalledListener()();
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledTimes(1);
             expect(chrome.declarativeContent.PageStateMatcher)
-                .toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', ports: [8888], schemes: ['https']}});
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+                .toHaveBeenCalledWith({pageUrl: {hostEquals: 'some.site.com', ports: [8888], schemes: ['https']}});
+            expect(chrome.declarativeContent.ShowPageAction).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname and path prefix', async () => {
             load([new URL('https://some.site.com/account')]);
 
             await getInstalledListener()();
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledTimes(1);
             expect(chrome.declarativeContent.PageStateMatcher)
-                .toBeCalledWith({pageUrl: {hostEquals: 'some.site.com', pathPrefix: '/account', schemes: ['https']}});
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+                .toHaveBeenCalledWith({pageUrl: {hostEquals: 'some.site.com', pathPrefix: '/account', schemes: ['https']}});
+            expect(chrome.declarativeContent.ShowPageAction).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledWith([{conditions: [matcher], actions: [action]}]);
         });
         it('adds page rule for scheme, hostname, path prefix and query', async () => {
             load([new URL('https://some.site.com/account?login=true')]);
 
             await getInstalledListener()();
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledTimes(1);
             expect(chrome.declarativeContent.PageStateMatcher)
-                .toBeCalledWith({
+                .toHaveBeenCalledWith({
                     pageUrl: {
                         hostEquals: 'some.site.com',
                         pathPrefix: '/account',
@@ -133,9 +133,9 @@ describe('chrome/background', () => {
                         schemes: ['https'],
                     },
                 });
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+            expect(chrome.declarativeContent.ShowPageAction).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledWith([{conditions: [matcher], actions: [action]}]);
         });
     });
     describe('storage.onChanged', () => {
@@ -144,32 +144,32 @@ describe('chrome/background', () => {
 
             await getStorageListener()({urlPaths: {}}, 'sync');
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toHaveBeenCalled();
         });
         it('ignores message if urlPaths did not change', async () => {
             load([]);
 
             await getStorageListener()({vaultUrl: 'new url'}, 'local');
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toBeCalled();
+            expect(chrome.declarativeContent.onPageChanged.removeRules).not.toHaveBeenCalled();
         });
         it('updates page rules when urlPaths changes', async () => {
             load([]);
 
             await getStorageListener()({urlPaths: {newValue: {'some.site.com': [{url: 'https://some.site.com'}]}}}, 'local');
 
-            expect(chrome.declarativeContent.onPageChanged.removeRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.PageStateMatcher).toBeCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.removeRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.PageStateMatcher).toHaveBeenCalledTimes(1);
             expect(chrome.declarativeContent.PageStateMatcher)
-                .toBeCalledWith({
+                .toHaveBeenCalledWith({
                     pageUrl: {
                         hostEquals: 'some.site.com',
                         schemes: ['https'],
                     },
                 });
-            expect(chrome.declarativeContent.ShowPageAction).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledTimes(1);
-            expect(chrome.declarativeContent.onPageChanged.addRules).toBeCalledWith([{conditions: [matcher], actions: [action]}]);
+            expect(chrome.declarativeContent.ShowPageAction).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledTimes(1);
+            expect(chrome.declarativeContent.onPageChanged.addRules).toHaveBeenCalledWith([{conditions: [matcher], actions: [action]}]);
         });
     });
     describe('onAlarm', () => {
@@ -178,29 +178,29 @@ describe('chrome/background', () => {
 
             await getAlarmListener()({name: 'unknown alamm'});
 
-            expect(settingsStub.load).not.toBeCalled();
-            expect(vaultStub.refreshToken).not.toBeCalled();
-            expect(settingsStub.clearToken).not.toBeCalled();
+            expect(settingsStub.load).not.toHaveBeenCalled();
+            expect(vaultStub.refreshToken).not.toHaveBeenCalled();
+            expect(settingsStub.clearToken).not.toHaveBeenCalled();
         });
         it('renews token', async () => {
             load([], {vaultUrl, token});
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settingsStub.load).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settingsStub.clearToken).not.toBeCalled();
+            expect(settingsStub.load).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).not.toHaveBeenCalled();
         });
         it('clears token if renewal fails', async () => {
             load([], {vaultUrl, token}, false);
 
             await getAlarmListener()({name: 'refresh-token'});
 
-            expect(settingsStub.load).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledTimes(1);
-            expect(vaultStub.refreshToken).toBeCalledWith(vaultUrl, token);
-            expect(settingsStub.clearToken).toBeCalledTimes(1);
+            expect(settingsStub.load).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledTimes(1);
+            expect(vaultStub.refreshToken).toHaveBeenCalledWith(vaultUrl, token);
+            expect(settingsStub.clearToken).toHaveBeenCalledTimes(1);
         });
     });
 });

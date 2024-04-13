@@ -42,7 +42,7 @@ describe('settings', () => {
             const result = await settings.load();
 
             expect(result).toEqual(storedSettings);
-            expect(chromeStorage.local.get).toBeCalledTimes(1);
+            expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.get.mock.calls[0][0])
                 .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
         });
@@ -51,7 +51,7 @@ describe('settings', () => {
         it('saves vault Url, username and token to local storage', async () => {
             await settings.save(vaultUrl, vaultPath, vaultUser, token);
 
-            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({vaultUrl, vaultPath, vaultUser, token});
         });
     });
@@ -59,7 +59,7 @@ describe('settings', () => {
         it('saves token', async () => {
             await settings.saveToken(token);
 
-            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({token});
         });
     });
@@ -67,7 +67,7 @@ describe('settings', () => {
         it('removes token from stored settings', async () => {
             await settings.clearToken();
 
-            expect(chromeStorage.local.remove).toBeCalledTimes(1);
+            expect(chromeStorage.local.remove).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.remove.mock.calls[0][0]).toEqual(['token']);
         });
     });
@@ -77,9 +77,9 @@ describe('settings', () => {
 
             await settings.cacheUrlPaths();
 
-            expect(chromeStorage.local.get).toBeCalledTimes(1);
-            expect(chromeStorage.local.set).not.toBeCalled();
-            expect(vaultApiStub.getUrlPaths).not.toBeCalled();
+            expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
+            expect(chromeStorage.local.set).not.toHaveBeenCalled();
+            expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
         });
         it('saves result from vaultApi.getUrlPaths', async () => {
             const urlPaths = {'https://some.web.site': [urlPath('/vault/secret/path', '')]};
@@ -89,10 +89,10 @@ describe('settings', () => {
             const result = await settings.cacheUrlPaths();
 
             expect(result).toEqual(urlPaths);
-            expect(chromeStorage.local.set).toBeCalledTimes(1);
+            expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set.mock.calls[0][0]).toEqual({urlPaths});
-            expect(vaultApiStub.getUrlPaths).toBeCalledTimes(1);
-            expect(vaultApiStub.getUrlPaths).toBeCalledWith(vaultUrl, vaultPath, token);
+            expect(vaultApiStub.getUrlPaths).toHaveBeenCalledTimes(1);
+            expect(vaultApiStub.getUrlPaths).toHaveBeenCalledWith(vaultUrl, vaultPath, token);
         });
     });
     describe('uniqueUrls', () => {
@@ -105,7 +105,7 @@ describe('settings', () => {
             const result = await settings.uniqueUrls();
 
             expect(result).toEqual([]);
-            expect(vaultApiStub.getUrlPaths).not.toBeCalled();
+            expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
         });
         it('caches URLs and converts secret URL', async () => {
             const urlPaths = {'https://my-bank.web.site': [urlPath('', 'https://my-bank.com/login')]};
@@ -113,8 +113,8 @@ describe('settings', () => {
 
             const result = await settings.uniqueUrls();
 
-            expect(chromeStorage.local.set).toBeCalledTimes(1);
-            expect(chromeStorage.local.set).toBeCalledWith({urlPaths}, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({urlPaths}, expect.any(Function));
             expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site'][0].url)]);
         });
         it('returns unique secret URLs', async () => {

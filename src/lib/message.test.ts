@@ -38,10 +38,10 @@ describe('message', () => {
 
                 const input = new InputInfo(element);
 
-                expect(htmlUtil.getLabel).toBeCalledTimes(1);
-                expect(htmlUtil.getLabel).toBeCalledWith(element);
-                expect(htmlUtil.getText).toBeCalledTimes(1);
-                expect(htmlUtil.getText).toBeCalledWith(labelElement);
+                expect(htmlUtil.getLabel).toHaveBeenCalledTimes(1);
+                expect(htmlUtil.getLabel).toHaveBeenCalledWith(element);
+                expect(htmlUtil.getText).toHaveBeenCalledTimes(1);
+                expect(htmlUtil.getText).toHaveBeenCalledWith(labelElement);
                 expect(input.label).toEqual(labelText);
             });
         });

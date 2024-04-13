@@ -76,9 +76,9 @@ class SecretAccessor {
         return accessor;
     }
 
-    vaultUrl: string
-    paths: string[]
-    secrets: {[path: string]: vaultApi.Secret}
+    vaultUrl: string;
+    paths: string[];
+    secrets: {[path: string]: vaultApi.Secret};
 
     constructor(vaultUrl: string, paths: string[]) {
         this.vaultUrl = vaultUrl;
