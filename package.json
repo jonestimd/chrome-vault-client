@@ -17,7 +17,7 @@
         "package:firefox": "cp src/manifest.firefox.json build/manifest.json && npm run sign && cd build && zip -r -FS ../vault-client.zip *",
         "package": "npm run build && npm run package:chrome && npm run package:firefox",
         "presign": "npm run build && cp src/manifest.firefox.json build/manifest.json",
-        "sign": "node -r dotenv/config node_modules/.bin/web-ext sign -s build -i chrome*.js",
+        "sign": "bin/sign-package.ts",
         "pretest": "eslint src",
         "test": "jest",
         "test:watch": "jest --watch src"
