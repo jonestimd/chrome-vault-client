@@ -9,11 +9,6 @@
         "sourceMap": true,
         "target": "es2019",
         "outDir": "build",
-        "baseUrl": ".",
-        "paths": {
-            "superagent": [
-                "./src/types/superagent/index.d.ts"
-            ]
-        }
+        "baseUrl": "."
     }
 }
