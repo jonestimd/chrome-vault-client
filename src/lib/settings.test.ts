@@ -7,7 +7,7 @@ const vaultUser = 'username';
 const token = 'vault token';
 
 let vaultApiStub: {
-    getUrlPaths: jest.SpyInstance<ReturnType<typeof vaultApi['getUrlPaths']>>;
+    getUrlPaths: jest.SpyInstance<ReturnType<typeof vaultApi['getSecretPaths']>>;
 };
 
 let chromeStorage: {
@@ -23,7 +23,7 @@ const urlPath = (path: string, url: string, keys: string[] = []) => ({path, url,
 describe('settings', () => {
     beforeEach(() => {
         vaultApiStub = {
-            getUrlPaths: jest.spyOn(vaultApi, 'getUrlPaths').mockRejectedValue(new Error()),
+            getUrlPaths: jest.spyOn(vaultApi, 'getSecretPaths').mockRejectedValue(new Error()),
         };
         chromeStorage = {
             local: {
@@ -44,7 +44,7 @@ describe('settings', () => {
             expect(result).toEqual(storedSettings);
             expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.get.mock.calls[0]![0])
-                .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'urlPaths']);
+                .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'secretPaths']);
         });
     });
     describe('save', () => {
@@ -75,22 +75,22 @@ describe('settings', () => {
         it('does nothing if URL is not saved', async () => {
             chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({}));
 
-            await settings.cacheUrlPaths();
+            await settings.cacheSecretPaths();
 
             expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set).not.toHaveBeenCalled();
             expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
         });
         it('saves result from vaultApi.getUrlPaths', async () => {
-            const urlPaths = {'https://some.web.site': [urlPath('/vault/secret/path', '')]};
+            const secretPaths = [urlPath('/vault/secret/path', '')];
             chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({vaultUrl, vaultPath, token}));
-            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
 
-            const result = await settings.cacheUrlPaths();
+            const result = await settings.cacheSecretPaths();
 
-            expect(result).toEqual(urlPaths);
+            expect(result).toEqual(secretPaths);
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({urlPaths});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({secretPaths});
             expect(vaultApiStub.getUrlPaths).toHaveBeenCalledTimes(1);
             expect(vaultApiStub.getUrlPaths).toHaveBeenCalledWith(vaultUrl, vaultPath, token);
         });
@@ -102,42 +102,31 @@ describe('settings', () => {
         it('returns empty array if no vaultUrl', async () => {
             chromeStorage.local.get.mockImplementation((keys, cb) => cb({}));
 
-            const result = await settings.uniqueUrls();
+            const result = await settings.getDomains();
 
             expect(result).toEqual([]);
             expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
         });
         it('caches URLs and converts secret URL', async () => {
-            const urlPaths = {'https://my-bank.web.site': [urlPath('', 'https://my-bank.com/login')]};
-            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+            const secretPaths = [urlPath('', 'https://my-bank.com/login')];
+            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
 
-            const result = await settings.uniqueUrls();
+            const result = await settings.getDomains();
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set).toHaveBeenCalledWith({urlPaths}, expect.any(Function));
-            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site']![0]!.url)]);
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({secretPaths}, expect.any(Function));
+            expect(result).toEqual(['my-bank.com']);
         });
-        it('returns unique secret URLs', async () => {
-            const urlPaths = {
-                'https://my-bank.web.site': [
-                    urlPath('/my-account', 'https://my-bank.com/login'),
-                    urlPath('/spouse-account', 'https://my-bank.com/login'),
-                ],
-            };
-            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
+        it('returns unique secret url domains', async () => {
+            const secretPaths = [
+                urlPath('/my-account', 'https://my-bank.com/login'),
+                urlPath('/spouse-account', 'https://my-bank.com/login'),
+            ];
+            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
 
-            const result = await settings.uniqueUrls();
+            const result = await settings.getDomains();
 
-            expect(result).toEqual([new URL(urlPaths['https://my-bank.web.site']![0]!.url)]);
-        });
-        it('defaults protocol to https', async () => {
-            const hostname = 'my-bank.com';
-            const urlPaths = {'https://my-bank.web.site': [urlPath('', hostname)]};
-            vaultApiStub.getUrlPaths.mockResolvedValue(urlPaths);
-
-            const result = await settings.uniqueUrls();
-
-            expect(result).toEqual([new URL('https://' + hostname)]);
+            expect(result).toEqual(['my-bank.com']);
         });
     });
 });

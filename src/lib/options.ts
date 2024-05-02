@@ -100,7 +100,7 @@ saveButton.addEventListener('click', async () => {
     try {
         linearProgress.open();
         if (unsaved || !savedToken) await login();
-        await settings.cacheUrlPaths();
+        await settings.cacheSecretPaths();
     } catch (err) {
         if (getStatus(err) === 403) {
             savedToken = undefined;

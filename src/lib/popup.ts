@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {MDCRipple} from '@material/ripple';
 import {MDCLinearProgress} from '@material/linear-progress';
 document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
@@ -19,6 +18,7 @@ import {PageInfoMessage, InputInfo, LoginInput} from './message';
 import {getMessage, getStatus} from './errors';
 import UrlList from './components/UrlList';
 import {createSpan} from './html';
+import {getDomain, getHostname} from './urls';
 
 async function login(vaultUrl: string, username: string) {
     if (await permissions.requestOrigin(vaultUrl)) {
@@ -44,24 +44,15 @@ pageInputsSwitch.addEventListener('click', () => {
     }
 });
 
-function pageMatcher(pageUrl: URL): (secret: vaultApi.SecretInfo) => boolean {
-    return (secret) => {
-        try {
-            const url = new URL(secret.url);
-            return url.hostname === pageUrl.hostname && url.port === pageUrl.port
-                && pageUrl.pathname.startsWith(url.pathname)
-                && pageUrl.search.includes(url.search);
-        } catch (err) { // just the hostname
-            return secret.url === pageUrl.hostname;
-        }
-    };
-}
 
-function findVaultPaths(urlPaths: vaultApi.UrlPaths, pageUrlString: string): vaultApi.SecretInfo[] {
-    const filter = pageMatcher(new URL(pageUrlString));
-    return Object.values(urlPaths).reduce((result: vaultApi.SecretInfo[], secrets) => {
-        return result.concat(secrets.filter(filter));
-    }, []);
+function findVaultPaths(secrets: vaultApi.SecretInfo[], pageUrlString: string): vaultApi.SecretInfo[] {
+    const pageHostname = new URL(pageUrlString).hostname;
+    const hostSecrets = secrets.filter(({url}) => getHostname(url) === pageHostname);
+    if (hostSecrets.length) return hostSecrets;
+    return secrets.filter(({url}) => {
+        const domain = getDomain(url);
+        return pageHostname === domain || pageHostname.endsWith(`.${domain}`);
+    });
 }
 
 function showStatus(text: string) {
@@ -107,13 +98,18 @@ class SecretAccessor {
 const inputCountAttr = 'data-inputs';
 
 type Comparator<T> = (v1: T, v2: T) => number;
-const compareHosts: Comparator<[string, vaultApi.SecretInfo[]]> = ([h1], [h2]) => h1.localeCompare(h2);
+const compareKeys: Comparator<[string, unknown]> = ([key1], [key2]) => key1.localeCompare(key2);
 
 const urlList = new UrlList(document.getElementById('saved-urls')!);
-function showUrlPaths(urlPaths?: vaultApi.UrlPaths) {
+function showDomainPaths(secrets?: vaultApi.SecretInfo[]) {
     urlList.removeAll();
-    if (urlPaths) {
-        Object.entries(urlPaths).sort(compareHosts).forEach(([siteUrl, secrets]) => urlList.addItem(siteUrl, secrets));
+    if (secrets) {
+        const byHost = secrets.reduce<Record<string, vaultApi.SecretInfo[]>>((byHost, secret) => {
+            const hostname = getHostname(secret.url);
+            const urlSecrets = byHost[hostname] ?? [];
+            return {...byHost, [hostname]: [...urlSecrets, secret]};
+        }, {});
+        Object.entries(byHost).sort(compareKeys).forEach(([url, secrets]) => urlList.addItem(url, secrets));
     }
 }
 filterInput.listen('input', () => {
@@ -122,15 +118,15 @@ filterInput.listen('input', () => {
 });
 
 const reloadButton = document.getElementById('reload') as HTMLButtonElement;
-settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
+settings.load().then(({vaultUrl, vaultUser, token, secretPaths}) => {
     document.querySelector<HTMLElement>('#username')!.replaceChildren(vaultUser ?? '');
-    showUrlPaths(urlPaths);
+    showDomainPaths(secretPaths);
     reloadButton.addEventListener('click', async () => {
         try {
             linearProgress.open();
             if (!token) token = await login(vaultUrl!, vaultUser!);
             showStatus('');
-            showUrlPaths(await settings.cacheUrlPaths());
+            showDomainPaths(await settings.cacheSecretPaths());
         } catch (err) {
             if (getStatus(err) === 403) {
                 token = undefined;
@@ -149,9 +145,9 @@ settings.load().then(({vaultUrl, vaultUser, token, urlPaths}) => {
 });
 
 chrome.runtime.onMessage.addListener(async function (message: PageInfoMessage, sender: chrome.runtime.MessageSender) {
-    const {vaultUrl, vaultUser, token, urlPaths} = await settings.load();
+    const {vaultUrl, vaultUser, token, secretPaths} = await settings.load();
     document.querySelector<HTMLElement>('#username')!.replaceChildren(vaultUser ?? '');
-    const secretInfos = findVaultPaths(urlPaths!, message.url);
+    const secretInfos = findVaultPaths(secretPaths!, message.url);
     let vaultToken = token;
 
     const accessor = await SecretAccessor.newAccessor(vaultUrl!, secretInfos.map(secretInfo => secretInfo.path), vaultToken!);

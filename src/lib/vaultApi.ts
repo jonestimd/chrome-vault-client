@@ -11,10 +11,6 @@ export interface SecretInfo {
     keys: string[];
 }
 
-export interface UrlPaths {
-    [siteUrl: string]: SecretInfo[]
-}
-
 interface VaultError {
     response: {
         body: {errors: string[]}
@@ -77,11 +73,11 @@ export async function logout(vaultUrl: string, token: string): Promise<void> {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
 }
 
-interface SecretData extends Record<string, string | undefined> {
-    url: string
-    username?: string
-    password?: string
-    'site url'?: string;
+interface SecretData extends Record<string, unknown | undefined> {
+    // url: string
+    // username?: string
+    // password?: string
+    // 'site url'?: string;
 }
 
 interface SecretResponse {
@@ -125,33 +121,30 @@ export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boole
         || input.type === 'password' && secret.keys.includes('password');
 }
 
-function asUrl(hostOrUrl: string): string {
-    return /^https?:\/\//.test(hostOrUrl) ? hostOrUrl : 'https://' + hostOrUrl;
-}
+const settingsKeys = ['username', 'password', 'email'];
 
 export class Secret {
-    readonly url: string;
-    private readonly _siteUrl?: string;
-    private readonly _data: Readonly<Record<string, string | undefined>>;
+    private readonly _data: Readonly<Record<string, unknown>>;
     private readonly _keys: string[];
 
-    constructor({url, 'site url': siteUrl, ...data}: SecretData) {
-        this.url = asUrl(url);
-        this._siteUrl = siteUrl && asUrl(siteUrl);
+    constructor(data: Record<string, unknown>) {
         this._data = data;
-        this._keys = Object.keys(this._data);
+        this._keys = Object.keys(this._data).filter(key => settingsKeys.includes(key));
     }
 
-    get siteUrl(): string {
-        return this._siteUrl ?? this.url;
+    get(key: string) {
+        if (key in this._data) {
+            const value = this._data[key];
+            if (typeof value === 'string') return value;
+        }
     }
 
-    get password(): string | undefined {
-        return this._data['password'];
+    get url() {
+        return this.get('site url') ?? this.get('url');
     }
 
-    get(key: string): string | undefined {
-        return this._data[key];
+    get password() {
+        return this.get('password');
     }
 
     get keys(): string[] {
@@ -162,7 +155,7 @@ export class Secret {
         const matcher = new Matcher(input);
         for (const key of this._keys) {
             const inputProp = matcher.find(key.toLowerCase());
-            if (inputProp) return {inputProp, key, value: this._data[key]};
+            if (inputProp) return {inputProp, key, value: this.get(key)};
         }
     }
 }
@@ -177,27 +170,24 @@ async function listSecrets(vaultUrl: string, token: string, path?: string): Prom
     return body.data.keys;
 }
 
-export async function getUrlPaths(vaultUrl: string, vaultPath: string | undefined, token: string): Promise<UrlPaths> {
+export async function getSecretPaths(vaultUrl: string, vaultPath: string | undefined, token: string): Promise<SecretInfo[]> {
     const names = (await listSecrets(vaultUrl, token, vaultPath)).map(name => vaultPath ? `${vaultPath}/${name}` : name);
-    const urlPaths: UrlPaths = {};
-    for (let i = 0; i < names.length;) {
-        const path = names[i];
+    const secrets: SecretInfo[] = [];
+    for (let path = names.shift(); path; path = names.shift()) {
         if (path.endsWith('/')) {
             const nested = await listSecrets(vaultUrl, token, path);
-            names.splice(i, 1, ...nested.map(child => path + child));
+            names.push(...nested.map(child => path + child));
         }
         else {
-            const secret = await getSecret(vaultUrl, token, names[i]);
-            if (secret && secret.keys.length > 0) {
-                if (!urlPaths[secret.siteUrl]) urlPaths[secret.siteUrl] = [];
-                urlPaths[secret.siteUrl].push({
+            const secret = await getSecret(vaultUrl, token, path);
+            if (secret && secret.url && secret.keys.length > 0) {
+                secrets.push({
                     path,
                     url: secret.url,
                     keys: secret.keys,
                 });
             }
-            i++;
         }
     }
-    return urlPaths;
+    return secrets;
 }

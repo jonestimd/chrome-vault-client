@@ -8,11 +8,11 @@ const authHeader = 'X-Vault-Token';
 const password = 'vault password';
 const username = 'vault user';
 
-const secretResponse = (data: {[key: string]: string}) => ({data: {data}});
+const secretResponse = (data: Record<string, string>) => ({data: {data}});
 
 function mockGets(responses: Record<string, any>) {
     jest.spyOn(agent, 'get').mockImplementation((url) => {
-        return responses[url.substring(vaultUrl.length)];
+        return secretResponse(responses[url.substring(vaultUrl.length)]) as any;
     });
 }
 
@@ -142,8 +142,6 @@ describe('vaultApi', () => {
 
             const result = await vaultApi.getSecret(vaultUrl, token, path);
 
-            expect(result?.url).toEqual(data.url);
-            expect(result?.siteUrl).toEqual(data.url);
             expect(result?.get('username')).toEqual(data.username);
             expect(result?.password).toEqual(data.password);
             expect(result?.get('email')).toEqual(data.email);
@@ -155,58 +153,62 @@ describe('vaultApi', () => {
         it('returns empty object for no secrets', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: []}});
 
-            const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
+            const result = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
 
-            expect(result).toEqual({});
+            expect(result).toEqual([]);
             expect(agent.list).toHaveBeenCalledTimes(1);
             expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/${vaultPath}`, {[authHeader]: token});
         });
         it('accepts empty string for path', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: []}});
 
-            const result = await vaultApi.getUrlPaths(vaultUrl, '', token);
+            const result = await vaultApi.getSecretPaths(vaultUrl, '', token);
 
-            expect(result).toEqual({});
+            expect(result).toEqual([]);
             expect(agent.list).toHaveBeenCalledTimes(1);
             expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/`, {[authHeader]: token});
         });
-        it('returns secret path and keys for each URL', async () => {
+        it('returns secret path and keys for each domain', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['secret1', 'secret2', 'secret3', 'secret4', 'secret5']}});
-            jest.spyOn(agent, 'get').mockResolvedValueOnce(secretResponse({url: 'url1', username: 'url1 user'}))
-                .mockResolvedValueOnce(secretResponse({url: 'url2', password: 'url2 password'}))
-                .mockResolvedValueOnce(secretResponse({url: 'url3', note: 'no username or password'}))
-                .mockResolvedValueOnce(secretResponse({url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email'}))
-                .mockResolvedValueOnce(secretResponse({username: 'url3 user', password: 'url3 password', note: 'skipped: no url'}));
-
-            const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
-
-            expect(result).toEqual({
-                'https://url1': [{path: 'web/secret1', url: 'https://url1', keys: ['username']}],
-                'https://url2': [{path: 'web/secret2', url: 'https://url2', keys: ['password']}],
-                'https://url3': [{path: 'web/secret3', url: 'https://url3', keys: ['note']}],
-                'https://url4': [{path: 'web/secret4', url: 'https://url4', keys: ['username', 'password', 'email']}],
+            mockGets({
+                '/v1/secret/data/web/secret1': {url: 'url1', username: 'url1 user'},
+                '/v1/secret/data/web/secret2': {url: 'url2', password: 'url2 password'},
+                '/v1/secret/data/web/secret3': {url: 'url3', note: 'no username or password'},
+                '/v1/secret/data/web/secret4': {url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email'},
+                '/v1/secret/data/web/secret5': {username: 'url3 user', password: 'url3 password', note: 'skipped: no url'},
             });
+
+            const result = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
+
+            expect(result).toEqual([
+                {keys: ['username'], path: 'web/secret1', url: 'url1'},
+                {keys: ['password'], path: 'web/secret2', url: 'url2'},
+                {keys: ['username', 'password', 'email'], path: 'web/secret4', url: 'url4'},
+            ]);
             expect(agent.get).toHaveBeenCalledTimes(5);
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret1`, {}, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret2`, {}, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret3`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret4`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/${vaultPath}/secret5`, {}, {[authHeader]: token});
         });
-        it('groups data by url', async () => {
+        it('groups data by domain', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['secret1', 'secret2', 'secret3', 'secret4']}});
-            jest.spyOn(agent, 'get').mockResolvedValueOnce(secretResponse({url: 'https://host1', username: 'host1 user'}))
-                .mockResolvedValueOnce(secretResponse({url: 'host2', password: 'host2 password'}))
-                .mockResolvedValueOnce(secretResponse({url: 'host1', username: 'host1 user2', password: 'host1 password2'}))
-                .mockResolvedValueOnce(secretResponse({url: 'https://host1:8080', username: 'host1 user3', password: 'host1 password3'}));
-
-            const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
-
-            expect(result).toEqual({
-                'https://host1': [
-                    {path: 'web/secret1', url: 'https://host1', keys: ['username']},
-                    {path: 'web/secret3', url: 'https://host1', keys: ['username', 'password']}],
-                'https://host1:8080': [{path: 'web/secret4', url: 'https://host1:8080', keys: ['username', 'password']}],
-                'https://host2': [{path: 'web/secret2', url: 'https://host2', keys: ['password']}],
+            mockGets({
+                '/v1/secret/data/web/secret1': {url: 'https://host1.domain1.com', username: 'host1 user'},
+                '/v1/secret/data/web/secret2': {url: 'host2', password: 'host2 password'},
+                '/v1/secret/data/web/secret3': {url: 'host2.domain1.com', username: 'host1 user2', password: 'host1 password2'},
+                '/v1/secret/data/web/secret4': {url: 'https://domain1.com:8080', username: 'host1 user3', password: 'host1 password3'},
             });
+
+            const result = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
+
+            expect(result).toEqual([
+                {keys: ['username'], path: 'web/secret1', url: 'https://host1.domain1.com'},
+                {keys: ['password'], path: 'web/secret2', url: 'host2'},
+                {keys: ['username', 'password'], path: 'web/secret3', url: 'host2.domain1.com'},
+                {keys: ['username', 'password'], path: 'web/secret4', url: 'https://domain1.com:8080'},
+            ]);
             expect(agent.get).toHaveBeenCalledTimes(4);
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret2`, {}, {[authHeader]: token});
@@ -214,21 +216,22 @@ describe('vaultApi', () => {
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret4`, {}, {[authHeader]: token});
         });
         it('returns data for nested secret paths', async () => {
-            jest.spyOn(agent, 'list').mockResolvedValueOnce({data: {keys: ['nested/', 'secret1']}})
+            jest.spyOn(agent, 'list')
+                .mockResolvedValueOnce({data: {keys: ['nested/', 'secret1']}})
                 .mockResolvedValueOnce({data: {keys: ['secret2', 'secret3']}});
             mockGets({
-                '/v1/secret/data/web/secret1': secretResponse({url: 'url1', username: 'url1 user', email: 'user@host'}),
-                '/v1/secret/data/web/nested/secret2': secretResponse({url: 'url2', password: 'url2 password'}),
-                '/v1/secret/data/web/nested/secret3': secretResponse({url: 'url3', username: 'url3 user', password: 'url3 password'}),
+                '/v1/secret/data/web/secret1': {url: 'url1', username: 'url1 user', email: 'user@host'},
+                '/v1/secret/data/web/nested/secret2': {url: 'url2', password: 'url2 password'},
+                '/v1/secret/data/web/nested/secret3': {url: 'url3', username: 'url3 user', password: 'url3 password'},
             });
 
-            const result = await vaultApi.getUrlPaths(vaultUrl, vaultPath, token);
+            const result = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
 
-            expect(result).toEqual({
-                'https://url1': [{path: 'web/secret1', url: 'https://url1', keys: ['username', 'email']}],
-                'https://url2': [{path: 'web/nested/secret2', url: 'https://url2', keys: ['password']}],
-                'https://url3': [{path: 'web/nested/secret3', url: 'https://url3', keys: ['username', 'password']}],
-            });
+            expect(result).toEqual([
+                {keys: ['username', 'email'], path: 'web/secret1', url: 'url1'},
+                {keys: ['password'], path: 'web/nested/secret2', url: 'url2'},
+                {keys: ['username', 'password'], path: 'web/nested/secret3', url: 'url3'},
+            ]);
             expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/web`, {[authHeader]: token});
             expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/metadata/web/nested/`, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledTimes(3);

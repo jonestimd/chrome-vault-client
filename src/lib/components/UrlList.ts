@@ -54,7 +54,6 @@ class UrlListItem {
     }
 
     private removeEmphasis() {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.listItem.querySelector('span a')!.replaceChildren(this.url);
         this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secrets[i]!.path));
     }
@@ -108,8 +107,8 @@ export default class UrlList {
         this.items.splice(0, this.items.length).forEach((item) => item.remove());
     }
 
-    addItem(hostname: string, secrets: SecretInfo[]): void {
-        this.items.push(new UrlListItem(this.element, hostname, secrets));
+    addItem(domain: string, secrets: SecretInfo[]): void {
+        this.items.push(new UrlListItem(this.element, domain, secrets));
     }
 
     filterItems(text: string): void {

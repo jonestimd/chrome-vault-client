@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "jest",
             "skipFiles": [
@@ -13,7 +13,7 @@
             ],
             "program": "${workspaceFolder}/node_modules/.bin/jest",
             "outputCapture": "console",
-            "args": ["--coverage=off", "--runInBand", "vault"]
+            "args": ["--coverage=off", "--runInBand", "vaultApi"]
         }
     ]
 }

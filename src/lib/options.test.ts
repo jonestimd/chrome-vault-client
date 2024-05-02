@@ -157,7 +157,7 @@ describe('options', () => {
             mockPermissions.requestOrigin.mockResolvedValue(true);
             mockVaultApi.login.mockResolvedValue({client_token: token, lease_duration: 1800});
             await loadPage();
-            mockSettings.cacheUrlPaths.mockResolvedValue({});
+            mockSettings.cacheSecretPaths.mockResolvedValue([]);
             textField('password').triggerChange(password);
 
             document.getElementById('save')!.click();
@@ -210,7 +210,7 @@ describe('options', () => {
         it('displays message for expired token', async () => {
             mockPermissions.requestOrigin.mockResolvedValue(true);
             mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            mockSettings.cacheUrlPaths.mockRejectedValue({status: 403});
+            mockSettings.cacheSecretPaths.mockRejectedValue({status: 403});
             await loadPage();
 
             document.getElementById('save')!.click();
@@ -223,7 +223,7 @@ describe('options', () => {
         });
         it('displays error from Vault', async () => {
             mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            mockSettings.cacheUrlPaths.mockRejectedValue({message: 'bad request'});
+            mockSettings.cacheSecretPaths.mockRejectedValue({message: 'bad request'});
             await loadPage();
 
             document.getElementById('save')!.click();
