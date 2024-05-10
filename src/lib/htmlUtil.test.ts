@@ -2,7 +2,9 @@ import {JSDOM} from 'jsdom';
 import * as htmlUtil from './htmlUtil';
 
 function loadPage(body: string) {
-    global.document = new JSDOM(`<html><body>${body}</body></html>`).window.document;
+    const jsdom = new JSDOM(`<html><body>${body}</body></html>`);
+    global.document = jsdom.window.document;
+    global.HTMLLabelElement = jsdom.window.HTMLLabelElement;
 }
 
 function getInput() {
@@ -15,8 +17,14 @@ function getLabel() {
 
 describe('htmlUtil', () => {
     describe('getLabel', () => {
+        it('ignores hidden label with for=id', () => {
+            loadPage('<label for="the-input">the label</label><input id="the-input"></input>');
+
+            expect(htmlUtil.getLabel(getInput())).toBeNull();
+        });
         it('finds label using for=id', () => {
             loadPage('<label for="the-input">the label</label><input id="the-input"></input>');
+            jest.spyOn(document.querySelector('label')!, 'offsetParent', 'get').mockReturnValue(document.body);
 
             expect(htmlUtil.getLabel(getInput())).toEqual(getLabel());
         });

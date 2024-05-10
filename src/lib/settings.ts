@@ -13,7 +13,7 @@ export interface Settings {
 
 export function load(): Promise<Settings> {
     return new Promise((resolve) => {
-        chrome.storage.local.get(keys, (result: Settings) => resolve(result));
+        chrome.storage.local.get(keys, (result?: Settings) => resolve(result ?? {}));
     });
 }
 

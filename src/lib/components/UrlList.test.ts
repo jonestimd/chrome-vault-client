@@ -5,7 +5,7 @@ let element: HTMLElement;
 let pageOpener: HTMLAnchorElement;
 
 function getText(nodeList: NodeListOf<Element>) {
-    return Array.from(nodeList).map(node => node.innerHTML);
+    return Array.from(nodeList).map((node) => node.innerHTML);
 }
 
 function checkVaultPaths(card: Element, vaultPaths: string[]) {

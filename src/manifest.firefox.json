@@ -14,7 +14,8 @@
         "activeTab",
         "alarms",
         "storage",
-        "tabs"
+        "tabs",
+        "https://*/"
     ],
     "optional_permissions": [
         "https://*/*",
@@ -25,6 +26,11 @@
             "firefox-background.js"
         ]
     },
+    "content_scripts": [{
+        "matches": ["https://*/*"],
+        "all_frames": true,
+        "js": ["contentScript.js"]
+    }],
     "browser_action": {
         "default_popup": "popup.html",
         "default_icon": {

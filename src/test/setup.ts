@@ -4,15 +4,18 @@ global.chrome = {
         create: jest.fn(),
         onAlarm: {
             addListener: jest.fn(),
-        } as unknown as typeof chrome.alarms['onAlarm'],
+        },
     } as unknown as typeof chrome.alarms,
     runtime: {
         onInstalled: {
             addListener: jest.fn(),
-        } as unknown as typeof chrome.runtime['onInstalled'],
+        },
         onMessage: {
             addListener: jest.fn(),
-        } as unknown as typeof chrome.runtime['onMessage'],
+        },
+        onConnect: {
+            addListener: jest.fn(),
+        },
         sendMessage: jest.fn(),
         getPlatformInfo: jest.fn().mockResolvedValue({os: 'Linux'}),
     } as unknown as typeof chrome.runtime,
@@ -21,6 +24,7 @@ global.chrome = {
         executeScript: jest.fn(),
         getCurrent: jest.fn().mockReturnValue({id: 42}),
         query: jest.fn(),
+        connect: jest.fn(),
         onCreated: {
             addListener: jest.fn(),
         },

@@ -171,8 +171,8 @@ describe('vaultApi', () => {
         it('returns secret path and keys for each domain', async () => {
             jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['secret1', 'secret2', 'secret3', 'secret4', 'secret5']}});
             mockGets({
-                '/v1/secret/data/web/secret1': {url: 'url1', username: 'url1 user'},
-                '/v1/secret/data/web/secret2': {url: 'url2', password: 'url2 password'},
+                '/v1/secret/data/web/secret1': {url: 'url1', 'site url': 'url1 site', username: 'url1 user'},
+                '/v1/secret/data/web/secret2': {url: 'url2', password: 'url2 password', 'encryption key': 'url2 encryption key'},
                 '/v1/secret/data/web/secret3': {url: 'url3', note: 'no username or password'},
                 '/v1/secret/data/web/secret4': {url: 'url4', username: 'url3 user', password: 'url3 password', email: 'url3 email'},
                 '/v1/secret/data/web/secret5': {username: 'url3 user', password: 'url3 password', note: 'skipped: no url'},
@@ -181,8 +181,8 @@ describe('vaultApi', () => {
             const result = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
 
             expect(result).toEqual([
-                {keys: ['username'], path: 'web/secret1', url: 'url1'},
-                {keys: ['password'], path: 'web/secret2', url: 'url2'},
+                {keys: ['username'], path: 'web/secret1', url: 'url1 site'},
+                {keys: ['password', 'encryption key'], path: 'web/secret2', url: 'url2'},
                 {keys: ['username', 'password', 'email'], path: 'web/secret4', url: 'url4'},
             ]);
             expect(agent.get).toHaveBeenCalledTimes(5);

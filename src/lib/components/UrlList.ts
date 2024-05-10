@@ -1,15 +1,18 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCList} from '@material/list';
 import {SecretInfo} from '../vaultApi';
-import {createLink, createList, createSpan} from '../html';
+import {html} from './html';
 
-function itemHtml(url: string, vaultPaths: string[]) {
-    const ripple = createSpan({className: 'mdc-list-item__ripple'});
-    const item = createSpan({className: 'mdc-list-item__text'});
-    item.appendChild(createSpan({className: 'mdc-list-item__primary-text', children: [createLink(url)]}));
-    item.appendChild(createSpan({className: 'mdc-list-item__secondary-text', children: [createList(vaultPaths)]}));
-    return [ripple, item];
-}
+const createItem = (url: string, vaultPaths: string[]) => html`
+<li class="mdc-list-item">
+    <span class="mdc-list-item__ripple"></span>
+    <span class="mdc-list-item__text">
+        <span class="mdc-list-item__primary-text"><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></span>
+        <span class="mdc-list-item__secondary-text">
+            <ul>${vaultPaths.map((p) => `<li>${p}</li>`).join('')}</ul>
+        </span>
+    </span>
+</li>`;
 
 function emphasize(element: Element | null, value: string | undefined, search: string) {
     if (element && value) {
@@ -36,14 +39,12 @@ function emphasize(element: Element | null, value: string | undefined, search: s
 class UrlListItem {
     private url: string;
     private secrets: SecretInfo[];
-    private listItem: HTMLLIElement;
+    private listItem: HTMLElement;
 
     constructor(parent: HTMLElement, url: string, secrets: SecretInfo[]) {
         this.url = url.match(/^https?:\/\//) ? url : 'https://' + url;
         this.secrets = secrets;
-        this.listItem = document.createElement('li');
-        this.listItem.className = 'mdc-list-item';
-        this.listItem.replaceChildren(...itemHtml(this.url, secrets.map((s) => s.path)));
+        this.listItem = createItem(this.url, secrets.map((s) => s.path));
         parent.appendChild(this.listItem);
         new MDCRipple(this.listItem);
     }

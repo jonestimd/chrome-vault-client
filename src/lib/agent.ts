@@ -1,3 +1,11 @@
+export class ServiceError extends Error {
+    readonly status: number;
+
+    constructor(response: Response) {
+        super(response.statusText);
+        this.status = response.status;
+    }
+}
 
 export async function get<T>(url: string, query: Record<string, string> = {}, headers: Record<string, string> = {}): Promise<T> {
     const request = new URL(url);
@@ -6,14 +14,14 @@ export async function get<T>(url: string, query: Record<string, string> = {}, he
     const response = await fetch(request.toString(), {headers});
 
     if (response.ok) return JSON.parse(await response.text());
-    throw new Error(response.statusText);
+    throw new ServiceError(response);
 }
 
 export async function list<T>(url: string, headers: Record<string, string> = {}): Promise<T> {
     const response = await fetch(url, {method: 'LIST', headers});
 
     if (response.ok) return JSON.parse(await response.text());
-    throw new Error(response.statusText);
+    throw new ServiceError(response);
 }
 
 export async function post<T>(url: string, headers: Record<string, string> = {}, body?: Record<string, unknown>): Promise<T> {
@@ -23,5 +31,5 @@ export async function post<T>(url: string, headers: Record<string, string> = {},
         const body = await response.text();
         return body && JSON.parse(body);
     }
-    throw new Error(response.statusText);
+    throw new ServiceError(response);
 }

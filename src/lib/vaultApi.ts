@@ -73,16 +73,9 @@ export async function logout(vaultUrl: string, token: string): Promise<void> {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
 }
 
-interface SecretData extends Record<string, unknown | undefined> {
-    // url: string
-    // username?: string
-    // password?: string
-    // 'site url'?: string;
-}
-
 interface SecretResponse {
     data: {
-        data: SecretData;
+        data: Record<string, unknown>;
     }
 }
 
@@ -93,7 +86,7 @@ interface SecretsList {
 }
 
 class Matcher {
-    private static readonly inputProps: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
+    private static readonly inputProps = ['id', 'name', 'label', 'placeholder'] as const;
     private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = [];
 
     constructor(input: InputInfoProps) {
@@ -117,19 +110,17 @@ export interface InputMatch {
 
 export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boolean {
     const matcher = new Matcher(input);
-    return secret.keys.some(key => !!matcher.find(key.toLowerCase()))
+    return secret.keys.some((key) => !!matcher.find(key.toLowerCase()))
         || input.type === 'password' && secret.keys.includes('password');
 }
 
-const settingsKeys = ['username', 'password', 'email'];
+const ignoredKeys = /(url|note)/i;
 
 export class Secret {
-    private readonly _data: Readonly<Record<string, unknown>>;
-    private readonly _keys: string[];
+    readonly keys: string[];
 
-    constructor(data: Record<string, unknown>) {
-        this._data = data;
-        this._keys = Object.keys(this._data).filter(key => settingsKeys.includes(key));
+    constructor(private readonly _data: Record<string, unknown>) {
+        this.keys = Object.keys(_data).filter((key) => typeof _data[key] === 'string' && !ignoredKeys.test(key));
     }
 
     get(key: string) {
@@ -147,13 +138,9 @@ export class Secret {
         return this.get('password');
     }
 
-    get keys(): string[] {
-        return this._keys;
-    }
-
     findValue(input: InputInfoProps): InputMatch | void {
         const matcher = new Matcher(input);
-        for (const key of this._keys) {
+        for (const key of this.keys) {
             const inputProp = matcher.find(key.toLowerCase());
             if (inputProp) return {inputProp, key, value: this.get(key)};
         }
@@ -171,12 +158,12 @@ async function listSecrets(vaultUrl: string, token: string, path?: string): Prom
 }
 
 export async function getSecretPaths(vaultUrl: string, vaultPath: string | undefined, token: string): Promise<SecretInfo[]> {
-    const names = (await listSecrets(vaultUrl, token, vaultPath)).map(name => vaultPath ? `${vaultPath}/${name}` : name);
+    const names = (await listSecrets(vaultUrl, token, vaultPath)).map((name) => vaultPath ? `${vaultPath}/${name}` : name);
     const secrets: SecretInfo[] = [];
     for (let path = names.shift(); path; path = names.shift()) {
         if (path.endsWith('/')) {
             const nested = await listSecrets(vaultUrl, token, path);
-            names.push(...nested.map(child => path + child));
+            names.push(...nested.map((child) => path + child));
         }
         else {
             const secret = await getSecret(vaultUrl, token, path);

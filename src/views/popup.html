@@ -5,6 +5,9 @@
 <link rel="stylesheet" href="bundle.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
+body {
+    max-width: 25em;
+}
 div.buttons {
     display: grid;
     grid-row-gap: 5px;
@@ -17,64 +20,26 @@ label {
     font-weight: bold;
 }
 .mdc-text-field {
-    min-width: 20em;
     width: 100%;
+}
+.mdc-floating-label {
+    overflow: visible;
 }
 #status {
     color: red;
     font-size: medium;
     margin: 10px 0;
 }
-#page-inputs-switch {
-    position: relative;
-    left: -8px;
-    display: flex;
-    align-items: center;
-}
 #page-inputs {
-    padding-right: 5px;
     padding-bottom: 5px;
-}
-#page-inputs .input-info {
-    border: 1px solid gray;
-    margin-bottom: 8px;
-    display: table;
-    border-collapse: collapse;
-    width: 100%;
-    box-shadow: 3px 3px 3px 1px lightgrey;
-}
-#page-inputs .input-info div {
-    display: table-row;
-}
-#page-inputs .input-info div:not(:last-child) {
-    border-bottom: 1px solid #888;
-}
-#page-inputs .input-info div:nth-child(odd) {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-#page-inputs .input-info div span {
-    display: table-cell;
-    padding: 3px;
-}
-#page-inputs .input-info div span.label {
-    font-weight: bold;
-    width: 1px;
-}
-#page-inputs .input-info div span.label::after {
-    content: ":  ";
-}
-.collapse {
-    overflow: hidden;
-    transition: height .35s ease-in-out;
 }
 .section .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin: 10px 0;
-    border-bottom: 1px solid;
 }
-.section .header h2 {
+.section .header h3 {
     flex-grow: 1;
     margin: 0;
 }
@@ -105,25 +70,26 @@ ul em {
     </div>
     <div class="buttons" style="white-space: nowrap"></div>
     <div>
-        <h2>Vault credentials</h2>
+        <h3>Vault credentials</h3>
         <div class="settings-data">
             <label>Username:  </label><span id="username"></span>
         </div>
         <label class="mdc-text-field mdc-text-field--filled">
             <span class="mdc-text-field__ripple"></span>
-            <span class="mdc-floating-label" id="my-label-id">Password</span>
+            <span class="mdc-floating-label">Password</span>
             <input class="mdc-text-field__input" type="password" id="password" autofocus>
             <span class="mdc-line-ripple"></span>
         </label>
         <p id="status"></p>
-        <div id="page-inputs-switch"><i class="material-icons">arrow_right</i><span>Page Inputs</span></div>
-        <div class="collapse" style="height: 0;">
-            <div id="page-inputs"><h3>No inputs found</h3></div>
-        </div>
+    </div>
+    <div class="section">
+        <h3>Vault Secret</h3>
+        <p class="mdc-typography--subtitle2">Select inputs to populate with secret values.</p>
+        <div id="page-inputs"><h4 name="no-secret">No secret found.</h4></div>
     </div>
     <div class="section">
         <div class="header">
-            <h2 class="mdc-typography--headline6">Saved URLs</h2>
+            <h3>Saved URLs</h3>
             <div class="buttons">
                 <button id="reload" class="mdc-icon-button material-icons small">
                     <div class="mdc-icon-button__ripple"></div>

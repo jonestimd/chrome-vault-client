@@ -1,16 +1,15 @@
-import {getLabel, getText} from './htmlUtil';
-
 export interface LoginInput {
-    selector?: string;
-    label?: string;
+    frameId: string;
+    refId: number;
     value: string;
 }
 
-enum InputType {text, email, tel, password}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const inputTypes = Object.keys(InputType).filter(k => typeof InputType[k as any] === 'number');
+export const inputTypes = ['text', 'email', 'password'] as const;
+export type InputType = typeof inputTypes[number];
 
 export interface InputInfoProps {
+    frameId: string;
+    refId: number;
     id?: string;
     name?: string;
     label?: string;
@@ -18,39 +17,7 @@ export interface InputInfoProps {
     type: string;
 }
 
-export class InputInfo implements InputInfoProps {
-    private static readonly DEFAULT_TYPE = InputType[InputType.text];
-    static InputType = InputType;
-
-    static get displayProps(): Array<keyof InputInfoProps> {
-        return ['type', 'id', 'name', 'label', 'placeholder'];
-    }
-
-    static isValid(input: HTMLInputElement): boolean {
-        return inputTypes.includes(input.type || InputInfo.DEFAULT_TYPE) && input.getClientRects().length > 0;
-    }
-
-    readonly id?: string;
-    readonly name?: string;
-    readonly label?: string;
-    readonly placeholder?: string;
-    readonly type: string;
-
-    constructor(input: HTMLInputElement) {
-        const label = getLabel(input);
-        this.id = input.id;
-        this.name = input.name;
-        this.placeholder = input.placeholder;
-        this.label = label && getText(label);
-        this.type = input.type || InputInfo.DEFAULT_TYPE;
-    }
-
-    get isEmpty(): boolean {
-        return this.type !== InputType[InputType.password] && !InputInfo.displayProps.slice(1).some(prop => Boolean(this[prop]));
-    }
-}
-
 export interface PageInfoMessage {
     url: string
-    inputs: InputInfo[];
+    inputs: InputInfoProps[];
 }

@@ -5,7 +5,7 @@
 @use '@material/typography/mdc-typography';
 @use '@material/elevation/mdc-elevation';
 @use '@material/button/mdc-button';
-@use '@material/icon-button';
+@use '@material/icon-button/styles' as icon-button;
 @use '@material/floating-label/mdc-floating-label';
 @use '@material/line-ripple/mdc-line-ripple';
 @use '@material/notched-outline/mdc-notched-outline';
@@ -15,6 +15,9 @@
 @use '@material/menu-surface/mdc-menu-surface';
 @use '@material/menu/mdc-menu';
 @use "@material/linear-progress";
+@use "@material/list/mdc-list";
+@use "@material/select/styles";
+@use "@material/select";
 
 @include theme.core-styles;
 @include textfield.core-styles;
@@ -22,7 +25,10 @@
 @include linear-progress.core-styles;
 
 .mdc-icon-button.small {
-  @include icon-button.density($density-scale: -2);
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 .mdc-fab:disabled {
@@ -32,14 +38,15 @@
   color: rgba(0, 0, 0, 0.51);
 }
 
-.mdc-text-field {
-  @include textfield.density($density-scale: -1, $minimum-height-for-filled-label: 48);
-}
-
 .mdc-list-item__secondary-text::before {
   display: none;
 }
 
 .hidden {
   display: none;
+}
+
+#page-inputs .mdc-select {
+  width: 100%;
+  margin-bottom: 0.25em;
 }

@@ -2,7 +2,7 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCTextField} from '@material/textfield';
 import {MDCLinearProgress} from '@material/linear-progress';
-document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
+document.querySelectorAll('.mdc-button').forEach((node) => new MDCRipple(node));
 
 import {MDCSnackbar} from '@material/snackbar';
 const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar')!);

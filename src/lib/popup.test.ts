@@ -15,7 +15,6 @@ jest.mock('./settings');
 jest.mock('./vaultApi');
 jest.mock('./components/UrlList');
 
-const mockRuntime = chrome.runtime as IMockChromeRuntime;
 const mockTabs = chrome.tabs as IMockTabs;
 let MockTextField: typeof textfield.MDCTextField;
 
@@ -23,14 +22,26 @@ const nextTick = promisify(setImmediate);
 
 const html = fs.readFileSync(path.join(__dirname, '../views/popup.html'));
 
-const loadPage = async () => {
+type MockTab = Partial<chrome.tabs.Tab>;
+
+const loadPage = async (...tabs: MockTab[]) => {
     global.window = new JSDOM(html).window as any;
     global.document = window.document;
+    const addListener = jest.fn();
+    const port = {
+        name: 'popup',
+        postMessage: jest.fn(),
+        onMessage: {addListener},
+        mockSend: (message: unknown) => addListener.mock.calls[0][0](message),
+    };
+    mockTabs.connect.mockReturnValue(port);
+    mockTabs.query.mockImplementation((query: unknown, callback: (tabs: MockTab[]) => void) => callback(tabs));
     jest.isolateModules(() => {
         MockTextField = require('../__mocks__/@material/textfield').MDCTextField;
         require('./popup');
     });
     await nextTick();
+    return port;
 };
 
 const vaultUrl = 'https://my.vault';
@@ -39,10 +50,6 @@ const password = 'passw0rd';
 const token = 'vault token';
 const pageUrl = 'https://current.page';
 const vaultPath = '/secret path/secret name';
-const sender = {tab: {id: 'active tab id'}} as unknown as chrome.runtime.MessageSender;
-const sendResponse = jest.fn();
-
-const messageCallback = () => mockRuntime.onMessage.addListener.mock.calls[0][0];
 
 const permissionsStub = permissions as jest.Mocked<typeof permissions>;
 const settingsStub = settings as jest.Mocked<typeof settings>;
@@ -72,9 +79,9 @@ async function testFillButtonEnabled(field: string, currentUrl = pageUrl) {
     settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, field)]});
     vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
     vaultApiStub.hasSecretValue.mockReturnValue(true);
-    await loadPage();
+    const port = await loadPage({id: tabId, url: pageUrl});
 
-    await messageCallback()({url: pageUrl, inputs: [{name: field}]}, sender, sendResponse);
+    await port.mockSend({url: pageUrl, inputs: [{name: field}]});
 
     const button = document.querySelector('div.buttons button') as HTMLButtonElement;
     expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
@@ -84,51 +91,23 @@ async function testFillButtonEnabled(field: string, currentUrl = pageUrl) {
     expect(document.getElementById('status')?.innerHTML).toEqual('');
 }
 
+const frameId = 'top';
+const tabId = Math.floor(Math.random()*10);
+
 describe('popup', () => {
-    it('executes content script for web url', async () => {
-        settingsStub.load.mockResolvedValue({});
-        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
-        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([{url: 'https://example.com'}]));
-
-        await loadPage();
-
-        expect(chrome.tabs.executeScript).toHaveBeenCalledTimes(1);
-        expect(chrome.tabs.executeScript).toHaveBeenCalledWith({file: 'contentScript.js', allFrames: true});
-    });
-    it('does not execute content script for non-web url', async () => {
-        settingsStub.load.mockResolvedValue({});
-        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
-        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([{url: 'about:debugging'}]));
-
-        await loadPage();
-
-        expect(chrome.tabs.executeScript).not.toHaveBeenCalled();
-    });
-    it('does not execute content script for no tab', async () => {
-        settingsStub.load.mockResolvedValue({});
-        mockRuntime.getPlatformInfo.mockImplementation((cb: Function) => cb({os: 'linux'}));
-        mockTabs.query.mockImplementation((q: any, cb: Function) => cb([]));
-
-        await loadPage();
-
-        expect(chrome.tabs.executeScript).not.toHaveBeenCalled();
-    });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, secretPaths: [secretInfo(vaultPath, pageUrl)]});
-        await loadPage();
 
-        await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
+        await loadPage({id: 1, url: 'https://example.com'});
 
         expect(document.getElementById('username')?.innerHTML).toEqual(vaultUser);
     });
-    it('displays message for no inputs', async () => {
-        settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
-        vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
+    it('displays message for no secrets', async () => {
+        settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, 'https://other.com', 'username')]});
+
         await loadPage();
 
-        await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
-
-        expect(document.getElementById('page-inputs')?.innerHTML).toEqual('<h3>No inputs found</h3>');
+        expect(document.getElementById('page-inputs')?.innerHTML).toEqual('<h4 name="no-secret">No secret found.</h4>');
     });
     it('displays saved URLs', async () => {
         settingsStub.load.mockResolvedValue({secretPaths: secretPaths});
@@ -139,21 +118,6 @@ describe('popup', () => {
         expect(urlList('saved-urls').addItem).toHaveBeenCalledTimes(2);
         expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.bank.com', secretPaths.slice(0, 1));
         expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.utility.com', secretPaths.slice(1));
-    });
-    describe('page-inputs-switch', () => {
-        it('expands page-inputs', async () => {
-            const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text'}];
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
-            vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-            await loadPage();
-            await messageCallback()({url: pageUrl, inputs}, sender, sendResponse);
-            const pageInputs = document.getElementById('page-inputs');
-            jest.spyOn(pageInputs!, 'clientHeight', 'get').mockReturnValue(123);
-
-            document.getElementById('page-inputs-switch')?.click();
-            expect(document.querySelector('#page-inputs-switch i')?.innerHTML).toEqual('arrow_drop_down');
-            expect(pageInputs?.parentElement?.style.height).toEqual('123px');
-        });
     });
     describe('messageCallback', () => {
         it('adds button for Vault secret when page has username field', async () => {
@@ -169,42 +133,55 @@ describe('popup', () => {
             await testFillButtonEnabled('email', 'https://subdomain.current.page');
         });
         it('adds page inputs', async () => {
-            const inputs: InputInfoProps[] = [{id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder'}];
+            const inputs: InputInfoProps[] = [{
+                frameId, refId: 1,
+                id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder',
+            }];
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'custom')]});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
-            await loadPage();
+            const port = await loadPage({id: tabId, url: pageUrl});
 
-            await messageCallback()({url: pageUrl, inputs}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs});
 
             const pageInputs = document.getElementById('page-inputs');
             expect(pageInputs?.childNodes).toHaveLength(1);
-            expect(pageInputs?.children[0]?.innerHTML).toEqual(
-                `<div class="row"><span class="label">type</span><span>${inputs[0]!.type}</span></div>` +
-                `<div class="row"><span class="label">id</span><span>${inputs[0]!.id}</span></div>` +
-                `<div class="row"><span class="label">name</span><span>${inputs[0]!.name}</span></div>` +
-                `<div class="row"><span class="label">label</span><span>${inputs[0]!.label}</span></div>` +
-                `<div class="row"><span class="label">placeholder</span><span>${inputs[0]!.placeholder}</span></div>`);
-            expect(document.querySelector('#page-inputs-switch i')?.innerHTML).toEqual('arrow_right');
-            expect(pageInputs?.parentElement?.style.height).toEqual('0px');
+            expect(pageInputs?.children[0]?.innerHTML.replace(/\n */g, '')).toEqual(
+                `<div class="mdc-select__anchor" role="button" aria-haspopup="listbox" tabindex="0" aria-disabled="false">
+                    <span class="mdc-floating-label"><b>custom</b> input</span>
+                    <span class="mdc-select__selected-text"></span>
+                    <i class="mdc-select__dropdown-icon material-icons">arrow_drop_down</i>
+                    <span class="mdc-line-ripple"></span>
+                </div>
+                <div class="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth">
+                    <ul class="mdc-deprecated-list" role="listbox">
+                        <li class="mdc-deprecated-list-item mdc-deprecated-list-item--selected" role="option" data-value="" tabindex="0" aria-selected="true">
+                            <span class="mdc-deprecated-list-item__ripple"></span>
+                            <span class="mdc-deprecated-list-item__text"></span>
+                        </li>
+                        <li class="mdc-deprecated-list-item" role="option" data-value="${inputs[0]!.label}" tabindex="-1">
+                            <span class="mdc-deprecated-list-item__ripple"></span>
+                            <span class="mdc-deprecated-list-item__text">${inputs[0]!.label}</span>
+                        </li>
+                    </ul>
+                </div>`.replace(/\n */g, ''));
         });
-        it('disables button when page contains no fields', async () => {
+        it('does not show fill buttons when page contains no fields', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
+
             await loadPage();
 
-            await messageCallback()({url: pageUrl, inputs: []}, sender, sendResponse);
-
-            const button = document.querySelector('div.buttons button') as HTMLButtonElement;
-            expect(button.disabled).toEqual(true);
+            const button = document.querySelector('body > div.buttons button');
+            expect(button).toBeNull();
         });
-        it('disables button when not logged in and password is empty', async () => {
+        it('disables fill button when not logged in and password is empty', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
-            await loadPage();
+            const port = await loadPage({id: tabId, url: pageUrl});
 
-            await messageCallback()({url: pageUrl, inputs: [{id: 'username'}]}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs: [{id: 'username'}]});
 
-            const button = document.querySelector('div.buttons button') as HTMLButtonElement;
+            const button = document.querySelector('body > div.buttons button') as HTMLButtonElement;
             expect(button.disabled).toEqual(true);
             expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
             expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
@@ -214,53 +191,59 @@ describe('popup', () => {
         it('enables fill buttons when not logged in and password is not empty', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
-            await loadPage();
+            vaultApiStub.hasSecretValue.mockReturnValue(true);
+            const port = await loadPage({id: tabId, url: pageUrl});
             getInput('#password').value = password;
 
-            await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]});
 
-            expect(getButton('div.buttons button').disabled).toEqual(false);
+            expect(getButton('body > div.buttons button').disabled).toEqual(false);
         });
         it('displays Vault error', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
             vaultApiStub.getSecret.mockRejectedValue({message: 'bad request'});
             vaultApiStub.getErrorMessage.mockReturnValue('formatted errors');
-            await loadPage();
+            const port = await loadPage({id: tabId, url: pageUrl});
 
-            await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]});
 
             expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
             expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
             expect(document.getElementById('status')?.innerHTML).toEqual('Error: formatted errors');
-            expect(getButton('div.buttons button').disabled).toEqual(true);
+            expect(getButton('body > div.buttons button').disabled).toEqual(true);
         });
         it('displays message for invalid Vault token', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
-            await loadPage();
+            const port = await loadPage({id: tabId, url: pageUrl});
 
-            await messageCallback()({url: pageUrl, inputs: [{id: 'username'}]}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs: [{id: 'username'}]});
 
             expect(vaultApi.getSecret).not.toHaveBeenCalled();
             expect(document.getElementById('status')?.innerHTML).toEqual('Need a Vault token');
-            expect(getButton('div.buttons button').disabled).toEqual(true);
+            expect(getButton('body > div.buttons button').disabled).toEqual(true);
         });
     });
     describe('fill password button', () => {
-        it('sends message to fill fields matching name or label', async () => {
+        const usernameRefId = 1;
+        const passwordRefId = 2;
+        it('sends message to fill selected fields', async () => {
             const secretData = {url: '', username: 'site user', password: 'site password', email: 'user@mail.host'};
             const secret = new Secret(secretData);
-            settingsStub.load.mockResolvedValue({vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
+            settingsStub.load.mockResolvedValue({vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
             vaultApiStub.getSecret.mockResolvedValue(secret);
             vaultApiStub.hasSecretValue.mockReturnValue(true);
-            await loadPage();
-            await messageCallback()({url: pageUrl, inputs: [{name: 'username'}, {label: 'password', type: 'password'}]}, sender, sendResponse);
+            const port = await loadPage({id: tabId, url: pageUrl});
+            await port.mockSend({url: pageUrl, inputs: [
+                {name: 'username', frameId, refId: usernameRefId},
+                {label: 'password', type: 'password', frameId, refId: passwordRefId},
+            ]});
 
-            getButton('div.buttons button').click();
+            getButton('body > div.buttons button').click();
 
             expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
-            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(sender.tab?.id, [
-                {selector: 'input[name="username"]', value: secretData.username},
-                {label: 'password', value: secretData.password},
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(tabId, [
+                expect.objectContaining({frameId, refId: usernameRefId, value: secretData.username}),
+                expect.objectContaining({frameId, refId: passwordRefId, value: secretData.password}),
             ]);
         });
         it('gets new Vault token when password is not empty', async () => {
@@ -269,11 +252,11 @@ describe('popup', () => {
             vaultApiStub.getSecret.mockResolvedValueOnce(new Secret({url: '', username: 'site user', password: 'site password'}));
             vaultApiStub.hasSecretValue.mockReturnValue(true);
             vaultApiStub.login.mockResolvedValue({client_token: 'new token', lease_duration: 30});
-            await loadPage();
+            const port = await loadPage({id: tabId, url: pageUrl});
             getInput('#password').value = password;
-            await messageCallback()({url: pageUrl, inputs: [{id: 'username'}, {type: 'password'}]}, sender, sendResponse);
+            await port.mockSend({url: pageUrl, inputs: [{id: 'username', frameId, refId: usernameRefId}, {type: 'password', frameId, refId: passwordRefId}]});
 
-            getButton('div.buttons button').click();
+            getButton('body > div.buttons button').click();
 
             await nextTick();
             expect(vaultApi.getSecret).toHaveBeenCalledTimes(2);
@@ -282,9 +265,10 @@ describe('popup', () => {
             expect(vaultApi.login).toHaveBeenCalledTimes(1);
             expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
             expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
-            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(sender.tab?.id, [
-                {selector: 'input[id="username"]', value: 'site user'},
-                {selector: 'input[type="password"]', value: 'site password'}]);
+            expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(tabId, [
+                expect.objectContaining({frameId, refId: usernameRefId, value: 'site user'}),
+                expect.objectContaining({frameId, refId: passwordRefId, value: 'site password'}),
+            ]);
             expect(document.getElementById('status')?.innerHTML).toEqual('');
         });
     });
