@@ -1,5 +1,6 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCLinearProgress} from '@material/linear-progress';
+import {MDCTabBar} from '@material/tab-bar';
 document.querySelectorAll('.mdc-button').forEach((node) => new MDCRipple(node));
 
 import {MDCTextField} from '@material/textfield';
@@ -86,6 +87,17 @@ const inputCountAttr = 'data-inputs';
 
 type Comparator<T> = (v1: T, v2: T) => number;
 const compareKeys: Comparator<[string, unknown]> = ([key1], [key2]) => key1.localeCompare(key2);
+
+interface TabActivatedEvent extends Event {
+    detail: {index: number}
+}
+
+const tabBar = new MDCTabBar(document.querySelector('.mdc-tab-bar')!);
+tabBar.activateTab(0);
+tabBar.listen<TabActivatedEvent>('MDCTabBar:activated', ({detail}) => {
+    const tabs = document.querySelectorAll<HTMLDivElement>('.tab-content');
+    tabs.forEach((tab, i) => i === detail.index ? tab.classList.remove('hidden') : tab.classList.add('hidden'));
+});
 
 const urlList = new UrlList(document.getElementById('saved-urls')!);
 function showDomainPaths(secrets?: vaultApi.SecretInfo[]) {

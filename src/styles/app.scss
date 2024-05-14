@@ -10,6 +10,7 @@
 @use '@material/line-ripple/mdc-line-ripple';
 @use '@material/notched-outline/mdc-notched-outline';
 @use '@material/textfield';
+@use "@material/textfield/helper-text";
 @use '@material/snackbar/mdc-snackbar';
 @use '@material/list';
 @use '@material/menu-surface/mdc-menu-surface';
@@ -18,9 +19,14 @@
 @use "@material/list/mdc-list";
 @use "@material/select/styles";
 @use "@material/select";
+@use "@material/tab-bar/mdc-tab-bar";
+@use "@material/tab-scroller/mdc-tab-scroller";
+@use "@material/tab-indicator/mdc-tab-indicator";
+@use "@material/tab/mdc-tab";
 
 @include theme.core-styles;
 @include textfield.core-styles;
+@include helper-text.helper-text-core-styles;
 @include list.deprecated-core-styles;
 @include linear-progress.core-styles;
 
