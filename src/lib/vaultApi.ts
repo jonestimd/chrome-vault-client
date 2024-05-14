@@ -108,10 +108,10 @@ export interface InputMatch {
     value?: string;
 }
 
-export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boolean {
+export function hasSecretValue(input: InputInfoProps, keys: string[]): boolean {
     const matcher = new Matcher(input);
-    return secret.keys.some((key) => !!matcher.find(key.toLowerCase()))
-        || input.type === 'password' && secret.keys.includes('password');
+    return keys.some((key) => !!matcher.find(key.toLowerCase()))
+        || input.type === 'password' && keys.includes('password');
 }
 
 const ignoredKeys = /(url|note)/i;

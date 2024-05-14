@@ -129,5 +129,68 @@ describe('settings', () => {
             expect(result).toEqual(['my-bank.com']);
         });
     });
+    describe('getInputSelections', () => {
+        const hostname = 'my-bank.com';
+        it('returns empty object for no saved selections', async () => {
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({}));
+
+            const result = await settings.getInputSelections(hostname);
+
+            expect(result).toEqual({});
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+        });
+        it('returns empty object for no saved selection for hostname', async () => {
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({[settings.pageSettingsKey]: {'other-bank.com': {username: {}}}}));
+
+            const result = await settings.getInputSelections(hostname);
+
+            expect(result).toEqual({});
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+        });
+        it('returns empty saved selection for hostname', async () => {
+            const selection = {username: {frameId: 'top', label: 'User ID'}};
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({[settings.pageSettingsKey]: {[hostname]: selection}}));
+
+            const result = await settings.getInputSelections(hostname);
+
+            expect(result).toEqual(selection);
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+        });
+    });
+    describe('saveInputSelection', () => {
+        const hostname = 'my-bank.com';
+        const selection = {username: {frameId: 'top', refId: 1, type: 'text', label: 'User ID'}};
+        it('adds selection settings', async () => {
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({}));
+
+            await settings.saveInputSelection(hostname, 'username', selection.username);
+
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({[settings.pageSettingsKey]: {[hostname]: selection}}, expect.any(Function));
+        });
+        it('adds selection for hostname', async () => {
+            const existingSettings = {'other-bank.com': {username: {frameId: 'top', label: 'User Name'}}};
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({[settings.pageSettingsKey]: existingSettings}));
+
+            await settings.saveInputSelection(hostname, 'username', selection.username);
+
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({[settings.pageSettingsKey]: {
+                ...existingSettings,
+                [hostname]: selection},
+            }, expect.any(Function));
+        });
+        it('updates selection for hostname', async () => {
+            const existingSettings = {username: {frameId: 'top', label: 'User Name'}, password: {frameId: 'top', type: 'password'}};
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({[settings.pageSettingsKey]: {[hostname]: existingSettings}}));
+
+            await settings.saveInputSelection(hostname, 'username', selection.username);
+
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({[settings.pageSettingsKey]: {
+                [hostname]: {...existingSettings, ...selection}},
+            }, expect.any(Function));
+        });
+    });
 });
 

@@ -96,7 +96,7 @@ function showDomainPaths(secrets?: vaultApi.SecretInfo[]) {
             const urlSecrets = byHost[hostname] ?? [];
             return {...byHost, [hostname]: [...urlSecrets, secret]};
         }, {});
-        Object.entries(byHost).sort(compareKeys).forEach(([url, secrets]) => urlList.addItem(url, secrets));
+        Object.entries(byHost).sort(compareKeys).forEach(([url, secrets]) => urlList.addItem(url, secrets.map((s) => s.path)));
     }
 }
 filterInput.listen('input', () => {
@@ -138,10 +138,12 @@ async function showInputs(message: PageInfoMessage) {
     const {vaultUrl, vaultUser, token, secretPaths} = await settings.load();
     const secretInfos = findVaultPaths(secretPaths!, message.url);
     const secretProps = Array.from(new Set(secretInfos.flatMap((s) => s.keys)));
+    const hostname = getHostname(message.url);
     if (secretProps.length && !selectInputs.length) {
+        const listener = settings.saveInputSelection.bind(undefined, hostname);
         pageInputs.querySelector('h4[name="no-secret"]')?.remove();
         for (const prop of secretProps) {
-            selectInputs.push(new PropSelect(pageInputs, prop));
+            selectInputs.push(new PropSelect(pageInputs, prop, listener));
         }
     }
     let vaultToken = token;
@@ -149,15 +151,16 @@ async function showInputs(message: PageInfoMessage) {
     const accessor = await SecretAccessor.newAccessor(vaultUrl!, secretInfos.map((secretInfo) => secretInfo.path), vaultToken!);
 
     if (message.inputs.length) {
+        const inputSelections = await settings.getInputSelections(hostname);
         for (const input of selectInputs) {
-            input.addOptions(message.inputs);
+            input.addOptions(message.inputs, inputSelections[input.propName]);
         }
     }
 
     const buttonDiv = document.querySelector('div.buttons')!;
     buttonDiv.replaceChildren();
     const buttons = secretInfos.map((secretInfo) => {
-        const matchingInputs = message.inputs.filter((input) => vaultApi.hasSecretValue(input, secretInfo));
+        const matchingInputs = message.inputs.filter((input) => vaultApi.hasSecretValue(input, secretInfo.keys));
         const name = secretInfo.path.replace(/^.*\//, '');
         const button = html`
             <button class="mdc-button mdc-button--raised" ${inputCountAttr}="${matchingInputs.length}">

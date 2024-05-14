@@ -1,6 +1,5 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCList} from '@material/list';
-import {SecretInfo} from '../vaultApi';
 import {html} from './html';
 
 const createItem = (url: string, vaultPaths: string[]) => html`
@@ -37,26 +36,24 @@ function emphasize(element: Element | null, value: string | undefined, search: s
 }
 
 class UrlListItem {
-    private url: string;
-    private secrets: SecretInfo[];
     private listItem: HTMLElement;
 
-    constructor(parent: HTMLElement, url: string, secrets: SecretInfo[]) {
+    constructor(parent: HTMLElement, private readonly url: string, private readonly secretPaths: string[]) {
         this.url = url.match(/^https?:\/\//) ? url : 'https://' + url;
-        this.secrets = secrets;
-        this.listItem = createItem(this.url, secrets.map((s) => s.path));
+        this.secretPaths = secretPaths;
+        this.listItem = createItem(this.url, secretPaths.map((s) => s));
         parent.appendChild(this.listItem);
         new MDCRipple(this.listItem);
     }
 
     private addEmphasis(search: string) {
         emphasize(this.listItem.querySelector('span a'), this.url, search);
-        this.listItem.querySelectorAll('li').forEach((li, i) => emphasize(li, this.secrets[i]?.path, search));
+        this.listItem.querySelectorAll('li').forEach((li, i) => emphasize(li, this.secretPaths[i], search));
     }
 
     private removeEmphasis() {
         this.listItem.querySelector('span a')!.replaceChildren(this.url);
-        this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secrets[i]!.path));
+        this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secretPaths[i]!));
     }
 
     remove() {
@@ -64,7 +61,7 @@ class UrlListItem {
     }
 
     private containsMatch(search: string) {
-        return this.url.toLowerCase().includes(search) || this.secrets.some((s) => s.path.toLowerCase().includes(search));
+        return this.url.toLowerCase().includes(search) || this.secretPaths.some((s) => s.toLowerCase().includes(search));
     }
 
     private removeClass(toRemove: string) {
@@ -95,11 +92,10 @@ class UrlListItem {
 }
 
 export default class UrlList {
-    private list: MDCList;
+    private readonly list: MDCList;
     private items: UrlListItem[] = [];
-    private element: HTMLElement;
 
-    constructor(element: HTMLElement) {
+    constructor(private readonly element: HTMLElement) {
         this.element = element;
         this.list = new MDCList(element);
     }
@@ -108,8 +104,8 @@ export default class UrlList {
         this.items.splice(0, this.items.length).forEach((item) => item.remove());
     }
 
-    addItem(domain: string, secrets: SecretInfo[]): void {
-        this.items.push(new UrlListItem(this.element, domain, secrets));
+    addItem(url: string, secretPaths: string[]): void {
+        this.items.push(new UrlListItem(this.element, url, secretPaths));
     }
 
     filterItems(text: string): void {

@@ -13,10 +13,6 @@ function checkVaultPaths(card: Element, vaultPaths: string[]) {
     expect(getText(items)).toEqual(vaultPaths);
 }
 
-function secretInfos(...vaultPaths: string[]) {
-    return vaultPaths.map((path) => ({path, url: '', keys: []}));
-}
-
 describe('UrlCardList', () => {
     beforeEach(() => {
         global.window = new JSDOM('<html><body><a id="page-opener"></a><div id="saved-urls"></body></html>').window as any;
@@ -34,7 +30,7 @@ describe('UrlCardList', () => {
         it('appends a list item with list of vault paths', () => {
             const list = new UrlList(element);
 
-            list.addItem('https://my.bank.com', secretInfos('/secret1', '/secret2'));
+            list.addItem('https://my.bank.com', ['/secret1', '/secret2']);
 
             const items = element.querySelectorAll('.mdc-list-item');
             expect(items).toHaveLength(1);
@@ -45,7 +41,7 @@ describe('UrlCardList', () => {
         it('defaults protocol to https', () => {
             const list = new UrlList(element);
 
-            list.addItem('my.bank.com', secretInfos('/secret1'));
+            list.addItem('my.bank.com', ['/secret1']);
 
             const items = element.querySelectorAll('.mdc-list-item');
             expect(items).toHaveLength(1);
@@ -57,8 +53,8 @@ describe('UrlCardList', () => {
     describe('filteritems', () => {
         it('hides items that do not match', () => {
             const list = new UrlList(element);
-            list.addItem('my.bank.com', secretInfos('/secret1', '/secret2'));
-            list.addItem('some.other.host', secretInfos('/secret4', '/secret5'));
+            list.addItem('my.bank.com', ['/secret1', '/secret2']);
+            list.addItem('some.other.host', ['/secret4', '/secret5']);
 
             list.filterItems('other');
 
@@ -67,8 +63,8 @@ describe('UrlCardList', () => {
         });
         it('unhides items that match', () => {
             const list = new UrlList(element);
-            list.addItem('my.bank.com', secretInfos('/secret1', '/secret2'));
-            list.addItem('some.other.host', secretInfos('/secret4', '/secret5'));
+            list.addItem('my.bank.com', ['/secret1', '/secret2']);
+            list.addItem('some.other.host', ['/secret4', '/secret5']);
 
             list.filterItems('other');
             list.filterItems('my');
@@ -78,8 +74,8 @@ describe('UrlCardList', () => {
         });
         it('highlights paths that match', () => {
             const list = new UrlList(element);
-            list.addItem('my.bank.com', secretInfos('/private1', '/private2/private3'));
-            list.addItem('some.other.host', secretInfos('/secret1', '/secret2'));
+            list.addItem('my.bank.com', ['/private1', '/private2/private3']);
+            list.addItem('some.other.host', ['/secret1', '/secret2']);
 
             list.filterItems('private');
 
@@ -92,8 +88,8 @@ describe('UrlCardList', () => {
     describe('showAll', () => {
         it('unhides all items and clears highlighting', () => {
             const list = new UrlList(element);
-            list.addItem('my.bank.com', secretInfos('/secret1', '/secret2'));
-            list.addItem('some.other.host', secretInfos('/secret4', '/secret5'));
+            list.addItem('my.bank.com', ['/secret1', '/secret2']);
+            list.addItem('some.other.host', ['/secret4', '/secret5']);
             list.filterItems('other');
 
             list.showAll();

@@ -73,5 +73,17 @@ describe('PropSelect', () => {
             const options = parent.querySelectorAll('ul li');
             expect(options.length).toEqual(1);
         });
+        it('re-selects matching input', () => {
+            const input = new PropSelect(parent, 'username');
+            const options = [
+                {frameId: 'top.1', refId: 1, type: 'text', label: 'username'},
+                {frameId: 'top', refId: 2, type: 'text', label: 'username', placeholder: 'User Name'},
+                {frameId: 'top', refId: 1, type: 'text', label: 'username'},
+            ];
+
+            input.addOptions(options, {frameId: 'top', type: 'text', label: 'username'});
+
+            expect(input.selectedInputInfo).toEqual(options[2]);
+        });
     });
 });

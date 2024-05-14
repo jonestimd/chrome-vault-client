@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
 import {InputInfoProps} from './message';
+import PropSelect from './components/PropSelect';
 import UrlList from './components/UrlList';
 import type * as textfield from '../__mocks__/@material/textfield';
 const {Secret} = jest.requireActual('./vaultApi') as typeof vaultApi;
@@ -14,6 +15,7 @@ jest.mock('./permissions');
 jest.mock('./settings');
 jest.mock('./vaultApi');
 jest.mock('./components/UrlList');
+jest.mock('./components/PropSelect');
 
 const mockTabs = chrome.tabs as IMockTabs;
 let MockTextField: typeof textfield.MDCTextField;
@@ -24,7 +26,7 @@ const html = fs.readFileSync(path.join(__dirname, '../views/popup.html'));
 
 type MockTab = Partial<chrome.tabs.Tab>;
 
-const loadPage = async (...tabs: MockTab[]) => {
+const loadPage = (...tabs: MockTab[]) => {
     global.window = new JSDOM(html).window as any;
     global.document = window.document;
     const addListener = jest.fn();
@@ -36,12 +38,13 @@ const loadPage = async (...tabs: MockTab[]) => {
     };
     mockTabs.connect.mockReturnValue(port);
     mockTabs.query.mockImplementation((query: unknown, callback: (tabs: MockTab[]) => void) => callback(tabs));
-    jest.isolateModules(() => {
-        MockTextField = require('../__mocks__/@material/textfield').MDCTextField;
-        require('./popup');
+    return new Promise<typeof port>((resolve) => {
+        jest.isolateModules(() => {
+            MockTextField = require('../__mocks__/@material/textfield').MDCTextField;
+            require('./popup');
+            resolve(port);
+        });
     });
-    await nextTick();
-    return port;
 };
 
 const vaultUrl = 'https://my.vault';
@@ -62,6 +65,7 @@ const secretPaths = [
     secretInfo('/secret/my-utility/user2', 'https://my.utility.com/path2'),
 ];
 
+const MockPropSelect = PropSelect as jest.MockedClass<typeof PropSelect>;
 const MockUrlList = UrlList as jest.MockedClass<typeof UrlList>;
 function urlList(id: string) {
     const index = MockUrlList.mock.calls.findIndex((args) => args[0].id === id);
@@ -95,6 +99,9 @@ const frameId = 'top';
 const tabId = Math.floor(Math.random()*10);
 
 describe('popup', () => {
+    beforeEach(() => {
+        settingsStub.getInputSelections.mockResolvedValue({});
+    });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, secretPaths: [secretInfo(vaultPath, pageUrl)]});
 
@@ -116,8 +123,9 @@ describe('popup', () => {
 
         expect(urlList('saved-urls').removeAll).toHaveBeenCalledTimes(1);
         expect(urlList('saved-urls').addItem).toHaveBeenCalledTimes(2);
-        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.bank.com', secretPaths.slice(0, 1));
-        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.utility.com', secretPaths.slice(1));
+        const paths = secretPaths.map((s) => s.path);
+        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.bank.com', paths.slice(0, 1));
+        expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.utility.com', paths.slice(1));
     });
     describe('messageCallback', () => {
         it('adds button for Vault secret when page has username field', async () => {
@@ -133,8 +141,9 @@ describe('popup', () => {
             await testFillButtonEnabled('email', 'https://subdomain.current.page');
         });
         it('adds page inputs', async () => {
+            const inputRefId = 1;
             const inputs: InputInfoProps[] = [{
-                frameId, refId: 1,
+                frameId, refId: inputRefId,
                 id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder',
             }];
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'custom')]});
@@ -143,27 +152,9 @@ describe('popup', () => {
 
             await port.mockSend({url: pageUrl, inputs});
 
-            const pageInputs = document.getElementById('page-inputs');
-            expect(pageInputs?.childNodes).toHaveLength(1);
-            expect(pageInputs?.children[0]?.innerHTML.replace(/\n */g, '')).toEqual(
-                `<div class="mdc-select__anchor" role="button" aria-haspopup="listbox" tabindex="0" aria-disabled="false">
-                    <span class="mdc-floating-label"><b>custom</b> input</span>
-                    <span class="mdc-select__selected-text"></span>
-                    <i class="mdc-select__dropdown-icon material-icons">arrow_drop_down</i>
-                    <span class="mdc-line-ripple"></span>
-                </div>
-                <div class="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth">
-                    <ul class="mdc-deprecated-list" role="listbox">
-                        <li class="mdc-deprecated-list-item mdc-deprecated-list-item--selected" role="option" data-value="" tabindex="0" aria-selected="true">
-                            <span class="mdc-deprecated-list-item__ripple"></span>
-                            <span class="mdc-deprecated-list-item__text"></span>
-                        </li>
-                        <li class="mdc-deprecated-list-item" role="option" data-value="${inputs[0]!.label}" tabindex="-1">
-                            <span class="mdc-deprecated-list-item__ripple"></span>
-                            <span class="mdc-deprecated-list-item__text">${inputs[0]!.label}</span>
-                        </li>
-                    </ul>
-                </div>`.replace(/\n */g, ''));
+            expect(MockPropSelect).toHaveBeenCalledTimes(1);
+            expect(MockPropSelect).toHaveBeenCalledWith(expect.any(window.HTMLDivElement), 'custom', expect.any(Function));
+            expect(MockPropSelect.prototype.addOptions).toHaveBeenCalledWith(inputs, undefined);
         });
         it('does not show fill buttons when page contains no fields', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
@@ -237,6 +228,8 @@ describe('popup', () => {
                 {name: 'username', frameId, refId: usernameRefId},
                 {label: 'password', type: 'password', frameId, refId: passwordRefId},
             ]});
+            Object.assign(MockPropSelect.mock.instances[0]!, {propName: 'username', selectedInputInfo: {frameId, refId: usernameRefId, type: 'text'}});
+            Object.assign(MockPropSelect.mock.instances[1]!, {propName: 'password', selectedInputInfo: {frameId, refId: passwordRefId, type: 'password'}});
 
             getButton('body > div.buttons button').click();
 
@@ -255,6 +248,8 @@ describe('popup', () => {
             const port = await loadPage({id: tabId, url: pageUrl});
             getInput('#password').value = password;
             await port.mockSend({url: pageUrl, inputs: [{id: 'username', frameId, refId: usernameRefId}, {type: 'password', frameId, refId: passwordRefId}]});
+            Object.assign(MockPropSelect.mock.instances[0]!, {propName: 'username', selectedInputInfo: {frameId, refId: usernameRefId, type: 'text'}});
+            Object.assign(MockPropSelect.mock.instances[1]!, {propName: 'password', selectedInputInfo: {frameId, refId: passwordRefId, type: 'password'}});
 
             getButton('body > div.buttons button').click();
 
@@ -362,8 +357,9 @@ describe('popup', () => {
             expect(document.getElementById('status')!.innerHTML).toEqual('');
             expect(list.removeAll).toHaveBeenCalledTimes(1);
             expect(list.addItem).toHaveBeenCalledTimes(2);
-            expect(list.addItem).toHaveBeenCalledWith('my.bank.com', secretPaths.slice(0, 1));
-            expect(list.addItem).toHaveBeenCalledWith('my.utility.com', secretPaths.slice(1));
+            const paths = secretPaths.map((s) => s.path);
+            expect(list.addItem).toHaveBeenCalledWith('my.bank.com', paths.slice(0, 1));
+            expect(list.addItem).toHaveBeenCalledWith('my.utility.com', paths.slice(1));
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays message for expired token', async () => {
