@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
 body {
-    max-width: 25em;
+    width: 425px;
 }
 div.buttons {
     display: grid;
@@ -32,6 +32,10 @@ label {
 #page-inputs {
     padding-bottom: 5px;
 }
+#page-inputs .mdc-select {
+  width: 100%;
+  margin-bottom: 0.25em;
+}
 .input-group {
     display: flex;
     align-items: baseline;
@@ -53,6 +57,20 @@ ul.mdc-list > li {
 }
 ul em {
     background-color: yellow;
+}
+.mdc-list-item {
+  display: block;
+}
+.mdc-list-item__secondary-text::before {
+  display: none;
+}
+.mdc-list-item__secondary-text ul {
+  padding-left: 20px;
+  list-style-type: none;
+}
+.mdc-list-item__secondary-text ul li {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
 }
 </style>
 </head>
@@ -119,11 +137,11 @@ ul em {
             </div>
         </div>
     </div>
-    <div class="tab-content">
+    <div class="tab-content hidden">
         <p class="mdc-typography--subtitle2">Select inputs to populate with secret values.</p>
         <div id="page-inputs"><h4 name="no-secret">No secret found.</h4></div>
     </div>
-    <div class="tab-content hidden">
+    <div class="tab-content">
         <label class="mdc-text-field mdc-text-field--filled">
             <span class="mdc-text-field__ripple"></span>
             <span class="mdc-floating-label" id="my-label-id">Filter URLs</span>

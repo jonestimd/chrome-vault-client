@@ -16,6 +16,7 @@ jest.mock('./settings');
 jest.mock('./vaultApi');
 jest.mock('./components/UrlList');
 jest.mock('./components/PropSelect');
+jest.mock('@material/tab-bar');
 
 const mockTabs = chrome.tabs as IMockTabs;
 let MockTextField: typeof textfield.MDCTextField;

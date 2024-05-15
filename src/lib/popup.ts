@@ -93,7 +93,7 @@ interface TabActivatedEvent extends Event {
 }
 
 const tabBar = new MDCTabBar(document.querySelector('.mdc-tab-bar')!);
-tabBar.activateTab(0);
+tabBar.activateTab(1);
 tabBar.listen<TabActivatedEvent>('MDCTabBar:activated', ({detail}) => {
     const tabs = document.querySelectorAll<HTMLDivElement>('.tab-content');
     tabs.forEach((tab, i) => i === detail.index ? tab.classList.remove('hidden') : tab.classList.add('hidden'));
@@ -157,6 +157,7 @@ async function showInputs(message: PageInfoMessage) {
         for (const prop of secretProps) {
             selectInputs.push(new PropSelect(pageInputs, prop, listener));
         }
+        tabBar.activateTab(0);
     }
     let vaultToken = token;
 
@@ -209,14 +210,10 @@ async function showInputs(message: PageInfoMessage) {
     passwordInput.listen('input', updateButtons);
 }
 
-function connect(tabId: number) {
-    return chrome.tabs.connect(tabId, {name: 'popup'});
-}
-
 chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
     if (tab?.id && tab.url && /^https?:/.test(tab.url)) {
         tabId = tab.id;
-        const port = connect(tab.id);
+        const port = chrome.tabs.connect(tab.id, {name: 'popup'});
         port.onMessage.addListener(showInputs);
         port.postMessage('get-inputs');
     }

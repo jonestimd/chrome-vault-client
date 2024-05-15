@@ -16,7 +16,6 @@
 @use '@material/menu-surface/mdc-menu-surface';
 @use '@material/menu/mdc-menu';
 @use "@material/linear-progress";
-@use "@material/list/mdc-list";
 @use "@material/select/styles";
 @use "@material/select";
 @use "@material/tab-bar/mdc-tab-bar";
@@ -44,15 +43,6 @@
   color: rgba(0, 0, 0, 0.51);
 }
 
-.mdc-list-item__secondary-text::before {
-  display: none;
-}
-
 .hidden {
   display: none;
-}
-
-#page-inputs .mdc-select {
-  width: 100%;
-  margin-bottom: 0.25em;
 }
