@@ -32,12 +32,16 @@ class InputInfo implements InputInfoProps {
 }
 
 function setInput(input: HTMLInputElement, value: string): void {
+    input.dispatchEvent(new Event('focus', {bubbles: true}));
     input.setAttribute('value', value);
+    input.dispatchEvent(new Event('input', {bubbles: true}));
     input.dispatchEvent(new Event('change', {bubbles: true}));
     if (input.value !== value) {
         input.value = value;
         input.dispatchEvent(new Event('input', {bubbles: true}));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
     }
+    input.dispatchEvent(new Event('blur', {bubbles: true}));
 }
 
 function isVisible(element: Element): boolean | undefined{

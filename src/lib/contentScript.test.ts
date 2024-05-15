@@ -116,8 +116,9 @@ describe('contentScript', () => {
         });
     });
     describe('message listener', () => {
+        let MockEvent: jest.Mock;
         beforeEach(() => {
-            global.Event = jest.fn().mockReturnValue(event) as any;
+            global.Event = MockEvent = jest.fn().mockReturnValue(event) as any;
         });
         afterEach(() => {
             global.Event = {} as any;
@@ -140,9 +141,14 @@ describe('contentScript', () => {
 
             expect(setAttribute).toHaveBeenCalledTimes(1);
             expect(setAttribute).toHaveBeenCalledWith('value', username);
-            expect(Event).toHaveBeenCalledTimes(1);
-            expect(Event).toHaveBeenCalledWith('change', {bubbles: true});
-            expect(dispatchEvent).toHaveBeenCalledTimes(1);
+            expect(MockEvent).toHaveBeenCalledTimes(4);
+            expect(MockEvent.mock.calls).toEqual([
+                ['focus', {bubbles: true}],
+                ['input', {bubbles: true}],
+                ['change', {bubbles: true}],
+                ['blur', {bubbles: true}],
+            ]);
+            expect(dispatchEvent).toHaveBeenCalledTimes(4);
             expect(dispatchEvent).toHaveBeenCalledWith(event);
             expect(valueSetter).not.toHaveBeenCalled();
         });
@@ -160,10 +166,16 @@ describe('contentScript', () => {
 
             expect(setAttribute).toHaveBeenCalledTimes(1);
             expect(setAttribute).toHaveBeenCalledWith('value', username);
-            expect(Event).toHaveBeenCalledTimes(2);
-            expect(Event).toHaveBeenCalledWith('change', {bubbles: true});
-            expect(Event).toHaveBeenCalledWith('input', {bubbles: true});
-            expect(dispatchEvent).toHaveBeenCalledTimes(2);
+            expect(MockEvent).toHaveBeenCalledTimes(6);
+            expect(MockEvent.mock.calls).toEqual([
+                ['focus', {bubbles: true}],
+                ['input', {bubbles: true}],
+                ['change', {bubbles: true}],
+                ['input', {bubbles: true}],
+                ['change', {bubbles: true}],
+                ['blur', {bubbles: true}],
+            ]);
+            expect(dispatchEvent).toHaveBeenCalledTimes(6);
             expect(dispatchEvent).toHaveBeenCalledWith(event);
             expect(valueSetter).toHaveBeenCalledTimes(1);
             expect(valueSetter).toHaveBeenCalledWith(username);
