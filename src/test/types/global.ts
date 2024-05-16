@@ -31,6 +31,7 @@ declare global {
         executeScript: jest.MockedFunction<any>,
         query: jest.MockedFunction<any>;
         connect: jest.MockedFunction<any>;
+        update: jest.MockedFunction<any>;
         onCreated: {
             addListener: jest.MockedFunction<any>;
         };

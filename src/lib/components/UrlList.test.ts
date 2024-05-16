@@ -26,6 +26,22 @@ describe('UrlCardList', () => {
         global.window = {} as any;
         global.document = {} as any;
     });
+    describe('useCurrentTab', () => {
+        it('opens link url in current tab', () => {
+            const addListener = jest.spyOn(window.HTMLAnchorElement.prototype, 'addEventListener');
+            const list = new UrlList(element);
+
+            list.useCurrentTab();
+            list.addItem('https://my.bank.com', ['/secret1']);
+
+            expect(addListener).toHaveBeenCalledWith('click', expect.any(Function));
+            const listener = addListener.mock.calls[0]?.[1] as EventListener;
+            const event = {preventDefault: jest.fn()};
+            listener(event as any);
+            expect(chrome.tabs.update).toHaveBeenCalledWith({url: 'https://my.bank.com'});
+            expect(event.preventDefault).toHaveBeenCalled();
+        });
+    });
     describe('addItem', () => {
         it('appends a list item with list of vault paths', () => {
             const list = new UrlList(element);

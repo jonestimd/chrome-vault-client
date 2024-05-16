@@ -211,6 +211,7 @@ async function showInputs(message: PageInfoMessage) {
 }
 
 chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
+    if (tab?.url === 'about:newtab') urlList.useCurrentTab();
     if (tab?.id && tab.url && /^https?:/.test(tab.url)) {
         tabId = tab.id;
         const port = chrome.tabs.connect(tab.id, {name: 'popup'});

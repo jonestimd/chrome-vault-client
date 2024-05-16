@@ -38,12 +38,20 @@ function emphasize(element: Element | null, value: string | undefined, search: s
 class UrlListItem {
     private listItem: HTMLElement;
 
-    constructor(parent: HTMLElement, private readonly url: string, private readonly secretPaths: string[]) {
+    constructor(parent: HTMLElement, private readonly url: string, private readonly secretPaths: string[], useCurrentTab: boolean) {
         this.url = url.match(/^https?:\/\//) ? url : 'https://' + url;
         this.secretPaths = secretPaths;
         this.listItem = createItem(this.url, secretPaths.map((s) => s));
         parent.appendChild(this.listItem);
         new MDCRipple(this.listItem);
+        if (useCurrentTab) this.useCurrentTab();
+    }
+
+    useCurrentTab() {
+        this.listItem.querySelector('a')!.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.update({url: this.url});
+        });
     }
 
     private addEmphasis(search: string) {
@@ -92,6 +100,7 @@ class UrlListItem {
 }
 
 export default class UrlList {
+    private _useCurrentTab = false;
     private readonly list: MDCList;
     private items: UrlListItem[] = [];
 
@@ -100,12 +109,17 @@ export default class UrlList {
         this.list = new MDCList(element);
     }
 
+    useCurrentTab() {
+        this._useCurrentTab = true;
+        this.items.forEach((i) => i.useCurrentTab());
+    }
+
     removeAll(): void {
         this.items.splice(0, this.items.length).forEach((item) => item.remove());
     }
 
     addItem(url: string, secretPaths: string[]): void {
-        this.items.push(new UrlListItem(this.element, url, secretPaths));
+        this.items.push(new UrlListItem(this.element, url, secretPaths, this._useCurrentTab));
     }
 
     filterItems(text: string): void {
