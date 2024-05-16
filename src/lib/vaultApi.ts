@@ -1,5 +1,6 @@
-import * as agent from 'superagent';
+import * as agent from './agent';
 import {refreshTokenAlarm} from './alarms';
+import {getMessage} from './errors';
 import {InputInfoProps} from './message';
 
 const authHeader = 'X-Vault-Token';
@@ -10,42 +11,47 @@ export interface SecretInfo {
     keys: string[];
 }
 
-export interface UrlPaths {
-    [siteHost: string]: SecretInfo[]
-}
-
 interface VaultError {
-    response?: {
-        body?: {errors?: string[]}
+    response: {
+        body: {errors: string[]}
     }
-    message?: string
 }
 
-export function getErrorMessage(err: VaultError): string {
-    if (err.response && err.response.body && err.response.body.errors) return err.response.body.errors.join();
-    return err.message;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isVaultError(err: any): err is VaultError {
+    return 'response' in err && 'body' in err.response && 'errors' in err.response.body;
+}
+
+export function getErrorMessage(err: unknown): string | undefined {
+    if (isVaultError(err)) return err.response.body.errors.join();
+    return getMessage(err);
 }
 
 export interface AuthToken {
-    client_token?: string
-    lease_duration?: number
+    client_token: string
+    lease_duration: number
     renewable?: boolean
 }
+
 interface AuthResponse {
     auth?: AuthToken
 }
 
 function setRenewAlarm(body: AuthResponse): AuthToken {
-    const auth = body && body.auth;
-    if (auth && auth.renewable && auth.lease_duration >= 60) {
-        chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (auth.lease_duration - 30) / 60});
+    if (body.auth?.lease_duration) {
+        const {renewable, lease_duration: leaseDuration} = body.auth;
+        if (renewable && leaseDuration >= 60) {
+            chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (leaseDuration - 30) / 60});
+        }
+        return body.auth;
     }
-    return auth;
+    console.info('no auth token', body);
+    throw new Error('Login failed');
 }
 
 export async function login(vaultUrl: string, user: string, password: string): Promise<AuthToken> {
     try {
-        const {body} = await agent.post(`${vaultUrl}/v1/auth/userpass/login/${user}`, {password});
+        const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/userpass/login/${user}`, {}, {password});
         return setRenewAlarm(body);
     } catch (err) {
         throw new Error(getErrorMessage(err));
@@ -54,7 +60,7 @@ export async function login(vaultUrl: string, user: string, password: string): P
 
 export async function refreshToken(vaultUrl: string, token: string): Promise<boolean> {
     try {
-        const {body} = await agent.post(`${vaultUrl}/v1/auth/token/renew-self`).set(authHeader, token);
+        const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
         setRenewAlarm(body);
         return true;
     } catch (err) {
@@ -64,35 +70,30 @@ export async function refreshToken(vaultUrl: string, token: string): Promise<boo
 }
 
 export async function logout(vaultUrl: string, token: string): Promise<void> {
-    await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`).set(authHeader, token);
+    await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
 }
-function getHost(url: string): string {
-    try {
-        const {hostname, port} = new URL(url);
-        return hostname + (port ? ':' + port : '');
-    } catch (err) {
-        return url;
+
+interface SecretResponse {
+    data: {
+        data: Record<string, unknown>;
     }
 }
 
-interface SecretData {
-    url?: string
-    username?: string
-    password?: string
-    [key: string]: string
+interface SecretsList {
+    data: {
+        keys: string[];
+    }
 }
 
 class Matcher {
-    private static readonly inputKeys: (keyof InputInfoProps)[] = ['id', 'name', 'label', 'placeholder'];
-    private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = []
+    private static readonly inputProps = ['id', 'name', 'label', 'placeholder'] as const;
+    private readonly conditions: Array<[keyof InputInfoProps, (value: string) => boolean]> = [];
 
     constructor(input: InputInfoProps) {
-        Matcher.inputKeys.forEach(key => {
-            if (input[key]) {
-                const lowerValue = input[key].toLowerCase();
-                this.conditions.push([key, (lowerKey) => lowerValue.includes(lowerKey)]);
-            }
-        });
+        for (const prop of Matcher.inputProps) {
+            const propValue = input[prop]?.toLowerCase();
+            if (propValue) this.conditions.push([prop, (secretProp) => propValue.includes(secretProp)]);
+        }
     }
 
     find(lowerKey: string): keyof InputInfoProps | void {
@@ -104,84 +105,76 @@ class Matcher {
 export interface InputMatch {
     inputProp: keyof InputInfoProps;
     key: string;
-    value: string;
+    value?: string;
 }
 
-export function hasSecretValue(input: InputInfoProps, secret: SecretInfo): boolean {
+export function hasSecretValue(input: InputInfoProps, keys: string[]): boolean {
     const matcher = new Matcher(input);
-    return secret.keys.some(key => !!matcher.find(key.toLowerCase()))
-        || input.type === 'password' && secret.keys.includes('password');
+    return keys.some((key) => !!matcher.find(key.toLowerCase()))
+        || input.type === 'password' && keys.includes('password');
 }
+
+const ignoredKeys = /(url|note)/i;
 
 export class Secret {
-    readonly url?: string
-    private siteUrl?: string
-    private readonly _data: {readonly [key: string]: string}
-    private readonly _keys: string[];
+    readonly keys: string[];
 
-    constructor({url, ['site url']: siteUrl, username, ...data}: SecretData) {
-        this.url = url;
-        this.siteUrl = siteUrl;
-        this._data = Object.assign({...data}, username && {user: username});
-        this._keys = Object.keys(this._data).filter(key => key !== 'password').concat(data.password && ['password'] || []);
+    constructor(private readonly _data: Record<string, unknown>) {
+        this.keys = Object.keys(_data).filter((key) => typeof _data[key] === 'string' && !ignoredKeys.test(key));
     }
 
-    get siteHost(): string {
-        return this.siteUrl ? getHost(this.siteUrl) : getHost(this.url);
+    get(key: string) {
+        if (key in this._data) {
+            const value = this._data[key];
+            if (typeof value === 'string') return value;
+        }
     }
 
-    get password(): string {
-        return this._data['password'];
+    get url() {
+        return this.get('site url') ?? this.get('url');
     }
 
-    get(key: string): string {
-        return this._data[key];
-    }
-
-    get keys(): string[] {
-        return this._keys;
+    get password() {
+        return this.get('password');
     }
 
     findValue(input: InputInfoProps): InputMatch | void {
         const matcher = new Matcher(input);
-        for (const key of this._keys) {
+        for (const key of this.keys) {
             const inputProp = matcher.find(key.toLowerCase());
-            if (inputProp) return {inputProp, key, value: this._data[key]};
+            if (inputProp) return {inputProp, key, value: this.get(key)};
         }
     }
 }
 
-export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret> {
-    const {body} = await agent.get(`${vaultUrl}/v1/secret/data/${path}`).set(authHeader, token);
-    return new Secret(body.data.data);
+export async function getSecret(vaultUrl: string, token: string, path: string): Promise<Secret | undefined> {
+    const body = await agent.get<SecretResponse>(`${vaultUrl}/v1/secret/data/${path}`, {}, {[authHeader]: token});
+    return body.data.data.url ? new Secret(body.data.data) : undefined;
 }
 
 async function listSecrets(vaultUrl: string, token: string, path?: string): Promise<string[]> {
-    const {body} = await agent('LIST', `${vaultUrl}/v1/secret/metadata/${path || ''}`).set(authHeader, token);
+    const body = await agent.list<SecretsList>(`${vaultUrl}/v1/secret/metadata/${path || ''}`, {[authHeader]: token});
     return body.data.keys;
 }
 
-export async function getUrlPaths(vaultUrl: string, vaultPath: string, token: string): Promise<UrlPaths> {
-    const names = (await listSecrets(vaultUrl, token, vaultPath)).map(name => vaultPath ? `${vaultPath}/${name}` : name);
-    const urlPaths: UrlPaths = {};
-    for (let i = 0; i < names.length;) {
-        const path = names[i];
+export async function getSecretPaths(vaultUrl: string, vaultPath: string | undefined, token: string): Promise<SecretInfo[]> {
+    const names = (await listSecrets(vaultUrl, token, vaultPath)).map((name) => vaultPath ? `${vaultPath}/${name}` : name);
+    const secrets: SecretInfo[] = [];
+    for (let path = names.shift(); path; path = names.shift()) {
         if (path.endsWith('/')) {
             const nested = await listSecrets(vaultUrl, token, path);
-            names.splice(i, 1, ...nested.map(child => path + child));
+            names.push(...nested.map((child) => path + child));
         }
         else {
-            const secret = await getSecret(vaultUrl, token, names[i]);
-            if (secret.url && secret.keys.length > 0) {
-                if (!urlPaths[secret.siteHost]) urlPaths[secret.siteHost] = [];
-                urlPaths[secret.siteHost].push({
+            const secret = await getSecret(vaultUrl, token, path);
+            if (secret && secret.url && secret.keys.length > 0) {
+                secrets.push({
                     path,
                     url: secret.url,
                     keys: secret.keys,
                 });
             }
-            i++;
         }
     }
-    return urlPaths;
+    return secrets;
 }

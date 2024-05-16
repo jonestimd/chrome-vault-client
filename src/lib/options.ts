@@ -1,55 +1,41 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {MDCRipple} from '@material/ripple';
 import {MDCTextField} from '@material/textfield';
-document.querySelectorAll('.mdc-button').forEach(node => new MDCRipple(node));
+import {MDCLinearProgress} from '@material/linear-progress';
+document.querySelectorAll('.mdc-button').forEach((node) => new MDCRipple(node));
 
 import {MDCSnackbar} from '@material/snackbar';
-const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
+const snackbar = new MDCSnackbar(document.querySelector('.mdc-snackbar')!);
 
 import * as settings from './settings';
 import * as permissions from './permissions';
 import * as vaultApi from './vaultApi';
 
-import UrlCardList from './components/UrlCardList';
+import {getMessage, getStatus} from './errors';
 
-const urlInput = new MDCTextField(document.getElementById('vault-url').parentElement);
-const pathInput = new MDCTextField(document.getElementById('vault-path').parentElement);
-const usernameInput = new MDCTextField(document.getElementById('username').parentElement);
-const passwordInput = new MDCTextField(document.getElementById('password').parentElement);
-const filterInput = new MDCTextField(document.getElementById('vault-filter').parentElement);
+const urlInput = new MDCTextField(document.getElementById('vault-url')!.parentElement!);
+const pathInput = new MDCTextField(document.getElementById('vault-path')!.parentElement!);
+const usernameInput = new MDCTextField(document.getElementById('username')!.parentElement!);
+const passwordInput = new MDCTextField(document.getElementById('password')!.parentElement!);
 const statusArea = document.getElementById('status');
 const logoutButton = document.getElementById('logout') as HTMLButtonElement;
-const reloadButton = document.getElementById('reload') as HTMLButtonElement;
-const urlList = new UrlCardList(document.getElementById('saved-urls'));
-const progressOverlay = document.querySelector('.progress-overlay');
+const saveButton = document.getElementById('save') as HTMLButtonElement;
+const linearProgress = new MDCLinearProgress(document.querySelector('.mdc-linear-progress')!);
+linearProgress.close();
 
-let savedUrl: string, savedToken: string, unsaved = false;
+let savedUrl: string | undefined, savedToken: string | undefined, unsaved = false;
 
 function onInputChange() {
-    reloadButton.disabled = !(urlInput.valid && usernameInput.valid && (savedToken || passwordInput.value.length > 0));
+    saveButton.disabled = !(urlInput.valid && usernameInput.valid && (savedToken || passwordInput.value.length > 0));
     unsaved = true;
 }
 
 function setStatus(token?: string) {
-    statusArea.innerText = token ? 'Logged in' : 'Not logged in';
+    statusArea!.innerText = token ? 'Logged in' : 'Not logged in';
     logoutButton.disabled = !token;
 }
 
-type Comparator<T> = (t1: T, t2: T) => number;
-
-const compareHosts: Comparator<[string, vaultApi.SecretInfo[]]> = ([h1], [h2]) => h1.localeCompare(h2);
-
-function pluck<T, K extends keyof T>(items: T[], key: K): T[K][] {
-    return items.map(item => item[key]);
-}
-
-function showUrlPaths(urlPaths: vaultApi.UrlPaths) {
-    urlList.removeAll();
-    Object.entries(urlPaths).sort(compareHosts).forEach(([host, secrets]) => {
-        urlList.addCard(host, pluck(secrets, 'url'), pluck(secrets, 'path'));
-    });
-}
-
-settings.load().then(({vaultUrl, vaultPath, vaultUser, token, urlPaths}: settings.Settings) => {
+settings.load().then(({vaultUrl, vaultPath, vaultUser, token}: settings.Settings) => {
     savedUrl = vaultUrl;
     savedToken = token;
     if (vaultUrl) {
@@ -69,7 +55,6 @@ settings.load().then(({vaultUrl, vaultPath, vaultUser, token, urlPaths}: setting
     pathInput.value = vaultPath || '';
     onInputChange();
     setStatus(token);
-    if (urlPaths) showUrlPaths(urlPaths);
     unsaved = false;
 });
 
@@ -100,44 +85,30 @@ async function login() {
 
 logoutButton.addEventListener('click', async () => {
     try {
-        if (savedToken) await vaultApi.logout(savedUrl, savedToken);
+        if (savedToken) await vaultApi.logout(savedUrl!, savedToken);
         savedToken = undefined;
         onInputChange();
     } catch (err) {
-        if (err.status === 403) savedToken = undefined;
-        else showAlert('Error revoking token: ' + err.message);
+        if (getStatus(err) === 403) savedToken = undefined;
+        else showAlert('Error revoking token: ' + getMessage(err));
     }
     await settings.clearToken();
     setStatus(savedToken);
 });
 
-function removeClass(element: Element, toRemove: string) {
-    element.className = element.className.split(/ +/).filter(name => name !== toRemove).join(' ');
-}
-
-function addClass(element: Element, toAdd: string) {
-    const classList = element.className.split(/ +/);
-    element.className = classList.includes(toAdd) ? element.className : `${element.className} ${toAdd}`;
-}
-
-reloadButton.addEventListener('click', async () => {
+saveButton.addEventListener('click', async () => {
     try {
-        removeClass(progressOverlay, 'hidden');
+        linearProgress.open();
         if (unsaved || !savedToken) await login();
-        showUrlPaths(await settings.cacheUrlPaths());
+        await settings.cacheSecretPaths();
     } catch (err) {
-        if (err.status === 403) {
+        if (getStatus(err) === 403) {
             savedToken = undefined;
             setStatus();
             showAlert('Need a token');
         }
-        else showAlert(err.message);
+        else showAlert(getMessage(err) ?? 'Error with no message??');
     } finally {
-        addClass(progressOverlay, 'hidden');
+        linearProgress.close();
     }
-});
-
-filterInput.listen('input', () => {
-    if (filterInput.value.length > 0) urlList.filterCards(filterInput.value);
-    else urlList.showAll();
 });

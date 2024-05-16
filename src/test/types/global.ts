@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-namespace */
-import "jsdom"; // need an import for global declarations
+import 'jsdom'; // need an import for global declarations
 
 declare global {
     namespace NodeJS {
@@ -11,14 +12,28 @@ declare global {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    namespace chrome.runtime {
-        interface RuntimeInstalledEvent {
+    interface IMockChromeRuntime {
+        onInstalled: {
             addListener: jest.MockedFunction<any>;
         }
+        onMessage: {
+            addListener: jest.MockedFunction<any>;
+        }
+        onConnect: {
+            addListener: jest.MockedFunction<any>;
+        }
+        sendMessage: jest.MockedFunction<any>;
+        getPlatformInfo: jest.MockedFunction<any>;
+    }
 
-        interface ExtensionMessageEvent {
+    interface IMockTabs {
+        sendMessage: jest.MockedFunction<any>,
+        executeScript: jest.MockedFunction<any>,
+        query: jest.MockedFunction<any>;
+        connect: jest.MockedFunction<any>;
+        update: jest.MockedFunction<any>;
+        onCreated: {
             addListener: jest.MockedFunction<any>;
-        }
+        };
     }
 }

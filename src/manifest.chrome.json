@@ -1,25 +1,31 @@
 {
     "name": "Vault Client",
-    "version": "1.0",
+    "version": "1.4",
     "description": "Store passwords in a Hashicorp Vault",
     "options_page": "options.html",
     "permissions": [
         "activeTab",
         "alarms",
         "declarativeContent",
-        "storage"
+        "storage",
+        "tabs",
+        "https://*/"
     ],
     "optional_permissions": [
-        "https://*/*",
-        "http://*/*"
+        "https://*/*"
     ],
     "background": {
         "scripts": [
-            "background.js"
+            "chrome-background.js"
         ],
         "persistent": false
     },
-    "page_action": {
+    "content_scripts": [{
+        "matches": ["https://*/*"],
+        "all_frames": true,
+        "js": ["contentScript.js"]
+    }],
+    "browser_action": {
         "default_popup": "popup.html",
         "default_icon": {
             "16": "images/vault-client16.png",

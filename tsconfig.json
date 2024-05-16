@@ -1,17 +1,14 @@
 {
     "compilerOptions": {
+        "strict": true,
         "module": "commonjs",
         "lib": ["es2019", "dom"],
         "allowJs": true,
         "noImplicitAny": true,
+        "noUncheckedIndexedAccess": true,
         "sourceMap": true,
-        "target": "es5",
+        "target": "esnext",
         "outDir": "build",
-        "baseUrl": ".",
-        "paths": {
-            "superagent": [
-                "./src/types/superagent/index.d.ts"
-            ]
-        }
+        "baseUrl": "."
     }
 }

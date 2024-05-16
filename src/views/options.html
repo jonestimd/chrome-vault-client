@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <link rel="stylesheet" href="bundle.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
 .section {
     margin: 10px 5px;
     position: relative;
-    border-bottom: 1px solid lightgray;
 }
 
 h2 {
@@ -57,95 +57,55 @@ h2 {
 
 .filter-header .mdc-text-field {
     flex: 1 0 auto;
-    margin: 0 10px;
     max-width: 40em;
-}
-.filter-header .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading {
-    width: 28px;
-    border-radius: 28px 0 0 28px;
-}
-.filter-header .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
-    width: 28px;
-    border-radius: 0 28px 28px 0;
-}
-.filter-header .mdc-text-field__input {
-    padding-left: 32px;
-    padding-right: 0;
-}
-
-.card-list {
-    display: flex;
-    flex-wrap: wrap;
-}
-.card-list .mdc-card {
-    flex: 1 0 500px;
-    min-width: 500px;
-    overflow-wrap: break-word;
-    margin: 5px;
-    padding: 10px;
-}
-.card-list .mdc-card a {
-    text-decoration: none;
-}
-.card-list .mdc-card ul {
-    list-style-type: none;
-    padding: 0;
-}
-.card-list .mdc-card em {
-    background-color: yellow;
-    font-style: normal;
-    font-weight: bold;
 }
 </style>
 </head>
 <body class="mdc-typography">
-    <a id="page-opener" target="_blank" rel="noopener noreferrer" style="display: none;"></a>
-    <div class="section">
-        <h2 class="mdc-typography--headline6">Vault Connection</h2>
-        <div class="options">
-            <div class="mdc-text-field">
-                <input type="text" class="mdc-text-field__input" id="vault-url" required autofocus />
-                <div class="mdc-line-ripple"></div>
-                <label class="mdc-floating-label" for="vault-url">Vault URL</label>
-            </div>
-            <div class="mdc-text-field">
-                <input type="text" class="mdc-text-field__input" id="vault-path" />
-                <div class="mdc-line-ripple"></div>
-                <label class="mdc-floating-label" for="vault-path">Base vault path</label>
-            </div>
-            <div class="mdc-text-field">
-                <input type="text" class="mdc-text-field__input" id="username" required />
-                <div class="mdc-line-ripple"></div>
-                <label class="mdc-floating-label" for="username">Username</label>
-            </div>
-            <div class="mdc-text-field">
-                <input type="password" class="mdc-text-field__input" id="password" />
-                <div class="mdc-line-ripple"></div>
-                <label class="mdc-floating-label" for="password">Password</label>
-            </div>
+    <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate">
+        <div class="mdc-linear-progress__buffer">
+          <div class="mdc-linear-progress__buffer-bar"></div>
+          <div class="mdc-linear-progress__buffer-dots"></div>
         </div>
-        <div class="buttons">
-            <p id="status"></p>
-            <button id="reload" class="mdc-button mdc-button--raised">Reload URLs</button>
-            <button id="logout" class="mdc-button">Log out</button>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
+        </div>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
         </div>
     </div>
     <div class="section">
-        <div class="filter-header">
-            <h2 class="mdc-typography--headline6">Saved URLs</h2>
-            <div class="mdc-text-field mdc-text-field--outlined">
-                <input type="text" id="vault-filter" class="mdc-text-field__input">
-                <div class="mdc-notched-outline">
-                    <div class="mdc-notched-outline__leading"></div>
-                    <div class="mdc-notched-outline__notch">
-                        <label for="tf-outlined" class="mdc-floating-label">Filter URLs</label>
-                    </div>
-                    <div class="mdc-notched-outline__trailing"></div>
-                </div>
-            </div>
+        <h2 class="mdc-typography--headline6">Vault Connection</h2>
+        <div class="options">
+            <label class="mdc-text-field mdc-text-field--filled">
+                <span class="mdc-text-field__ripple"></span>
+                <span class="mdc-floating-label" id="my-label-id">Vault URL</span>
+                <input class="mdc-text-field__input" type="text" id="vault-url" required autofocus />
+                <span class="mdc-line-ripple"></span>
+            </label>
+            <label class="mdc-text-field mdc-text-field--filled">
+                <span class="mdc-text-field__ripple"></span>
+                <span class="mdc-floating-label" id="my-label-id">Base vault path</span>
+                <input class="mdc-text-field__input" type="text" id="vault-path" />
+                <span class="mdc-line-ripple"></span>
+            </label>
+            <label class="mdc-text-field mdc-text-field--filled">
+                <span class="mdc-text-field__ripple"></span>
+                <span class="mdc-floating-label" id="my-label-id">Username</span>
+                <input class="mdc-text-field__input" type="text" id="username" required />
+                <span class="mdc-line-ripple"></span>
+            </label>
+            <label class="mdc-text-field mdc-text-field--filled">
+                <span class="mdc-text-field__ripple"></span>
+                <span class="mdc-floating-label" id="my-label-id">Password</span>
+                <input class="mdc-text-field__input" type="password" id="password" />
+                <span class="mdc-line-ripple"></span>
+            </label>
         </div>
-        <div class="card-list" id="saved-urls">
-            <span id="html-encoder" style="display: none"></span>
+        <div class="buttons">
+            <p id="status"></p>
+            <button id="save" class="mdc-button mdc-button--raised">Save</button>
+            <button id="logout" class="mdc-button">Logout</button>
         </div>
     </div>
     <div class="mdc-snackbar">
@@ -153,20 +113,6 @@ h2 {
             <div class="mdc-snackbar__label" role="status" aria-live="polite">???</div>
             <div class="mdc-snackbar__actions">
                 <button type="button" class="mdc-button mdc-snackbar__action">Ok</button>
-            </div>
-        </div>
-    </div>
-    <div class="progress-overlay hidden">
-        <div class="progress-circular">
-            <div class="progress-circular-wrapper">
-                <div class="progress-circular-inner">
-                    <div class="progress-circular-left">
-                        <div class="progress-circular-spinner"></div>
-                    </div>
-                    <div class="progress-circular-right">
-                        <div class="progress-circular-spinner"></div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

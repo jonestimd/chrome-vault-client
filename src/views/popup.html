@@ -1,94 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <link rel="stylesheet" href="bundle.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
+body {
+    width: 425px;
+}
 div.buttons {
     display: grid;
     grid-row-gap: 5px;
 }
-h2 {
-    border-bottom: 1px solid;
-}
-.settings-data {
-    font-size: medium;
+h3 {
+    margin: 0.8em 0;
 }
 label {
     font-weight: bold;
 }
-div.mdc-text-field {
-    min-width: 20em;
-    margin-top: 10px;
+.mdc-text-field {
     width: 100%;
+}
+.mdc-floating-label {
+    overflow: visible;
 }
 #status {
     color: red;
-    font-size: medium;
-    margin: 10px 0;
-}
-#page-inputs-switch {
-    position: relative;
-    left: -8px;
-    display: flex;
-    align-items: center;
+    min-height: 1.4rem;
+    font-size: small;
 }
 #page-inputs {
-    padding-right: 5px;
     padding-bottom: 5px;
 }
-#page-inputs .input-info {
-    border: 1px solid gray;
-    margin-bottom: 8px;
-    display: table;
-    border-collapse: collapse;
-    width: 100%;
-    box-shadow: 3px 3px 3px 1px lightgrey;
+#page-inputs .mdc-select {
+  width: 100%;
+  margin-bottom: 0.25em;
 }
-#page-inputs .input-info div {
-    display: table-row;
+.input-group {
+    display: flex;
+    align-items: baseline;
+    column-gap: 10px;
+    margin: 10px 0;
 }
-#page-inputs .input-info div:not(:last-child) {
-    border-bottom: 1px solid #888;
+.input-group > div {
+    flex-grow: 1;
 }
-#page-inputs .input-info div:nth-child(odd) {
-    background-color: rgba(0, 0, 0, 0.05);
+.tab-content > .mdc-text-field {
+    margin: 10px 0;
 }
-#page-inputs .input-info div span {
-    display: table-cell;
-    padding: 3px;
+.tab-content .mdc-list {
+    max-height: 10em;
+    overflow-y: scroll;
 }
-#page-inputs .input-info div span.label {
-    font-weight: bold;
-    width: 1px;
+ul.mdc-list > li {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
-#page-inputs .input-info div span.label::after {
-    content: ":  ";
+ul em {
+    background-color: yellow;
 }
-.collapse {
-    overflow: hidden;
-    transition: height .35s ease-in-out;
+.mdc-list-item {
+  display: block;
+}
+.mdc-list-item__secondary-text::before {
+  display: none;
+}
+.mdc-list-item__secondary-text ul {
+  padding-left: 20px;
+  list-style-type: none;
+}
+.mdc-list-item__secondary-text ul li {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
 }
 </style>
 </head>
 <body class="mdc-typography">
-    <div class="buttons" style="white-space: nowrap">
+    <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate">
+        <div class="mdc-linear-progress__buffer">
+          <div class="mdc-linear-progress__buffer-bar"></div>
+          <div class="mdc-linear-progress__buffer-dots"></div>
+        </div>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
+        </div>
+        <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+          <span class="mdc-linear-progress__bar-inner"></span>
+        </div>
     </div>
+    <div class="buttons" style="white-space: nowrap"></div>
     <div>
-        <h2>Vault credentials</h2>
-        <div class="settings-data">
-            <label>Username:  </label><span id="username"></span>
+        <h3>Vault credentials</h3>
+        <div><label>Username:  </label><span id="username"></span></div>
+        <div class="input-group">
+            <div>
+                <label class="mdc-text-field mdc-text-field--filled">
+                    <span class="mdc-text-field__ripple"></span>
+                    <span class="mdc-floating-label">Password</span>
+                    <input class="mdc-text-field__input" type="password" id="password" autofocus>
+                    <span class="mdc-line-ripple"></span>
+                </label>
+                <div class="mdc-text-field-helper-line" id="status">
+                    <div class="mdc-text-field-helper-text" id="my-helper-id" aria-hidden="true"></div>
+                </div>
+            </div>
+            <button id="reload" class="mdc-icon-button material-icons small">
+                <div class="mdc-icon-button__ripple"></div>
+                refresh
+            </button>
         </div>
-        <div class="mdc-text-field">
-            <input type="password" class="mdc-text-field__input" id="password" autofocus/>
-            <div class="mdc-line-ripple"></div>
-            <label class="mdc-floating-label" for="password">Password</label>
+    </div>
+    <div class="mdc-tab-bar" role="tablist">
+        <div class="mdc-tab-scroller">
+            <div class="mdc-tab-scroller__scroll-area">
+                <div class="mdc-tab-scroller__scroll-content">
+                    <button class="mdc-tab" role="tab">
+                        <span class="mdc-tab__content">
+                            <span class="mdc-tab__text-label">Vault Secret</span>
+                        </span>
+                        <span class="mdc-tab-indicator">
+                            <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                        </span>
+                        <span class="mdc-tab__ripple"></span>
+                        <div class="mdc-tab__focus-ring"></div>
+                    </button>
+                    <button class="mdc-tab" role="tab">
+                        <span class="mdc-tab__content">
+                            <span class="mdc-tab__text-label">Saved URLs</span>
+                        </span>
+                        <span class="mdc-tab-indicator">
+                            <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                        </span>
+                        <span class="mdc-tab__ripple"></span>
+                        <div class="mdc-tab__focus-ring"></div>
+                    </button>
+                </div>
+            </div>
         </div>
-        <p id="status"></p>
-        <div id="page-inputs-switch"><i class="material-icons">arrow_right</i><span>Page Inputs</span></div>
-        <div class="collapse" style="height: 0;">
-            <div id="page-inputs"><h3>No inputs found</h3></div>
-        </div>
+    </div>
+    <div class="tab-content hidden">
+        <p class="mdc-typography--subtitle2">Select inputs to populate with secret values.</p>
+        <div id="page-inputs"><h4 name="no-secret">No secret found.</h4></div>
+    </div>
+    <div class="tab-content">
+        <label class="mdc-text-field mdc-text-field--filled">
+            <span class="mdc-text-field__ripple"></span>
+            <span class="mdc-floating-label" id="my-label-id">Filter URLs</span>
+            <input class="mdc-text-field__input" id="vault-filter">
+            <span class="mdc-line-ripple"></span>
+        </label>
+        <ul class="mdc-list mdc-list--two-line" id="saved-urls"></ul>
     </div>
 </body>
 <script src="popup.js"></script>

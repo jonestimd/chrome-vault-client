@@ -1,0 +1,49 @@
+{
+    "name": "Vault Client",
+    "version": "1.4",
+    "description": "Store passwords in a Hashicorp Vault",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "{81711498-9edb-459b-a6d0-b84102bdd321}"
+        }
+    },
+    "options_ui": {
+        "page": "options.html"
+    },
+    "permissions": [
+        "activeTab",
+        "alarms",
+        "storage",
+        "tabs",
+        "https://*/"
+    ],
+    "optional_permissions": [
+        "https://*/*"
+    ],
+    "background": {
+        "scripts": [
+            "firefox-background.js"
+        ]
+    },
+    "content_scripts": [{
+        "matches": ["https://*/*"],
+        "all_frames": true,
+        "js": ["contentScript.js"]
+    }],
+    "browser_action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "images/vault-client16.png",
+            "32": "images/vault-client32.png",
+            "48": "images/vault-client48.png",
+            "128": "images/vault-client128.png"
+        }
+    },
+    "icons": {
+        "16": "images/vault-client16.png",
+        "32": "images/vault-client32.png",
+        "48": "images/vault-client48.png",
+        "128": "images/vault-client128.png"
+    },
+    "manifest_version": 2
+}
