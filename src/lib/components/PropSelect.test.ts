@@ -1,8 +1,13 @@
 import {JSDOM} from 'jsdom';
 import PropSelect from './PropSelect';
+import {MDCSelect} from '@material/select';
+
+jest.mock('@material/select');
 
 let parent: HTMLDivElement;
 const propName = 'username';
+
+const MockMdcSelect = MDCSelect as jest.MockedClass<typeof MDCSelect>;
 
 const getOptionText = (option?: Element)=> option?.querySelector('span.mdc-deprecated-list-item__text')?.textContent;
 
@@ -43,11 +48,16 @@ describe('PropSelect', () => {
             expect(getOptionText(options[1])).toEqual('username');
         });
         it('selects option that matches prop name', () => {
+            const mockSelect = {
+                layoutOptions: jest.fn(),
+                selectedIndex: 0,
+            };
+            MockMdcSelect.mockReturnValue(mockSelect as unknown as MDCSelect);
             const input = new PropSelect(parent, propName);
 
             input.addOptions([{frameId: 'top', refId: 1, type: 'text', label: propName}]);
 
-            expect(input.selectedInputInfo?.refId).toEqual(1);
+            expect(mockSelect.selectedIndex).toEqual(1);
         });
         it('adds option for password input', () => {
             const input = new PropSelect(parent, propName);
@@ -59,11 +69,16 @@ describe('PropSelect', () => {
             expect(getOptionText(options[1])).toEqual('password');
         });
         it('selects password option for password input', () => {
+            const mockSelect = {
+                layoutOptions: jest.fn(),
+                selectedIndex: 0,
+            };
+            MockMdcSelect.mockReturnValue(mockSelect as unknown as MDCSelect);
             const input = new PropSelect(parent, 'password');
 
             input.addOptions([{frameId: 'top', refId: 1, type: 'password'}]);
 
-            expect(input.selectedInputInfo?.refId).toEqual(1);
+            expect(mockSelect.selectedIndex).toEqual(1);
         });
         it('does not add option for input without name', () => {
             const input = new PropSelect(parent, propName);
