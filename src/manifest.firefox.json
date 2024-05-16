@@ -18,8 +18,7 @@
         "https://*/"
     ],
     "optional_permissions": [
-        "https://*/*",
-        "http://*/*"
+        "https://*/*"
     ],
     "background": {
         "scripts": [
