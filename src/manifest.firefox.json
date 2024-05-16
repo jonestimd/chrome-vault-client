@@ -1,6 +1,6 @@
 {
     "name": "Vault Client",
-    "version": "1.3",
+    "version": "1.4",
     "description": "Store passwords in a Hashicorp Vault",
     "browser_specific_settings": {
         "gecko": {

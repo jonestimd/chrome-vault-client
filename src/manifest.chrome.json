@@ -1,6 +1,6 @@
 {
     "name": "Vault Client",
-    "version": "1.0",
+    "version": "1.4",
     "description": "Store passwords in a Hashicorp Vault",
     "options_page": "options.html",
     "permissions": [

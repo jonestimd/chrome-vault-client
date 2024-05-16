@@ -14,7 +14,7 @@
         "build": "webpack --node-env production",
         "postbuild": "shx cp -r src/views/* src/images/ build/",
         "package:chrome": "shx cp src/manifest.chrome.json build/manifest.json # && google-chrome --pack-extension=build && mv build.crx vault-client.crx && mv build.pem vault-client.pem",
-        "package:firefox": "shx cp src/manifest.firefox.json build/manifest.json && npm run sign && cross-zip build vault-client.zip *",
+        "package:firefox": "shx cp src/manifest.firefox.json build/manifest.json && npm run sign && ./bin/zip-plugin.ts",
         "package:dev": "npm run build:dev && npx shx cp src/manifest.firefox.json build/manifest.json && ./bin/zip-plugin.ts",
         "package": "npm run build && npm run package:chrome && npm run package:firefox",
         "presign": "npm run build && shx cp src/manifest.firefox.json build/manifest.json",
