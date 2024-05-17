@@ -33,7 +33,7 @@ export function saveToken(token: string): Promise<void> {
 export const pageSettingsKey = 'pageInputSettings';
 
 export interface InputSelections {
-    [secretProp: string]: InputInfoProps;
+    [secretProp: string]: InputInfoProps | 'none';
 }
 
 interface PageInputSelection {
@@ -56,8 +56,7 @@ export function saveInputSelection(hostname: string, secretProp: string, selecti
     return new Promise<void>((resolve) => {
         chrome.storage.local.get(pageSettingsKey, (result: PageInputSettings = {}) => {
             const pageSelection = result[pageSettingsKey]?.[hostname] ?? {};
-            if (selection) pageSelection[secretProp] = selection;
-            else delete pageSelection[secretProp];
+            pageSelection[secretProp] = selection ?? 'none';
             chrome.storage.local.set({[pageSettingsKey]: {...result[pageSettingsKey], [hostname]: pageSelection}}, () => resolve());
         });
     });

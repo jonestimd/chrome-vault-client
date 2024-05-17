@@ -68,7 +68,7 @@ export default class PropSelect {
         this.skipNotify = false;
     }
 
-    addOptions(inputInfos: InputInfoProps[], selection?: SavedSelection) {
+    addOptions(inputInfos: InputInfoProps[], selection?: SavedSelection | 'none') {
         for (const inputInfo of inputInfos) {
             const inputName = getInputName(inputInfo);
             if (inputName) {
@@ -77,9 +77,11 @@ export default class PropSelect {
             }
         }
         this.mdcSelect.layoutOptions();
-        const selectedIndex = this.inputInfos.findIndex((input) => isSelection(input, selection));
-        if (selectedIndex > 0) this.setSelectedIndex(selectedIndex + 1);
-        else this.selectDefault();
+        if (selection !== 'none') {
+            const selectedIndex = this.inputInfos.findIndex((input) => isSelection(input, selection));
+            if (selectedIndex > 0) this.setSelectedIndex(selectedIndex + 1);
+            else this.selectDefault();
+        }
     }
 
     private selectDefault() {

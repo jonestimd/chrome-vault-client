@@ -191,6 +191,17 @@ describe('settings', () => {
                 [hostname]: {...existingSettings, ...selection}},
             }, expect.any(Function));
         });
+        it('stores de-selection', async () => {
+            const existingSettings = {username: {frameId: 'top', label: 'User Name'}, password: {frameId: 'top', type: 'password'}};
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({[settings.pageSettingsKey]: {[hostname]: existingSettings}}));
+
+            await settings.saveInputSelection(hostname, 'username');
+
+            expect(chromeStorage.local.get).toHaveBeenCalledWith(settings.pageSettingsKey, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({[settings.pageSettingsKey]: {
+                [hostname]: {...existingSettings, username: 'none'}},
+            }, expect.any(Function));
+        });
     });
 });
 

@@ -17,6 +17,7 @@ describe('PropSelect', () => {
         global.document = window.document;
         global.DOMParser = window.DOMParser;
         parent = document.querySelector('#inputs')!;
+        MockMdcSelect.mockReset();
     });
     afterEach(() => {
         global.window = {} as any;
@@ -100,6 +101,18 @@ describe('PropSelect', () => {
             input.addOptions(options, {frameId: 'top', type: 'text', label: 'username'});
 
             expect(input.selectedInputInfo).toEqual(options[2]);
+        });
+        it('de-selects default matching input', () => {
+            const input = new PropSelect(parent, 'username');
+            const options = [
+                {frameId: 'top.1', refId: 1, type: 'text', label: 'username'},
+                {frameId: 'top', refId: 2, type: 'text', label: 'username', placeholder: 'User Name'},
+                {frameId: 'top', refId: 1, type: 'text', label: 'username'},
+            ];
+
+            input.addOptions(options, 'none');
+
+            expect(input.selectedInputInfo).toBeUndefined();
         });
     });
 });
