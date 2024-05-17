@@ -20,6 +20,7 @@ import UrlList from './components/UrlList';
 import {html} from './components/html';
 import {getDomain, getHostname} from './urls';
 import PropSelect from './components/PropSelect';
+import {propOrder} from './constants';
 
 async function login(vaultUrl: string, username: string) {
     if (await permissions.requestOrigin(vaultUrl)) {
@@ -146,10 +147,18 @@ settings.load().then(({vaultUrl, vaultUser, token, secretPaths}) => {
 const selectInputs: PropSelect[] = [];
 let tabId: number;
 
+const sortProps = (p1: string, p2: string) => {
+    const p1Index = propOrder.indexOf(p1);
+    const p2Index = propOrder.indexOf(p2);
+    if (p1Index >= 0) return p2Index >= 0 ? p1Index - p2Index : -1;
+    if (p2Index >= 0) return 1;
+    return p1.localeCompare(p2);
+};
+
 async function showInputs(message: PageInfoMessage) {
     const {vaultUrl, vaultUser, token, secretPaths} = await settings.load();
     const secretInfos = findVaultPaths(secretPaths!, message.url);
-    const secretProps = Array.from(new Set(secretInfos.flatMap((s) => s.keys)));
+    const secretProps = Array.from(new Set(secretInfos.flatMap((s) => s.keys))).sort(sortProps);
     const hostname = getHostname(message.url);
     if (secretProps.length && !selectInputs.length) {
         const listener = settings.saveInputSelection.bind(undefined, hostname);

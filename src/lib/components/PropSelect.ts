@@ -1,6 +1,7 @@
 import {MDCSelect} from '@material/select';
 import {html} from './html';
 import type {InputInfoProps} from '../message';
+import {userProps} from '../constants';
 
 const createRoot = (label: string) => html`
 <div class="mdc-select mdc-select--filled">
@@ -20,8 +21,6 @@ const createMenuItem = (value: string) => html`
     <span class="mdc-deprecated-list-item__ripple"></span>
     <span class="mdc-deprecated-list-item__text">${value}</span>
 </li>`;
-
-const userProps = ['user', 'username', 'userid', 'user id', 'loginid', 'login id'];
 
 const isMatch = (propNames: string[], inputInfo: InputInfoProps) => {
     return inputInfo.id && propNames.includes(inputInfo.id.toLowerCase())
