@@ -1,7 +1,7 @@
 import {MDCRipple} from '@material/ripple';
 import {MDCLinearProgress} from '@material/linear-progress';
 import {MDCTabBar} from '@material/tab-bar';
-document.querySelectorAll('.mdc-button').forEach((node) => new MDCRipple(node));
+document.querySelectorAll('.mdc-icon-button').forEach((node) => new MDCRipple(node).unbounded = true);
 
 import {MDCTextField} from '@material/textfield';
 const passwordInput = new MDCTextField(document.getElementById('password')!.parentElement!);
@@ -186,9 +186,11 @@ async function showInputs(message: PageInfoMessage) {
         const name = secretInfo.path.replace(/^.*\//, '');
         const button = html<HTMLButtonElement>`
             <button class="mdc-button mdc-button--raised" ${inputCountAttr}="${matchingInputs.length}">
+                <span class="mdc-button__ripple"></span>
+                <span class="mdc-button__focus-ring"></span>
                 <span class="mdc-button__label">${name}</span>
             </button>`;
-        buttonDiv.appendChild(button);
+        new MDCRipple(buttonDiv.appendChild(button));
         button.addEventListener('click', async () => {
             if (!accessor.secrets[secretInfo.path] && passwordInput.value.length > 0) {
                 try {

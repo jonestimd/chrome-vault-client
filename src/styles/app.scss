@@ -5,7 +5,8 @@
 @use '@material/typography/mdc-typography';
 @use '@material/elevation/mdc-elevation';
 @use '@material/button/mdc-button';
-@use '@material/icon-button/styles' as icon-button;
+@use '@material/icon-button/icon-button';
+@use '@material/icon-button/icon-button-theme';
 @use '@material/floating-label/mdc-floating-label';
 @use '@material/line-ripple/mdc-line-ripple';
 @use '@material/notched-outline/mdc-notched-outline';
@@ -28,19 +29,10 @@
 @include helper-text.helper-text-core-styles;
 @include list.deprecated-core-styles;
 @include linear-progress.core-styles;
+@include icon-button.core-styles;
 
 .mdc-icon-button.small {
-  font-size: 20px;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-}
-
-.mdc-fab:disabled {
-  cursor: default;
-  pointer-events: none;
-  background-color: #819ca9; /* rgba(0,0,0,0.12); */
-  color: rgba(0, 0, 0, 0.51);
+  @include icon-button-theme.density(-2);
 }
 
 .hidden {

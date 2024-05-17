@@ -90,7 +90,7 @@ async function testFillButtonEnabled(field: string, currentUrl = pageUrl) {
     await port.mockSend({url: pageUrl, inputs: [{name: field}]});
 
     const button = document.querySelector('div.buttons button') as HTMLButtonElement;
-    expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
+    expect(button.querySelector('span.mdc-button__label')?.innerHTML).toEqual('secret name');
     expect(button.disabled).toEqual(false);
     expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
     expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
@@ -176,7 +176,7 @@ describe('popup', () => {
 
             const button = document.querySelector('body > div.buttons button') as HTMLButtonElement;
             expect(button.disabled).toEqual(true);
-            expect(button.querySelector('span')?.innerHTML).toEqual('secret name');
+            expect(button.querySelector('span.mdc-button__label')?.innerHTML).toEqual('secret name');
             expect(vaultApi.getSecret).toHaveBeenCalledTimes(1);
             expect(vaultApi.getSecret).toHaveBeenCalledWith(vaultUrl, token, vaultPath);
             expect(document.getElementById('status')?.innerHTML).toEqual('Invalid token');
