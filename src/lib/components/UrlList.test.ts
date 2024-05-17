@@ -13,11 +13,12 @@ function checkVaultPaths(card: Element, vaultPaths: string[]) {
     expect(getText(items)).toEqual(vaultPaths);
 }
 
-describe('UrlCardList', () => {
+describe('UrlList', () => {
     beforeEach(() => {
         global.window = new JSDOM('<html><body><a id="page-opener"></a><div id="saved-urls"></body></html>').window as any;
         global.requestAnimationFrame = jest.fn();
         global.document = window.document;
+        global.DOMParser = window.DOMParser;
         element = document.querySelector('#saved-urls')!;
         pageOpener = document.getElementById('page-opener') as HTMLAnchorElement;
         jest.spyOn(pageOpener, 'click').mockImplementation(() => { });

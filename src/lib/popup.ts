@@ -175,10 +175,10 @@ async function showInputs(message: PageInfoMessage) {
     const buttons = secretInfos.map((secretInfo) => {
         const matchingInputs = message.inputs.filter((input) => vaultApi.hasSecretValue(input, secretInfo.keys));
         const name = secretInfo.path.replace(/^.*\//, '');
-        const button = html`
+        const button = html<HTMLButtonElement>`
             <button class="mdc-button mdc-button--raised" ${inputCountAttr}="${matchingInputs.length}">
                 <span class="mdc-button__label">${name}</span>
-            </button>` as HTMLButtonElement;
+            </button>`;
         buttonDiv.appendChild(button);
         button.addEventListener('click', async () => {
             if (!accessor.secrets[secretInfo.path] && passwordInput.value.length > 0) {

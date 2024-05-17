@@ -30,6 +30,7 @@ type MockTab = Partial<chrome.tabs.Tab>;
 const loadPage = (...tabs: MockTab[]) => {
     global.window = new JSDOM(html).window as any;
     global.document = window.document;
+    global.DOMParser = window.DOMParser;
     const addListener = jest.fn();
     const port = {
         name: 'popup',

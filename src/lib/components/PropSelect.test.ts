@@ -15,6 +15,7 @@ describe('PropSelect', () => {
     beforeEach(() => {
         global.window = new JSDOM('<html><body><div id="inputs"></div></body></html>').window as any;
         global.document = window.document;
+        global.DOMParser = window.DOMParser;
         parent = document.querySelector('#inputs')!;
     });
     afterEach(() => {
