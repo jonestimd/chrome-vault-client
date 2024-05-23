@@ -4,7 +4,7 @@ export interface LoginInput {
     value: string;
 }
 
-export const inputTypes = ['text', 'email', 'password'] as const;
+export const inputTypes = ['text', 'email', 'password', 'tel'] as const;
 export type InputType = typeof inputTypes[number];
 
 export interface InputInfoProps {

@@ -1,17 +1,7 @@
-import {MDCRipple} from '@material/ripple';
-import {MDCList} from '@material/list';
-import {html} from './html';
+import List, {ListItem} from './List';
 
-const createItem = (url: string, vaultPaths: string[]) => html`
-<li class="mdc-list-item">
-    <span class="mdc-list-item__ripple"></span>
-    <span class="mdc-list-item__text">
-        <span class="mdc-list-item__primary-text"><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></span>
-        <span class="mdc-list-item__secondary-text">
-            <ul>${vaultPaths.map((p) => `<li>${p}</li>`).join('')}</ul>
-        </span>
-    </span>
-</li>`;
+const itemPrimaryText = (url: string) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+const itemSecondaryText = (vaultPaths: string[]) => `<ul>${vaultPaths.map((p) => `<li>${p}</li>`).join('')}</ul>`;
 
 function emphasize(element: Element | null, value: string | undefined, search: string) {
     if (element && value) {
@@ -35,15 +25,14 @@ function emphasize(element: Element | null, value: string | undefined, search: s
     }
 }
 
-class UrlListItem {
-    private listItem: HTMLElement;
+class UrlListItem extends ListItem {
+    static newItem(urlOrHost: string, secretPaths: string[], useCurrentTab: boolean) {
+        const url = urlOrHost.match(/^https?:\/\//) ? urlOrHost : 'https://' + urlOrHost;
+        return new UrlListItem(url, secretPaths, useCurrentTab);
+    }
 
-    constructor(parent: HTMLElement, private readonly url: string, private readonly secretPaths: string[], useCurrentTab: boolean) {
-        this.url = url.match(/^https?:\/\//) ? url : 'https://' + url;
-        this.secretPaths = secretPaths;
-        this.listItem = createItem(this.url, secretPaths.map((s) => s));
-        parent.appendChild(this.listItem);
-        new MDCRipple(this.listItem);
+    private constructor(private readonly url: string, private readonly secretPaths: string[], useCurrentTab: boolean) {
+        super(itemPrimaryText(url), itemSecondaryText(secretPaths));
         if (useCurrentTab) this.useCurrentTab();
     }
 
@@ -62,10 +51,6 @@ class UrlListItem {
     private removeEmphasis() {
         this.listItem.querySelector('span a')!.replaceChildren(this.url);
         this.listItem.querySelectorAll('li').forEach((li, i) => li.replaceChildren(this.secretPaths[i]!));
-    }
-
-    remove() {
-        this.listItem.parentElement?.removeChild(this.listItem);
     }
 
     private containsMatch(search: string) {
@@ -99,14 +84,12 @@ class UrlListItem {
     }
 }
 
-export default class UrlList {
+export default class UrlList extends List<UrlListItem> {
     private _useCurrentTab = false;
-    private readonly list: MDCList;
-    private items: UrlListItem[] = [];
 
-    constructor(private readonly element: HTMLElement) {
+    constructor(readonly element: HTMLElement) {
+        super(element);
         this.element = element;
-        this.list = new MDCList(element);
     }
 
     useCurrentTab() {
@@ -114,12 +97,8 @@ export default class UrlList {
         this.items.forEach((i) => i.useCurrentTab());
     }
 
-    removeAll(): void {
-        this.items.splice(0, this.items.length).forEach((item) => item.remove());
-    }
-
     addItem(url: string, secretPaths: string[]): void {
-        this.items.push(new UrlListItem(this.element, url, secretPaths, this._useCurrentTab));
+        super.addListItem(UrlListItem.newItem(url, secretPaths, this._useCurrentTab));
     }
 
     filterItems(text: string): void {

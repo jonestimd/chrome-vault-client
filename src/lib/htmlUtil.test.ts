@@ -78,6 +78,12 @@ describe('htmlUtil', () => {
 
             expect(htmlUtil.getText(getLabel())).toEqual('the label');
         });
+        it('ignores nested images', () => {
+            loadPage('<label>the label<i class="material-icons">search</i></label>');
+            document.querySelector('i')!.getClientRects = jest.fn().mockReturnValue([{}]);
+
+            expect(htmlUtil.getText(getLabel())).toEqual('the label');
+        });
     });
 });
 

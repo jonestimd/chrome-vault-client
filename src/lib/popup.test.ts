@@ -44,7 +44,7 @@ const loadPage = (...tabs: MockTab[]) => {
         jest.isolateModules(() => {
             MockTextField = require('../__mocks__/@material/textfield').MDCTextField;
             require('./popup');
-            resolve(port);
+            nextTick().then(() => resolve(port));
         });
     });
 };
@@ -53,6 +53,7 @@ const vaultUrl = 'https://my.vault';
 const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
+const auth = {token, expiresAt: Infinity};
 const pageUrl = 'https://current.page';
 const vaultPath = '/secret path/secret name';
 
@@ -82,7 +83,7 @@ function textField(inputId: string) {
 }
 
 async function testFillButtonEnabled(field: string, currentUrl = pageUrl) {
-    settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, field)]});
+    settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, field)]});
     vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
     vaultApiStub.hasSecretValue.mockReturnValue(true);
     const port = await loadPage({id: tabId, url: pageUrl});
@@ -103,6 +104,7 @@ const tabId = Math.floor(Math.random()*10);
 describe('popup', () => {
     beforeEach(() => {
         settingsStub.getInputSelections.mockResolvedValue({});
+        jest.useFakeTimers();
     });
     it('displays Vault username', async () => {
         settingsStub.load.mockResolvedValue({vaultUser, secretPaths: [secretInfo(vaultPath, pageUrl)]});
@@ -112,14 +114,14 @@ describe('popup', () => {
         expect(document.getElementById('username')?.innerHTML).toEqual(vaultUser);
     });
     it('displays message for no secrets', async () => {
-        settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, 'https://other.com', 'username')]});
+        settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, 'https://other.com', 'username')]});
 
         await loadPage();
 
         expect(document.getElementById('page-inputs')?.innerHTML).toEqual('<h4 name="no-secret">No secret found.</h4>');
     });
     it('displays saved URLs', async () => {
-        settingsStub.load.mockResolvedValue({secretPaths: secretPaths});
+        settingsStub.load.mockResolvedValue({secretPaths});
 
         await loadPage();
 
@@ -128,6 +130,51 @@ describe('popup', () => {
         const paths = secretPaths.map((s) => s.path);
         expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.bank.com', paths.slice(0, 1));
         expect(urlList('saved-urls').addItem).toHaveBeenCalledWith('my.utility.com', paths.slice(1));
+    });
+    it('displays saved totp settings', async () => {
+        settingsStub.load.mockResolvedValue({totpSettings: [{key: 'key1', account_name: 'account1', issuer: 'issuer1'}]});
+
+        await loadPage();
+
+        expect(document.querySelectorAll('ul#totp-codes li').length).toEqual(1);
+        expect(document.querySelector('#countdown')?.getAttribute('aria-valuenow')).toEqual('0');
+        expect(document.querySelector('ul#totp-codes li span.passcode[name="key1"]')?.textContent).toEqual('');
+    });
+    it('displays totp codes', async () => {
+        settingsStub.load.mockResolvedValue({vaultUrl, auth, totpSettings: [{key: 'key1', account_name: 'account1', issuer: 'issuer1'}]});
+        vaultApiStub.getPasscodes.mockResolvedValue([{key: 'key1', code: 'code1'}]);
+
+        await loadPage();
+
+        expect(document.querySelectorAll('ul#totp-codes li').length).toEqual(1);
+        expect(document.querySelector('ul#totp-codes li span.passcode[name="key1"]')?.textContent).toEqual('code1');
+    });
+    it('updates totp codes', async () => {
+        settingsStub.load.mockResolvedValue({vaultUrl, auth, totpSettings: [{key: 'key1', account_name: 'account1', issuer: 'issuer1'}]});
+        vaultApiStub.getPasscodes
+            .mockResolvedValueOnce([{key: 'key1', code: 'code1.0'}])
+            .mockResolvedValueOnce([{key: 'key1', code: 'code1.1'}]);
+        jest.spyOn(Date, 'now').mockReturnValueOnce(29_000).mockReturnValue(30_000);
+        await loadPage();
+
+        await jest.advanceTimersToNextTimerAsync();
+
+        expect(document.querySelectorAll('ul#totp-codes li').length).toEqual(1);
+        expect(document.querySelector('ul#totp-codes li span.passcode[name="key1"]')?.textContent).toEqual('code1.1');
+    });
+    it('stops countdown when no passcodes', async () => {
+        settingsStub.load.mockResolvedValue({vaultUrl, auth, totpSettings: [{key: 'key1', account_name: 'account1', issuer: 'issuer1'}]});
+        vaultApiStub.getPasscodes
+            .mockResolvedValueOnce([{key: 'key1', code: 'code1.0'}])
+            .mockResolvedValueOnce([{key: 'key1', code: ''}]);
+        jest.spyOn(Date, 'now').mockReturnValueOnce(29_000).mockReturnValue(30_000);
+        await loadPage();
+
+        await jest.advanceTimersToNextTimerAsync();
+
+        expect(document.querySelectorAll('ul#totp-codes li').length).toEqual(1);
+        expect(document.querySelector('ul#totp-codes li span.passcode[name="key1"]')?.textContent).toEqual('');
+        expect(document.querySelector('#countdown')?.getAttribute('aria-valuenow')).toEqual('0');
     });
     describe('messageCallback', () => {
         it('adds button for Vault secret when page has username field', async () => {
@@ -148,7 +195,7 @@ describe('popup', () => {
                 frameId, refId: inputRefId,
                 id: 'customId', label: 'Custom Label', type: 'text', name: 'Custom name', placeholder: 'Custom placeholder',
             }];
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'custom')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'custom')]});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
             const port = await loadPage({id: tabId, url: pageUrl});
 
@@ -159,7 +206,7 @@ describe('popup', () => {
             expect(MockPropSelect.prototype.addOptions).toHaveBeenCalledWith(inputs, undefined);
         });
         it('does not show fill buttons when page contains no fields', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockResolvedValue(new Secret({url: '', password}));
 
             await loadPage();
@@ -168,7 +215,7 @@ describe('popup', () => {
             expect(button).toBeNull();
         });
         it('disables fill button when not logged in and password is empty', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
             const port = await loadPage({id: tabId, url: pageUrl});
 
@@ -182,7 +229,7 @@ describe('popup', () => {
             expect(document.getElementById('status')?.innerHTML).toEqual('Invalid token');
         });
         it('enables fill buttons when not logged in and password is not empty', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username')]});
             vaultApiStub.getSecret.mockRejectedValue({status: 403});
             vaultApiStub.hasSecretValue.mockReturnValue(true);
             const port = await loadPage({id: tabId, url: pageUrl});
@@ -193,7 +240,7 @@ describe('popup', () => {
             expect(getButton('body > div.buttons button').disabled).toEqual(false);
         });
         it('displays Vault error', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
             vaultApiStub.getSecret.mockRejectedValue({message: 'bad request'});
             vaultApiStub.getErrorMessage.mockReturnValue('formatted errors');
             const port = await loadPage({id: tabId, url: pageUrl});
@@ -222,7 +269,7 @@ describe('popup', () => {
         it('sends message to fill selected fields', async () => {
             const secretData = {url: '', username: 'site user', password: 'site password', email: 'user@mail.host'};
             const secret = new Secret(secretData);
-            settingsStub.load.mockResolvedValue({vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
+            settingsStub.load.mockResolvedValue({vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
             vaultApiStub.getSecret.mockResolvedValue(secret);
             vaultApiStub.hasSecretValue.mockReturnValue(true);
             const port = await loadPage({id: tabId, url: pageUrl});
@@ -242,11 +289,11 @@ describe('popup', () => {
             ]);
         });
         it('gets new Vault token when password is not empty', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths: [secretInfo(vaultPath, pageUrl, 'username', 'password')]});
             vaultApiStub.getSecret.mockRejectedValueOnce({status: 403});
             vaultApiStub.getSecret.mockResolvedValueOnce(new Secret({url: '', username: 'site user', password: 'site password'}));
             vaultApiStub.hasSecretValue.mockReturnValue(true);
-            vaultApiStub.login.mockResolvedValue({client_token: 'new token', lease_duration: 30});
+            vaultApiStub.login.mockResolvedValue({token: 'new token', expiresAt: Infinity});
             const port = await loadPage({id: tabId, url: pageUrl});
             getInput('#password').value = password;
             await port.mockSend({url: pageUrl, inputs: [{id: 'username', frameId, refId: usernameRefId}, {type: 'password', frameId, refId: passwordRefId}]});
@@ -294,9 +341,9 @@ describe('popup', () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultPath, vaultUser});
             settingsStub.save.mockResolvedValue();
             permissionsStub.requestOrigin.mockResolvedValue(true);
-            vaultApiStub.login.mockResolvedValue({client_token: token, lease_duration: 1800});
+            vaultApiStub.login.mockResolvedValue({token: 'new token', expiresAt: Infinity});
             await loadPage();
-            settingsStub.cacheSecretPaths.mockResolvedValue([]);
+            settingsStub.cacheSecretInfo.mockResolvedValue({secretPaths: [], totpSettings: []});
             textField('password').triggerChange(password);
 
             document.getElementById('reload')!.click();
@@ -305,7 +352,7 @@ describe('popup', () => {
             expect(vaultApi.login).toHaveBeenCalledTimes(1);
             expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
             expect(settings.saveToken).toHaveBeenCalledTimes(1);
-            expect(settings.saveToken).toHaveBeenCalledWith(token);
+            expect(settings.saveToken).toHaveBeenCalledWith({token: 'new token', expiresAt: Infinity});
             expect(document.getElementById('status')!.innerHTML).toEqual('');
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
@@ -333,7 +380,7 @@ describe('popup', () => {
         it('displays message for empty response', async () => {
             settingsStub.load.mockResolvedValue({vaultUrl, vaultUser});
             permissionsStub.requestOrigin.mockResolvedValue(true);
-            vaultApiStub.login.mockResolvedValue({client_token: '', lease_duration: 0});
+            vaultApiStub.login.mockResolvedValue({token: '', expiresAt: 0});
             await loadPage();
             textField('password').triggerChange(password);
 
@@ -347,8 +394,8 @@ describe('popup', () => {
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('updates saved URL list', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            settingsStub.cacheSecretPaths.mockResolvedValue(secretPaths);
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth});
+            settingsStub.cacheSecretInfo.mockResolvedValue({secretPaths, totpSettings: []});
             await loadPage();
             const list = urlList('saved-urls');
             list.removeAll.mockReset();
@@ -366,8 +413,8 @@ describe('popup', () => {
         });
         it('displays message for expired token', async () => {
             permissionsStub.requestOrigin.mockResolvedValue(true);
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            settingsStub.cacheSecretPaths.mockRejectedValue({status: 403});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth});
+            settingsStub.cacheSecretInfo.mockRejectedValue({status: 403});
             await loadPage();
             const list = urlList('saved-urls');
             list.removeAll.mockReset();
@@ -383,7 +430,7 @@ describe('popup', () => {
     });
     describe('filter input', () => {
         it('filters cards when input is not empty', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths});
             await loadPage();
 
             textField('vault-filter').triggerChange('search');
@@ -392,7 +439,7 @@ describe('popup', () => {
             expect(urlList('saved-urls').filterItems).toHaveBeenCalledWith('search');
         });
         it('resets cards when input is empty', async () => {
-            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, token, secretPaths});
+            settingsStub.load.mockResolvedValue({vaultUrl, vaultUser, auth, secretPaths});
             await loadPage();
 
             textField('vault-filter').triggerChange('');

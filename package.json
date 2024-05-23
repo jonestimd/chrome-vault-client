@@ -8,7 +8,7 @@
         "url": "https://github.com/jonestimd/chrome-vault-client.git"
     },
     "scripts": {
-        "sassc": "sass -I node_modules src/styles/app.scss | postcss --use autoprefixer -o build/bundle.css",
+        "sassc": "bin/sassc.ts",
         "prebuild": "shx rm -fr build && mkdir build && npm run sassc",
         "build:dev": "npm run build -- --config webpack-dev.config.js",
         "build": "webpack --node-env production",

@@ -9,10 +9,11 @@ const password = 'vault password';
 const username = 'vault user';
 
 const secretResponse = (data: Record<string, string>) => ({data: {data}});
+const totpResponse = (data: Record<string, string>) => ({data});
 
-function mockGets(responses: Record<string, any>) {
+function mockGets(responses: Record<string, any>, mapper: (data: any) => any = secretResponse) {
     jest.spyOn(agent, 'get').mockImplementation((url) => {
-        return secretResponse(responses[url.substring(vaultUrl.length)]) as any;
+        return mapper(responses[url.substring(vaultUrl.length)]) as any;
     });
 }
 
@@ -41,34 +42,25 @@ describe('vaultApi', () => {
     });
     describe('login', () => {
         it('does not renew token if lease duration < 60 seconds', async () => {
-            const auth = {client_token: 'the token', lease_duration: 59};
+            const auth = {client_token: token, lease_duration: 59};
             jest.spyOn(agent, 'post').mockResolvedValue({auth});
 
             const result = await vaultApi.login(vaultUrl, username, password);
 
-            expect(result).toEqual(auth);
+            expect(result).toEqual({token, expiresAt: Date.now() + 59_000});
             expect(agent.post).toHaveBeenCalledTimes(1);
             expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/userpass/login/${username}`, {}, {password});
             expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('sets alarm to renew the token', async () => {
-            const auth = {renewable: true, lease_duration: 60};
+            const auth = {renewable: true, lease_duration: 60, client_token: token};
             jest.spyOn(agent, 'post').mockResolvedValue({auth});
 
             const result = await vaultApi.login(vaultUrl, username, password);
 
-            expect(result).toEqual(auth);
+            expect(result).toEqual({token, expiresAt: Date.now() + 60_000});
             expect(chrome.alarms.create).toHaveBeenCalledTimes(1);
             expect(chrome.alarms.create).toHaveBeenCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
-        });
-        it('does not set alarm to renew the token if lease duration is less than 60s', async () => {
-            const auth = {renewable: true, lease_duration: 59};
-            jest.spyOn(agent, 'post').mockResolvedValue({auth});
-
-            const result = await vaultApi.login(vaultUrl, username, password);
-
-            expect(result).toEqual(auth);
-            expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('throws error if response does not contain auth object', async () => {
             jest.spyOn(agent, 'post').mockResolvedValue({});
@@ -84,10 +76,10 @@ describe('vaultApi', () => {
     });
     describe('refreshToken', () => {
         it('sets new alarm after renewing the token', async () => {
-            const auth = {renewable: true, lease_duration: 60};
+            const auth = {renewable: true, lease_duration: 60, client_token: token};
             jest.spyOn(agent, 'post').mockResolvedValue({auth});
 
-            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
+            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual({token, expiresAt: Date.now() + 60_000});
 
             expect(agent.post).toHaveBeenCalledTimes(1);
             expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
@@ -95,20 +87,20 @@ describe('vaultApi', () => {
             expect(chrome.alarms.create).toHaveBeenCalledWith('refresh-token', {delayInMinutes: (auth.lease_duration - 30) / 60});
         });
         it('does not set new alarm if token is not renewable', async () => {
-            const auth = {renewable: false, lease_duration: 60};
+            const auth = {renewable: false, lease_duration: 60, client_token: token};
             jest.spyOn(agent, 'post').mockResolvedValue({auth});
 
-            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
+            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual({token, expiresAt: Date.now() + 60_000});
 
             expect(agent.post).toHaveBeenCalledTimes(1);
             expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
             expect(chrome.alarms.create).not.toHaveBeenCalled();
         });
         it('does not set new alarm if lease duration is less than 60s', async () => {
-            const auth = {renewable: false, lease_duration: 59};
+            const auth = {renewable: false, lease_duration: 59, client_token: token};
             jest.spyOn(agent, 'post').mockResolvedValue({auth});
 
-            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(true);
+            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual({token, expiresAt: Date.now() + 59_000});
 
             expect(agent.post).toHaveBeenCalledTimes(1);
             expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
@@ -117,7 +109,7 @@ describe('vaultApi', () => {
         it('returns false if renewal fails', async () => {
             jest.spyOn(agent, 'post').mockRejectedValue(new Error('permission denied'));
 
-            expect(await vaultApi.refreshToken(vaultUrl, token)).toEqual(false);
+            expect(await vaultApi.refreshToken(vaultUrl, token)).toBeUndefined();
 
             expect(agent.post).toHaveBeenCalledTimes(1);
             expect(agent.post).toHaveBeenCalledWith(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
@@ -238,6 +230,58 @@ describe('vaultApi', () => {
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/secret1`, {}, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret2`, {}, {[authHeader]: token});
             expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/secret/data/web/nested/secret3`, {}, {[authHeader]: token});
+        });
+    });
+    describe('listTotpKeys', () => {
+        it('returns keys', async () => {
+            jest.spyOn(agent, 'list').mockResolvedValue({data: {keys: ['account3', 'account1', 'account2']}});
+            mockGets({
+                '/v1/totp/keys/account1': {account_name: 'name1', issuer: 'issuer1'},
+                '/v1/totp/keys/account2': {account_name: 'name2', issuer: 'issuer2'},
+                '/v1/totp/keys/account3': {account_name: 'name3', issuer: 'issuer3'},
+            }, totpResponse);
+
+            const result = await vaultApi.listTotpKeys(vaultUrl, token);
+
+            expect(result).toEqual([
+                {key: 'account1', account_name: 'name1', issuer: 'issuer1'},
+                {key: 'account2', account_name: 'name2', issuer: 'issuer2'},
+                {key: 'account3', account_name: 'name3', issuer: 'issuer3'},
+            ]);
+            expect(agent.list).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/keys`, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/keys/account1`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/keys/account2`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/keys/account3`, {}, {[authHeader]: token});
+        });
+        it('returns empty array for error', async () => {
+            jest.spyOn(agent, 'list').mockRejectedValue(new Error('not found'));
+
+            const result = await vaultApi.listTotpKeys(vaultUrl, token);
+
+            expect(result).toEqual([]);
+        });
+    });
+    describe('getPasscodes', () => {
+        it('returns passcodes for keys', async () => {
+            mockGets({
+                '/v1/totp/code/account1': {code: 'code1'},
+                '/v1/totp/code/account2': {code: 'code2'},
+            }, totpResponse);
+
+            const result = await vaultApi.getPasscodes(['account1', 'account2'], vaultUrl, token);
+
+            expect(result).toEqual([{key: 'account1', code: 'code1'}, {key: 'account2', code: 'code2'}]);
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/code/account1`, {}, {[authHeader]: token});
+            expect(agent.get).toHaveBeenCalledWith(`${vaultUrl}/v1/totp/code/account2`, {}, {[authHeader]: token});
+        });
+        it('returns empty code for error', async () => {
+            jest.spyOn(agent, 'get')
+                .mockResolvedValueOnce({data: {code: 'code1'}})
+                .mockRejectedValueOnce(new Error('not found'));
+
+            const result = await vaultApi.getPasscodes(['account1', 'account2'], vaultUrl, token);
+
+            expect(result).toEqual([{key: 'account1', code: 'code1'}, {key: 'account2', code: ''}]);
         });
     });
 });

@@ -2,14 +2,15 @@ import {InputInfoProps} from './message';
 import {getDomain} from './urls';
 import * as vaultApi from './vaultApi';
 
-const keys = ['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'secretPaths'];
+const keys = ['vaultUrl', 'vaultPath', 'vaultUser', 'auth', 'secretPaths', 'totpSettings'];
 
 export interface Settings {
     vaultUrl?: string;
     vaultPath?: string;
     vaultUser?: string;
-    token?: string;
+    auth?: vaultApi.AuthToken;
     secretPaths?: vaultApi.SecretInfo[];
+    totpSettings?: vaultApi.TotpSetting[]
 }
 
 export function load(): Promise<Settings> {
@@ -18,15 +19,15 @@ export function load(): Promise<Settings> {
     });
 }
 
-export function save(vaultUrl: string, vaultPath: string, vaultUser: string, token: string): Promise<void> {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({vaultUrl, vaultPath, vaultUser, token}, () => resolve());
+export function save(vaultUrl: string, vaultPath: string, vaultUser: string, auth: vaultApi.AuthToken) {
+    return new Promise<void>((resolve) => {
+        chrome.storage.local.set({vaultUrl, vaultPath, vaultUser, auth}, () => resolve());
     });
 }
 
-export function saveToken(token: string): Promise<void> {
-    return new Promise((resolve) => {
-        chrome.storage.local.set({token}, () => resolve());
+export function saveToken(auth: vaultApi.AuthToken) {
+    return new Promise<void>((resolve) => {
+        chrome.storage.local.set({auth}, () => resolve());
     });
 }
 
@@ -62,24 +63,37 @@ export function saveInputSelection(hostname: string, secretProp: string, selecti
     });
 }
 
-export function clearToken(): Promise<void> {
-    return new Promise((resolve) => {
-        chrome.storage.local.remove(['token'], () => resolve());
+export function clearToken() {
+    return new Promise<void>((resolve) => {
+        chrome.storage.local.remove(['auth'], () => resolve());
     });
 }
 
-export async function cacheSecretPaths(): Promise<vaultApi.SecretInfo[] | undefined> {
-    const {vaultUrl, vaultPath, token} = await load();
-    if (vaultUrl && token) {
-        const secretPaths = await vaultApi.getSecretPaths(vaultUrl, vaultPath, token);
-        return new Promise((resolve) => {
-            chrome.storage.local.set({secretPaths}, () => resolve(secretPaths));
+export async function refreshToken() {
+    const {vaultUrl, auth} = await load();
+    if (vaultUrl && auth?.token) {
+        const newAuth = await vaultApi.refreshToken(vaultUrl, auth.token);
+        if (newAuth) {
+            await saveToken(newAuth);
+            return;
+        }
+    }
+    await clearToken();
+}
+
+export async function cacheSecretInfo() {
+    const {vaultUrl, vaultPath, auth} = await load();
+    if (vaultUrl && auth && auth.expiresAt > Date.now()) {
+        const secretPaths = await vaultApi.getSecretPaths(vaultUrl, vaultPath, auth.token);
+        const totpSettings = await vaultApi.listTotpKeys(vaultUrl, auth.token);
+        return new Promise<Required<Pick<Settings, 'secretPaths' | 'totpSettings'>>>((resolve) => {
+            chrome.storage.local.set({secretPaths, totpSettings}, () => resolve({secretPaths, totpSettings}));
         });
     }
 }
 
-export async function getDomains(): Promise<string[]> {
-    const secretPaths = await cacheSecretPaths() ?? [];
+export async function getDomains() {
+    const {secretPaths = []} = await cacheSecretInfo() ?? {};
     const domains = new Set(secretPaths.map((s) => getDomain(s.url)));
     return Array.from(domains);
 }

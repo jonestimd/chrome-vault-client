@@ -23,10 +23,10 @@ const saveButton = document.getElementById('save') as HTMLButtonElement;
 const linearProgress = new MDCLinearProgress(document.querySelector('.mdc-linear-progress')!);
 linearProgress.close();
 
-let savedUrl: string | undefined, savedToken: string | undefined, unsaved = false;
+let savedUrl: string | undefined, savedAuth: vaultApi.AuthToken | undefined, unsaved = false;
 
 function onInputChange() {
-    saveButton.disabled = !(urlInput.valid && usernameInput.valid && (savedToken || passwordInput.value.length > 0));
+    saveButton.disabled = !(urlInput.valid && usernameInput.valid && (savedAuth || passwordInput.value.length > 0));
     unsaved = true;
 }
 
@@ -35,9 +35,9 @@ function setStatus(token?: string) {
     logoutButton.disabled = !token;
 }
 
-settings.load().then(({vaultUrl, vaultPath, vaultUser, token}: settings.Settings) => {
+settings.load().then(({vaultUrl, vaultPath, vaultUser, auth}: settings.Settings) => {
     savedUrl = vaultUrl;
-    savedToken = token;
+    savedAuth = auth;
     if (vaultUrl) {
         urlInput.value = vaultUrl;
         usernameInput.focus();
@@ -54,7 +54,7 @@ settings.load().then(({vaultUrl, vaultPath, vaultUser, token}: settings.Settings
     else usernameInput.getDefaultFoundation().setValid(false);
     pathInput.value = vaultPath || '';
     onInputChange();
-    setStatus(token);
+    setStatus(auth?.token);
     unsaved = false;
 });
 
@@ -70,45 +70,51 @@ function showAlert(message: string) {
 
 async function login() {
     if (await permissions.requestOrigin(urlInput.value)) {
-        const auth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
-        if (!auth || !auth.client_token) throw new Error('Did not get a token, please verify the base URL');
-        else {
-            setStatus(auth.client_token);
+        savedAuth = await vaultApi.login(urlInput.value, usernameInput.value, passwordInput.value);
+        setStatus(savedAuth.token);
+        if (savedAuth.token) {
             savedUrl = urlInput.value;
-            savedToken = auth.client_token;
-            await settings.save(urlInput.value, pathInput.value, usernameInput.value, auth.client_token);
+            await settings.save(urlInput.value, pathInput.value, usernameInput.value, savedAuth);
             unsaved = false;
         }
+        else showAlert('Did not get a token, please verify the base URL');
     }
     else throw new Error('Need permission to access ' + urlInput.value);
 }
 
 logoutButton.addEventListener('click', async () => {
     try {
-        if (savedToken) await vaultApi.logout(savedUrl!, savedToken);
-        savedToken = undefined;
+        if (savedAuth) await vaultApi.logout(savedUrl!, savedAuth.token);
+        savedAuth = undefined;
         onInputChange();
     } catch (err) {
-        if (getStatus(err) === 403) savedToken = undefined;
+        if (getStatus(err) === 403) savedAuth = undefined;
         else showAlert('Error revoking token: ' + getMessage(err));
     }
     await settings.clearToken();
-    setStatus(savedToken);
+    setStatus(savedAuth?.token);
 });
 
 saveButton.addEventListener('click', async () => {
     try {
         linearProgress.open();
-        if (unsaved || !savedToken) await login();
-        await settings.cacheSecretPaths();
+        if (unsaved || !savedAuth) await login();
+        await settings.cacheSecretInfo();
     } catch (err) {
         if (getStatus(err) === 403) {
-            savedToken = undefined;
+            savedAuth = undefined;
             setStatus();
             showAlert('Need a token');
         }
         else showAlert(getMessage(err) ?? 'Error with no message??');
     } finally {
         linearProgress.close();
+    }
+});
+
+chrome.storage.local.onChanged.addListener(({auth}) => {
+    if (auth) {
+        savedAuth = auth.newValue;
+        setStatus(savedAuth?.token);
     }
 });

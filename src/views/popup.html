@@ -2,80 +2,12 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<link rel="stylesheet" href="bundle.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="popup.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<style>
-body {
-    width: 425px;
-}
-div.buttons {
-    display: grid;
-    grid-row-gap: 5px;
-}
-h3 {
-    margin: 0.8em 0;
-}
-label {
-    font-weight: bold;
-}
-.mdc-text-field {
-    width: 100%;
-}
-.mdc-floating-label {
-    overflow: visible;
-}
-#status {
-    color: red;
-    min-height: 1.4rem;
-    font-size: small;
-}
-#page-inputs {
-    padding-bottom: 5px;
-}
-#page-inputs .mdc-select {
-    width: 100%;
-    margin-bottom: 0.25em;
-}
-.input-group {
-    display: flex;
-    align-items: baseline;
-    column-gap: 10px;
-    margin: 10px 0;
-}
-.input-group > div {
-    flex-grow: 1;
-}
-.tab-content > .mdc-text-field {
-    margin: 10px 0;
-}
-.tab-content .mdc-list {
-    max-height: 10em;
-    overflow-y: scroll;
-}
-ul.mdc-list > li {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-ul em {
-    background-color: yellow;
-}
-.mdc-list-item {
-    display: block;
-}
-.mdc-list-item__secondary-text::before {
-    display: none;
-}
-.mdc-list-item__secondary-text ul {
-    padding-left: 20px;
-    list-style-type: none;
-}
-.mdc-list-item__secondary-text ul li {
-    overflow-x: hidden;
-    text-overflow: ellipsis;
-}
-</style>
 </head>
 <body class="mdc-typography">
-    <div role="progressbar" class="mdc-linear-progress mdc-linear-progress--indeterminate">
+    <div role="progressbar" id="load-progress" class="mdc-linear-progress mdc-linear-progress--indeterminate">
         <div class="mdc-linear-progress__buffer">
           <div class="mdc-linear-progress__buffer-bar"></div>
           <div class="mdc-linear-progress__buffer-dots"></div>
@@ -126,6 +58,16 @@ ul em {
                     </button>
                     <button class="mdc-tab" role="tab">
                         <span class="mdc-tab__content">
+                            <span class="mdc-tab__text-label">Passcodes</span>
+                        </span>
+                        <span class="mdc-tab-indicator">
+                            <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                        </span>
+                        <span class="mdc-tab__ripple"></span>
+                        <div class="mdc-tab__focus-ring"></div>
+                    </button>
+                    <button class="mdc-tab" role="tab">
+                        <span class="mdc-tab__content">
                             <span class="mdc-tab__text-label">Saved URLs</span>
                         </span>
                         <span class="mdc-tab-indicator">
@@ -143,6 +85,21 @@ ul em {
         <div id="page-inputs"><h4 name="no-secret">No secret found.</h4></div>
     </div>
     <div class="tab-content">
+        <div role="progressbar" id="countdown" class="mdc-linear-progress" aria-label="Passcode countdown" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
+            <div class="mdc-linear-progress__buffer">
+                <div class="mdc-linear-progress__buffer-bar"></div>
+                <div class="mdc-linear-progress__buffer-dots"></div>
+            </div>
+            <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+                <span class="mdc-linear-progress__bar-inner"></span>
+            </div>
+            <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+                <span class="mdc-linear-progress__bar-inner"></span>
+            </div>
+        </div>
+        <ul class="mdc-list mdc-list--two-line" id="totp-codes"></ul>
+    </div>
+    <div class="tab-content hidden">
         <label class="mdc-text-field mdc-text-field--filled">
             <span class="mdc-text-field__ripple"></span>
             <span class="mdc-floating-label" id="my-label-id">Filter URLs</span>

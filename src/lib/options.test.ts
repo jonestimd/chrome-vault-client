@@ -28,6 +28,7 @@ const vaultPath = 'web/';
 const vaultUser = 'my vault id';
 const password = 'passw0rd';
 const token = 'vault token';
+const auth = {token, expiresAt: Infinity};
 
 const loadPage = async () => {
     global.window = new JSDOM(html).window as any;
@@ -51,7 +52,7 @@ function textField(inputId: string) {
 
 describe('options', () => {
     it('displays saved URL, path and username', async () => {
-        mockSettings.load.mockResolvedValue({vaultUrl, vaultPath, vaultUser, token});
+        mockSettings.load.mockResolvedValue({vaultUrl, vaultPath, vaultUser, auth});
 
         await loadPage();
 
@@ -84,7 +85,7 @@ describe('options', () => {
     });
     describe('logout button', () => {
         it('revokes vault token', async () => {
-            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
             mockVaultApi.logout.mockResolvedValue();
             mockSettings.clearToken.mockResolvedValue();
             await loadPage();
@@ -98,7 +99,7 @@ describe('options', () => {
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
         });
         it('clears token when vault returns 403', async () => {
-            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
             mockVaultApi.logout.mockRejectedValue({status: 403});
             mockSettings.clearToken.mockResolvedValue();
             await loadPage();
@@ -113,7 +114,7 @@ describe('options', () => {
             expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
         });
         it('displays error from Vault', async () => {
-            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
             mockVaultApi.logout.mockRejectedValue({message: 'bad request'});
             mockSettings.clearToken.mockResolvedValue();
             await loadPage();
@@ -155,9 +156,9 @@ describe('options', () => {
             mockSettings.load.mockResolvedValue({vaultUrl, vaultPath, vaultUser});
             mockSettings.save.mockResolvedValue();
             mockPermissions.requestOrigin.mockResolvedValue(true);
-            mockVaultApi.login.mockResolvedValue({client_token: token, lease_duration: 1800});
+            mockVaultApi.login.mockResolvedValue({token: 'new token', expiresAt: Infinity});
             await loadPage();
-            mockSettings.cacheSecretPaths.mockResolvedValue([]);
+            mockSettings.cacheSecretInfo.mockResolvedValue({secretPaths: [], totpSettings: []});
             textField('password').triggerChange(password);
 
             document.getElementById('save')!.click();
@@ -166,7 +167,7 @@ describe('options', () => {
             expect(vaultApi.login).toHaveBeenCalledTimes(1);
             expect(vaultApi.login).toHaveBeenCalledWith(vaultUrl, vaultUser, password);
             expect(settings.save).toHaveBeenCalledTimes(1);
-            expect(settings.save).toHaveBeenCalledWith(vaultUrl, vaultPath, vaultUser, token);
+            expect(settings.save).toHaveBeenCalledWith(vaultUrl, vaultPath, vaultUser, {token: 'new token', expiresAt: Infinity});
             expect(document.getElementById('status')!.innerText).toEqual('Logged in');
             expect(MockSnackbar.mock.instances[0]?.open).not.toHaveBeenCalled();
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
@@ -192,7 +193,7 @@ describe('options', () => {
         it('displays message for response which does not contain a token', async () => {
             mockSettings.load.mockResolvedValue({vaultUrl, vaultUser});
             mockPermissions.requestOrigin.mockResolvedValue(true);
-            mockVaultApi.login.mockResolvedValue({client_token: '', lease_duration: 0});
+            mockVaultApi.login.mockResolvedValue({token: '', expiresAt: 0});
             await loadPage();
             textField('password').triggerChange(password);
 
@@ -209,8 +210,8 @@ describe('options', () => {
         });
         it('displays message for expired token', async () => {
             mockPermissions.requestOrigin.mockResolvedValue(true);
-            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            mockSettings.cacheSecretPaths.mockRejectedValue({status: 403});
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
+            mockSettings.cacheSecretInfo.mockRejectedValue({status: 403});
             await loadPage();
 
             document.getElementById('save')!.click();
@@ -222,8 +223,8 @@ describe('options', () => {
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
         });
         it('displays error from Vault', async () => {
-            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, token});
-            mockSettings.cacheSecretPaths.mockRejectedValue({message: 'bad request'});
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
+            mockSettings.cacheSecretInfo.mockRejectedValue({message: 'bad request'});
             await loadPage();
 
             document.getElementById('save')!.click();
@@ -233,6 +234,17 @@ describe('options', () => {
             expect(MockSnackbar.mock.instances[0]?.labelText).toEqual('bad request');
             expect(MockSnackbar.mock.instances[0]?.open).toHaveBeenCalledTimes(1);
             expect(document.querySelector('.mdc-linear-progress--closed')).not.toBeNull();
+        });
+    });
+    describe('storage.local.onChanged', () => {
+        const mockAddStorageListener = chrome.storage.local.onChanged.addListener as jest.MockedFunction<typeof chrome.storage.local.onChanged.addListener>;
+        it('updates status message when logged out', async () => {
+            mockSettings.load.mockResolvedValue({vaultUrl, vaultUser, auth});
+            await loadPage();
+
+            mockAddStorageListener.mock.calls[0]![0]!({auth: {}});
+
+            expect(document.getElementById('status')!.innerText).toEqual('Not logged in');
         });
     });
 });

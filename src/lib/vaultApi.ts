@@ -28,28 +28,32 @@ export function getErrorMessage(err: unknown): string | undefined {
 }
 
 export interface AuthToken {
-    client_token: string
-    lease_duration: number
-    renewable?: boolean
+    token: string
+    expiresAt: number
 }
 
 interface AuthResponse {
-    auth?: AuthToken
+    auth?: {
+        client_token: string
+        lease_duration: number
+        renewable?: boolean
+    }
 }
 
-function setRenewAlarm(body: AuthResponse): AuthToken {
+function setRenewAlarm(body: AuthResponse) {
     if (body.auth?.lease_duration) {
+        const expiresAt = Date.now() + body.auth.lease_duration * 1000;
         const {renewable, lease_duration: leaseDuration} = body.auth;
         if (renewable && leaseDuration >= 60) {
             chrome.alarms.create(refreshTokenAlarm, {delayInMinutes: (leaseDuration - 30) / 60});
         }
-        return body.auth;
+        return {token: body.auth.client_token, expiresAt};
     }
     console.info('no auth token', body);
     throw new Error('Login failed');
 }
 
-export async function login(vaultUrl: string, user: string, password: string): Promise<AuthToken> {
+export async function login(vaultUrl: string, user: string, password: string) {
     try {
         const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/userpass/login/${user}`, {}, {password});
         return setRenewAlarm(body);
@@ -58,18 +62,16 @@ export async function login(vaultUrl: string, user: string, password: string): P
     }
 }
 
-export async function refreshToken(vaultUrl: string, token: string): Promise<boolean> {
+export async function refreshToken(vaultUrl: string, token: string) {
     try {
         const body = await agent.post<AuthResponse>(`${vaultUrl}/v1/auth/token/renew-self`, {[authHeader]: token});
-        setRenewAlarm(body);
-        return true;
+        return setRenewAlarm(body);
     } catch (err) {
         console.log('error renewing token', err);
-        return false;
     }
 }
 
-export async function logout(vaultUrl: string, token: string): Promise<void> {
+export async function logout(vaultUrl: string, token: string) {
     await agent.post(`${vaultUrl}/v1/auth/token/revoke-self`, {[authHeader]: token});
 }
 
@@ -177,4 +179,42 @@ export async function getSecretPaths(vaultUrl: string, vaultPath: string | undef
         }
     }
     return secrets;
+}
+
+interface TotpKey {
+    account_name: string;
+    algorithm: string;
+    digits: number;
+    issuer?: string;
+    period: number;
+}
+
+export interface TotpSetting extends Pick<TotpKey, 'account_name' | 'issuer'> {
+    key: string;
+}
+
+const sortBykey = ({key: key1}: {key: string}, {key: key2}: {key: string}) => key1.localeCompare(key2);
+
+export async function listTotpKeys(vaultUrl: string, token: string): Promise<TotpSetting[]> {
+    try {
+        const body = await agent.list<SecretsList>(`${vaultUrl}/v1/totp/keys`, {[authHeader]: token});
+        const totpKeys = await Promise.all(body.data.keys.map(async (key) => {
+            const {data: {account_name, issuer}} = await agent.get<{data: TotpKey}>(`${vaultUrl}/v1/totp/keys/${key}`, {}, {[authHeader]: token});
+            return {account_name, issuer, key};
+        }));
+        return totpKeys.sort(sortBykey);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function getPasscodes(keys: string[], vaultUrl: string, token: string) {
+    return Promise.all(keys.map(async (key) => {
+        try {
+            const {data: {code}} = await agent.get<{data: {code: string}}>(`${vaultUrl}/v1/totp/code/${key}`, {}, {[authHeader]: token});
+            return {key, code};
+        } catch (error) {
+            return {key, code: ''};
+        }
+    }));
 }

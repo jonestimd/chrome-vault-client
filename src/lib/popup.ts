@@ -8,8 +8,9 @@ const passwordInput = new MDCTextField(document.getElementById('password')!.pare
 const filterInput = new MDCTextField(document.getElementById('vault-filter')!.parentElement!);
 const statusArea = document.getElementById('status')!;
 const pageInputs = document.getElementById('page-inputs')!;
-const linearProgress = new MDCLinearProgress(document.querySelector('.mdc-linear-progress')!);
-linearProgress.close();
+const loadProgress = new MDCLinearProgress(document.getElementById('load-progress')!);
+loadProgress.close();
+const countdownBar = new MDCLinearProgress(document.getElementById('countdown')!);
 
 import * as settings from './settings';
 import * as permissions from './permissions';
@@ -21,15 +22,14 @@ import {html} from './components/html';
 import {getDomain, getHostname} from './urls';
 import PropSelect from './components/PropSelect';
 import {propOrder} from './constants';
+import List, {ListItem} from './components/List';
 
 async function login(vaultUrl: string, username: string) {
     if (await permissions.requestOrigin(vaultUrl)) {
         const auth = await vaultApi.login(vaultUrl, username, passwordInput.value);
-        if (!auth.client_token) throw new Error('Did not get a token, please verify the base URL');
-        else {
-            await settings.saveToken(auth.client_token);
-            return auth.client_token;
-        }
+        if (!auth.token) throw new Error('Did not get a token, please verify the base URL');
+        await settings.saveToken(auth);
+        return auth;
     }
     else throw new Error('Need permission to access ' + vaultUrl);
 }
@@ -49,7 +49,7 @@ function showStatus(text: string) {
 }
 
 class SecretAccessor {
-    static async newAccessor(vaultUrl: string, paths: string[], vaultToken: string) {
+    static async newAccessor(vaultUrl: string, paths: string[], vaultToken?: string) {
         const accessor = new SecretAccessor(vaultUrl, paths);
         if (vaultToken) await accessor.getSecrets(vaultToken);
         else showStatus('Need a Vault token');
@@ -100,11 +100,13 @@ tabBar.listen<TabActivatedEvent>('MDCTabBar:activated', ({detail}) => {
     tabs.forEach((tab, i) => i === detail.index ? tab.classList.remove('hidden') : tab.classList.add('hidden'));
 });
 
+const passcodeList = new List(document.getElementById('totp-codes')!);
+
 const urlList = new UrlList(document.getElementById('saved-urls')!);
-function showDomainPaths(secrets?: vaultApi.SecretInfo[]) {
+function showSavedUrls({secretPaths}: Pick<settings.Settings, 'secretPaths'> = {}) {
     urlList.removeAll();
-    if (secrets) {
-        const byHost = secrets.reduce<Record<string, vaultApi.SecretInfo[]>>((byHost, secret) => {
+    if (secretPaths) {
+        const byHost = secretPaths.reduce<Record<string, vaultApi.SecretInfo[]>>((byHost, secret) => {
             const hostname = getHostname(secret.url);
             const urlSecrets = byHost[hostname] ?? [];
             return {...byHost, [hostname]: [...urlSecrets, secret]};
@@ -117,28 +119,83 @@ filterInput.listen('input', () => {
     else urlList.showAll();
 });
 
+const countdown = () => (29 - (Math.floor(Date.now() / 1000) % 30)) / 29;
+
+async function updatePasscodes(keys: string[], vaultUrl: string, auth: Required<settings.Settings>['auth']) {
+    const passcodes = await vaultApi.getPasscodes(keys, vaultUrl, auth.token);
+    for (const {key, code} of passcodes) {
+        passcodeList.element.querySelector(`span.passcode[name="${key}"]`)?.replaceChildren(code);
+    }
+    return passcodes.some((p) => p.code);
+}
+
+let passcodeInterval: NodeJS.Timeout | undefined;
+async function showPasscodes({vaultUrl, auth, totpSettings}: Pick<settings.Settings, 'vaultUrl' | 'auth' | 'totpSettings'> = {}) {
+    if (totpSettings?.length) {
+        passcodeList.removeAll();
+        for (const {key, issuer, account_name} of totpSettings) {
+            const item = new ListItem(`${key}`, `${issuer} (${account_name})`,
+                `<span class="passcode" name="${key}"></span>
+                <button class="mdc-icon-button small">
+                    <div class="mdc-icon-button__ripple"></div>
+                    <span class="mdc-icon-button__focus-ring"></span>
+                    <i class="material-icons">content_copy</i>
+                </button>`
+            );
+            passcodeList.addListItem(item);
+            item.listItem.querySelector('button')?.addEventListener('click', () => {
+                const code = item.listItem.querySelector('span.passcode')?.textContent;
+                if (code) navigator.clipboard.writeText(code);
+            });
+        }
+        if (vaultUrl && auth?.token) {
+            const keys = totpSettings.map((p) => p.key);
+            if (await updatePasscodes(keys, vaultUrl, auth)) {
+                countdownBar.progress = countdown();
+                if (!passcodeInterval) {
+                    passcodeInterval = setInterval(async () => {
+                        countdownBar.progress = countdown();
+                        if (countdownBar.root.getAttribute('aria-valuenow') === '1') {
+                            if (!await updatePasscodes(keys, vaultUrl, auth)) {
+                                countdownBar.progress = 0;
+                                clearInterval(passcodeInterval);
+                                passcodeInterval = undefined;
+                            }
+                        }
+                    }, 1000);
+                }
+            }
+            else countdownBar.progress = 0;
+        }
+        else showStatus('Need a token');
+    }
+}
+
 const reloadButton = document.getElementById('reload') as HTMLButtonElement;
-settings.load().then(({vaultUrl, vaultUser, token, secretPaths}) => {
+settings.load().then(({vaultUrl, vaultUser, auth, secretPaths, totpSettings}) => {
     document.querySelector<HTMLElement>('#username')!.replaceChildren(vaultUser ?? '');
-    showDomainPaths(secretPaths);
+    showSavedUrls({secretPaths});
+    showPasscodes({vaultUrl, auth, totpSettings});
     reloadButton.addEventListener('click', async () => {
         try {
-            linearProgress.open();
-            if (!token) token = await login(vaultUrl!, vaultUser!);
+            loadProgress.open();
+            if (!auth || auth.expiresAt <= Date.now()) auth = await login(vaultUrl!, vaultUser!);
             showStatus('');
-            showDomainPaths(await settings.cacheSecretPaths());
+            const secretInfo = await settings.cacheSecretInfo();
+            showSavedUrls(secretInfo);
+            showPasscodes({...secretInfo, vaultUrl, auth});
         } catch (err) {
             if (getStatus(err) === 403) {
-                token = undefined;
+                auth = undefined;
                 showStatus('Need a token');
             }
-            else showStatus(getMessage(err) ?? 'Error with no message??');
+            else showStatus(getMessage(err) ?? 'Unknown error');
         } finally {
-            linearProgress.close();
+            loadProgress.close();
         }
     });
     function updateReload() {
-        reloadButton.disabled = !vaultUrl || !vaultUser || !token && !passwordInput.value.length;
+        reloadButton.disabled = !vaultUrl || !vaultUser || !auth?.token && !passwordInput.value.length;
     }
     updateReload();
     passwordInput.listen('input', updateReload);
@@ -156,7 +213,7 @@ const sortProps = (p1: string, p2: string) => {
 };
 
 async function showInputs(message: PageInfoMessage) {
-    const {vaultUrl, vaultUser, token, secretPaths} = await settings.load();
+    const {vaultUrl, vaultUser, auth, secretPaths} = await settings.load();
     const secretInfos = findVaultPaths(secretPaths!, message.url);
     const secretProps = Array.from(new Set(secretInfos.flatMap((s) => s.keys))).sort(sortProps);
     const hostname = getHostname(message.url);
@@ -168,9 +225,9 @@ async function showInputs(message: PageInfoMessage) {
         }
         tabBar.activateTab(0);
     }
-    let vaultToken = token;
+    const savedAuth = auth;
 
-    const accessor = await SecretAccessor.newAccessor(vaultUrl!, secretInfos.map((secretInfo) => secretInfo.path), vaultToken!);
+    const accessor = await SecretAccessor.newAccessor(vaultUrl!, secretInfos.map((secretInfo) => secretInfo.path), savedAuth?.token);
 
     if (message.inputs.length) {
         const inputSelections = await settings.getInputSelections(hostname);
@@ -194,9 +251,9 @@ async function showInputs(message: PageInfoMessage) {
         button.addEventListener('click', async () => {
             if (!accessor.secrets[secretInfo.path] && passwordInput.value.length > 0) {
                 try {
-                    vaultToken = (await vaultApi.login(vaultUrl!, vaultUser!, passwordInput.value)).client_token;
-                    await settings.saveToken(vaultToken);
-                    await accessor.getSecrets(vaultToken);
+                    const savedAuth = await vaultApi.login(vaultUrl!, vaultUser!, passwordInput.value);
+                    await settings.saveToken(savedAuth);
+                    await accessor.getSecrets(savedAuth.token);
                 } catch (err) {
                     showStatus('Error: ' + getMessage(err));
                 }

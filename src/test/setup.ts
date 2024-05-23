@@ -6,6 +6,13 @@ global.chrome = {
             addListener: jest.fn(),
         },
     } as unknown as typeof chrome.alarms,
+    storage: {
+        local: {
+            onChanged: {
+                addListener: jest.fn(),
+            },
+        },
+    } as unknown as typeof chrome.storage,
     runtime: {
         onInstalled: {
             addListener: jest.fn(),

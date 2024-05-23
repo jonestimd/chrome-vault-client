@@ -5,9 +5,12 @@ const vaultUrl = 'https://my.vault.host';
 const vaultPath = 'web/';
 const vaultUser = 'username';
 const token = 'vault token';
+const auth = {token, expiresAt: Infinity};
 
 let vaultApiStub: {
-    getUrlPaths: jest.SpyInstance<ReturnType<typeof vaultApi['getSecretPaths']>>;
+    getSecretPaths: jest.SpyInstance<ReturnType<typeof vaultApi['getSecretPaths']>>;
+    listTotpKeys: jest.SpyInstance<ReturnType<typeof vaultApi['listTotpKeys']>>;
+    refreshToken: jest.SpyInstance<ReturnType<typeof vaultApi['refreshToken']>>;
 };
 
 let chromeStorage: {
@@ -23,7 +26,9 @@ const urlPath = (path: string, url: string, keys: string[] = []) => ({path, url,
 describe('settings', () => {
     beforeEach(() => {
         vaultApiStub = {
-            getUrlPaths: jest.spyOn(vaultApi, 'getSecretPaths').mockRejectedValue(new Error()),
+            getSecretPaths: jest.spyOn(vaultApi, 'getSecretPaths').mockRejectedValue(new Error()),
+            listTotpKeys: jest.spyOn(vaultApi, 'listTotpKeys').mockRejectedValue(new Error()),
+            refreshToken: jest.spyOn(vaultApi, 'refreshToken').mockRejectedValue(new Error()),
         };
         chromeStorage = {
             local: {
@@ -44,23 +49,44 @@ describe('settings', () => {
             expect(result).toEqual(storedSettings);
             expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.get.mock.calls[0]![0])
-                .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'token', 'secretPaths']);
+                .toEqual(['vaultUrl', 'vaultPath', 'vaultUser', 'auth', 'secretPaths', 'totpSettings']);
         });
     });
     describe('save', () => {
         it('saves vault Url, username and token to local storage', async () => {
-            await settings.save(vaultUrl, vaultPath, vaultUser, token);
+            await settings.save(vaultUrl, vaultPath, vaultUser, auth);
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({vaultUrl, vaultPath, vaultUser, token});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({vaultUrl, vaultPath, vaultUser, auth});
         });
     });
     describe('saveToken', () => {
         it('saves token', async () => {
-            await settings.saveToken(token);
+            await settings.saveToken(auth);
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({token});
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({auth});
+        });
+    });
+    describe('refreshToken', () => {
+        it('saves new token', async () => {
+            const newAuth = {token: 'new token', expiresAt: Infinity};
+            vaultApiStub.refreshToken.mockResolvedValue(newAuth);
+            chromeStorage.local.get.mockImplementation((keys, callback) => callback({vaultUrl, auth}));
+
+            await settings.refreshToken();
+
+            expect(vaultApiStub.refreshToken).toHaveBeenCalledWith(vaultUrl, auth.token);
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({auth: newAuth}, expect.any(Function));
+        });
+        it('clears token if refresh fails', async () => {
+            vaultApiStub.refreshToken.mockResolvedValue(undefined);
+            chromeStorage.local.get.mockImplementation((keys, callback) => callback({vaultUrl, auth}));
+
+            await settings.refreshToken();
+
+            expect(vaultApiStub.refreshToken).toHaveBeenCalledWith(vaultUrl, auth.token);
+            expect(chromeStorage.local.remove).toHaveBeenCalledWith(['auth'], expect.any(Function));
         });
     });
     describe('clearToken', () => {
@@ -68,36 +94,38 @@ describe('settings', () => {
             await settings.clearToken();
 
             expect(chromeStorage.local.remove).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.remove.mock.calls[0]![0]).toEqual(['token']);
+            expect(chromeStorage.local.remove.mock.calls[0]![0]).toEqual(['auth']);
         });
     });
-    describe('cacheUrlPaths', () => {
+    describe('cacheSecretInfo', () => {
         it('does nothing if URL is not saved', async () => {
             chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({}));
 
-            await settings.cacheSecretPaths();
+            await settings.cacheSecretInfo();
 
             expect(chromeStorage.local.get).toHaveBeenCalledTimes(1);
             expect(chromeStorage.local.set).not.toHaveBeenCalled();
-            expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
+            expect(vaultApiStub.getSecretPaths).not.toHaveBeenCalled();
         });
         it('saves result from vaultApi.getUrlPaths', async () => {
             const secretPaths = [urlPath('/vault/secret/path', '')];
-            chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({vaultUrl, vaultPath, token}));
-            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
+            const totpSettings = [{key: 'key1', account_name: 'name1'}];
+            chromeStorage.local.get.mockImplementationOnce((keys, cb) => cb({vaultUrl, vaultPath, auth}));
+            vaultApiStub.getSecretPaths.mockResolvedValue(secretPaths);
+            vaultApiStub.listTotpKeys.mockResolvedValue(totpSettings);
 
-            const result = await settings.cacheSecretPaths();
+            const result = await settings.cacheSecretInfo();
 
-            expect(result).toEqual(secretPaths);
+            expect(result).toEqual({secretPaths, totpSettings});
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({secretPaths});
-            expect(vaultApiStub.getUrlPaths).toHaveBeenCalledTimes(1);
-            expect(vaultApiStub.getUrlPaths).toHaveBeenCalledWith(vaultUrl, vaultPath, token);
+            expect(chromeStorage.local.set.mock.calls[0]![0]).toEqual({secretPaths, totpSettings});
+            expect(vaultApiStub.getSecretPaths).toHaveBeenCalledWith(vaultUrl, vaultPath, auth.token);
+            expect(vaultApiStub.listTotpKeys).toHaveBeenCalledWith(vaultUrl, auth.token);
         });
     });
     describe('uniqueUrls', () => {
         beforeEach(() => {
-            chromeStorage.local.get.mockImplementation((keys, cb) => cb({vaultUrl, vaultPath, token}));
+            chromeStorage.local.get.mockImplementation((keys, cb) => cb({vaultUrl, vaultPath, auth}));
         });
         it('returns empty array if no vaultUrl', async () => {
             chromeStorage.local.get.mockImplementation((keys, cb) => cb({}));
@@ -105,16 +133,17 @@ describe('settings', () => {
             const result = await settings.getDomains();
 
             expect(result).toEqual([]);
-            expect(vaultApiStub.getUrlPaths).not.toHaveBeenCalled();
+            expect(vaultApiStub.getSecretPaths).not.toHaveBeenCalled();
         });
         it('caches URLs and converts secret URL', async () => {
             const secretPaths = [urlPath('', 'https://my-bank.com/login')];
-            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
+            vaultApiStub.getSecretPaths.mockResolvedValue(secretPaths);
+            vaultApiStub.listTotpKeys.mockResolvedValue([]);
 
             const result = await settings.getDomains();
 
             expect(chromeStorage.local.set).toHaveBeenCalledTimes(1);
-            expect(chromeStorage.local.set).toHaveBeenCalledWith({secretPaths}, expect.any(Function));
+            expect(chromeStorage.local.set).toHaveBeenCalledWith({secretPaths, totpSettings: []}, expect.any(Function));
             expect(result).toEqual(['my-bank.com']);
         });
         it('returns unique secret url domains', async () => {
@@ -122,7 +151,8 @@ describe('settings', () => {
                 urlPath('/my-account', 'https://my-bank.com/login'),
                 urlPath('/spouse-account', 'https://my-bank.com/login'),
             ];
-            vaultApiStub.getUrlPaths.mockResolvedValue(secretPaths);
+            vaultApiStub.getSecretPaths.mockResolvedValue(secretPaths);
+            vaultApiStub.listTotpKeys.mockResolvedValue([]);
 
             const result = await settings.getDomains();
 
