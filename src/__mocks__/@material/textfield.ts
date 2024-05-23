@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 class MockTextField {
     static instances: MockTextField[] = [];
     readonly listen = jest.fn();

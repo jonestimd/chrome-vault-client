@@ -12,6 +12,7 @@ import {MDCSnackbar} from '@material/snackbar';
 jest.mock('./settings');
 jest.mock('@material/ripple');
 jest.mock('@material/snackbar');
+jest.unmock('@material/linear-progress');
 jest.mock('./components/UrlList');
 jest.mock('./permissions');
 jest.mock('./vaultApi');

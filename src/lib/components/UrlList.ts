@@ -1,4 +1,6 @@
 import List, {ListItem} from './List';
+import type {SecretInfo} from '../vaultApi';
+import {getHostname} from '../urls';
 
 const itemPrimaryText = (url: string) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
 const itemSecondaryText = (vaultPaths: string[]) => `<ul>${vaultPaths.map((p) => `<li>${p}</li>`).join('')}</ul>`;
@@ -84,6 +86,9 @@ class UrlListItem extends ListItem {
     }
 }
 
+type Comparator<T> = (v1: T, v2: T) => number;
+const compareKeys: Comparator<[string, unknown]> = ([key1], [key2]) => key1.localeCompare(key2);
+
 export default class UrlList extends List<UrlListItem> {
     private _useCurrentTab = false;
 
@@ -99,6 +104,16 @@ export default class UrlList extends List<UrlListItem> {
 
     addItem(url: string, secretPaths: string[]): void {
         super.addListItem(UrlListItem.newItem(url, secretPaths, this._useCurrentTab));
+    }
+
+    setItems(secretPaths: SecretInfo[] = []) {
+        this.removeAll();
+        const byHost = secretPaths.reduce<Record<string, SecretInfo[]>>((byHost, secret) => {
+            const hostname = getHostname(secret.url);
+            const urlSecrets = byHost[hostname] ?? [];
+            return {...byHost, [hostname]: [...urlSecrets, secret]};
+        }, {});
+        Object.entries(byHost).sort(compareKeys).forEach(([url, secrets]) => this.addItem(url, secrets.map((s) => s.path)));
     }
 
     filterItems(text: string): void {

@@ -67,6 +67,24 @@ describe('UrlList', () => {
             checkVaultPaths(items[0]!, ['/secret1']);
         });
     });
+    describe('setItems', () => {
+        it('groups items by hostname', () => {
+            const list = new UrlList(element);
+            list.addItem('my.bank.com', ['/secret1']);
+
+            list.setItems([
+                {url: 'https://my.bank.com', keys: [], path: '/secret1'},
+                {url: 'https://other.bank.com', keys: [], path: '/secret3'},
+                {url: 'https://my.bank.com', keys: [], path: '/secret2'},
+            ]);
+
+            const items = element.querySelectorAll('.mdc-list-item');
+            expect(items).toHaveLength(2);
+            expect(items[0]!.querySelector('a')?.innerHTML).toEqual('https://my.bank.com');
+            expect(Array.from(items[0]!.querySelectorAll('ul li')).map((i) => i.textContent)).toEqual(['/secret1', '/secret2']);
+            expect(items[1]!.querySelector('a')?.innerHTML).toEqual('https://other.bank.com');
+        });
+    });
     describe('filteritems', () => {
         it('hides items that do not match', () => {
             const list = new UrlList(element);
