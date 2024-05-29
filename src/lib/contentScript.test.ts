@@ -22,6 +22,7 @@ function loadHtml(html: string) {
     const jsdom = new JSDOM(html);
     global.HTMLElement = jsdom.window.HTMLElement;
     global.HTMLLabelElement = jsdom.window.HTMLLabelElement;
+    global.DOMParser = jsdom.window.DOMParser;
     return jsdom.window.document;
 }
 
@@ -112,6 +113,24 @@ describe('contentScript', () => {
             expect(port.postMessage).toHaveBeenCalledWith({
                 url: windowUrl,
                 inputs: [getInputInfo({refId: 0, type: 'password'})],
+            });
+        });
+        it('sends message for added input', () => {
+            global.document = loadHtml('<html><body><input type="password"/></body></html>');
+            mockVisible(document.querySelector('input')!);
+            sendGetInputs();
+            document.body.appendChild(new DOMParser().parseFromString('<div><input type="text" id="loginId"/></div>', 'text/html').body.firstElementChild!);
+            mockVisible(document.querySelector('#loginId')!);
+            console.info(document.body.innerHTML);
+
+            const port = sendGetInputs();
+
+            expect(port.postMessage).toHaveBeenCalledWith({
+                url: windowUrl,
+                inputs: [
+                    getInputInfo({refId: 0, type: 'password'}),
+                    getInputInfo({refId: 1, type: 'text', id: 'loginId'}),
+                ],
             });
         });
     });

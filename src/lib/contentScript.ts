@@ -44,14 +44,15 @@ function setInput(input: HTMLInputElement, value: string): void {
     input.dispatchEvent(new Event('blur', {bubbles: true}));
 }
 
-function isVisible(element: Element): boolean | undefined{
+function isVisible(element: Element): boolean {
     if (element instanceof HTMLElement && element.offsetParent) {
         const rect = element.getBoundingClientRect();
         return rect.x >= 0 && rect.y >= 0;
     }
+    return false;
 }
 
-function isValid(input: HTMLInputElement): boolean | undefined {
+function isValid(input: HTMLInputElement): boolean {
     return isVisible(input) && (!input.type || inputTypes.includes(input.type as InputType));
 }
 
@@ -67,10 +68,12 @@ function getFrameId(w: Window = window): string {
     throw new Error('invalid frame');
 }
 
-function findInputs(document: Document) {
+function findInputs() {
+    const existing = new Set(inputsById.values());
     return Array.from(document.querySelectorAll('input'))
         .filter(isValid)
-        .map((input, index) => new InputInfo(frameId!, index, input))
+        .filter((input) => !existing.has(input))
+        .map((input, index) => new InputInfo(frameId!, index + pageInfo!.inputs.length, input))
         .filter((input) => !input.isEmpty);
 }
 
@@ -80,9 +83,9 @@ chrome.runtime.onConnect.addListener((port: chrome.runtime.Port) => {
             if (message === 'get-inputs') {
                 if (!pageInfo) {
                     frameId = getFrameId();
-                    const inputs = findInputs(document);
-                    pageInfo = {url: window.location.href, inputs};
+                    pageInfo = {url: window.location.href, inputs: []};
                 }
+                pageInfo.inputs.push(...findInputs());
                 if (pageInfo.inputs.length) port.postMessage(pageInfo);
             }
         });
